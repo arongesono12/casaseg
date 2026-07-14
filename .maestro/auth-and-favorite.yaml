@@ -1,0 +1,10 @@
+appId: com.casaseg.mobile
+---
+- launchApp:
+    clearState: true
+- tapOn: "Iniciar sesión"
+- assertVisible: "Bienvenido a CasaSeg"
+- tapOn: "Entrar como cliente demo"
+- assertVisible: "Hola, Aron"
+- tapOn: "Guardar propiedad"
+- tapOn: "Guardados"

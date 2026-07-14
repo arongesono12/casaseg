@@ -1,0 +1,12 @@
+appId: com.casaseg.mobile
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Encuentra tu próximo hogar"
+- tapOn: "Abrir filtros"
+- assertVisible: "Filtros"
+- tapOn: "Ubicación"
+- inputText: "Malabo"
+- tapOn: "Mostrar 1 resultados"
+- tapOn: "Ver Apartamento moderno en Malabo"
+- assertVisible: "Apartamento moderno en Malabo"

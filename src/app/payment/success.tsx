@@ -1,0 +1,1 @@
+import { RouteScreen } from '@/components/route-screen'; export default function PaymentSuccess() { return <RouteScreen title="Verificando pago" description="Volvemos a consultar al servidor; el deep link no confirma por sí solo el pago." />; }

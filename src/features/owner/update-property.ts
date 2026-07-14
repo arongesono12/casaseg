@@ -1,0 +1,1 @@
+import { isSupabaseConfigured, supabase } from '@/lib/supabase'; export async function updateProperty(propertyId: string, patch: { title: string; price: number; description: string }) { if (!isSupabaseConfigured) return; const { error } = await supabase.functions.invoke('update-property', { body: { property_id: propertyId, ...patch } }); if (error) throw error; }

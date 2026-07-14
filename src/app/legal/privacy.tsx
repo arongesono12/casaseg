@@ -1,0 +1,1 @@
+import { RouteScreen } from '@/components/route-screen'; export default function Privacy() { return <RouteScreen title="Privacidad" description="Cómo protegemos y tratamos tus datos personales." />; }

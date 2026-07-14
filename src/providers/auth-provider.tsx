@@ -1,0 +1,134 @@
+import type { Session as SupabaseSession } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { revokePushDevices } from '@/features/notifications/push-notifications';
+import { appStorage } from '@/lib/local-storage';
+import type { AppUser, UserRole } from '@/types';
+
+void WebBrowser.maybeCompleteAuthSession();
+const DEMO_KEY = 'casaseg.demo-session';
+
+function mapUser(session: SupabaseSession | null): AppUser | null {
+  if (!session?.user) return null;
+  const metadata = session.user.user_metadata;
+  return {
+    id: session.user.id,
+    email: session.user.email ?? '',
+    name: String(metadata.name ?? metadata.full_name ?? session.user.email?.split('@')[0] ?? 'Usuario'),
+    role: (metadata.role ?? 'client') as UserRole,
+    avatar: metadata.avatar_url as string | undefined,
+  };
+}
+
+type AuthContextValue = {
+  session: SupabaseSession | null;
+  user: AppUser | null;
+  role?: UserRole;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (input: { email: string; password: string; name: string; role: 'client' | 'owner' }) => Promise<void>;
+  verifyOtp: (email: string, token: string) => Promise<void>;
+  signInWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  signInDemo: (role?: UserRole) => Promise<void>;
+  signOut: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: PropsWithChildren) {
+  const [session, setSession] = useState<SupabaseSession | null>(null);
+  const [profileUser, setProfileUser] = useState<AppUser | null>(null);
+  const [demoUser, setDemoUser] = useState<AppUser | null>(() => { const stored = !isSupabaseConfigured ? appStorage.getItem(DEMO_KEY) : null; return stored ? JSON.parse(stored) as AppUser : null; });
+  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => setSession(data.session)).finally(() => setIsLoading(false));
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user || !isSupabaseConfigured) return;
+    let active = true;
+    void supabase.from('profiles').select('id,name,email,role,avatar').eq('id', session.user.id).maybeSingle().then(({ data }) => {
+      if (!active || !data) return;
+      setProfileUser({ id: String(data.id), name: String(data.name ?? session.user.user_metadata.name ?? 'Usuario'), email: String(data.email ?? session.user.email ?? ''), role: (data.role ?? 'client') as UserRole, avatar: data.avatar ? String(data.avatar) : undefined });
+    });
+    return () => { active = false; };
+  }, [session]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }, []);
+
+  const signUp = useCallback(async ({ email, password, name, role }: { email: string; password: string; name: string; role: 'client' | 'owner' }) => {
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { name, role } } });
+    if (error) throw error;
+  }, []);
+
+  const verifyOtp = useCallback(async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) throw error;
+  }, []);
+
+  const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
+    const redirectTo = Linking.createURL('auth/callback');
+    const { data, error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true } });
+    if (error) throw error;
+    if (!data.url) throw new Error('No se pudo iniciar OAuth');
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type !== 'success') return;
+    const code = new URL(result.url).searchParams.get('code');
+    if (code) {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) throw exchangeError;
+    }
+  }, []);
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: Linking.createURL('reset-password') });
+    if (error) throw error;
+  }, []);
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+  }, []);
+
+  const signInDemo = useCallback(async (role: UserRole = 'client') => {
+    const next: AppUser = { id: role === 'owner' ? 'owner-elena' : `demo-${role}`, name: role === 'owner' ? 'Elena' : 'Aron', email: `${role}@casaseg.app`, role };
+    setDemoUser(next);
+    appStorage.setItem(DEMO_KEY, JSON.stringify(next));
+  }, []);
+
+  const user = demoUser ?? (session ? profileUser ?? mapUser(session) : null);
+
+  const signOut = useCallback(async () => {
+    if (user) await revokePushDevices(user.id);
+    if (isSupabaseConfigured) await supabase.auth.signOut();
+    setDemoUser(null);
+    appStorage.removeItem(DEMO_KEY);
+  }, [user]);
+
+  const value = useMemo<AuthContextValue>(() => ({
+    session, user, role: user?.role, isAuthenticated: Boolean(user), isLoading,
+    signIn, signUp, verifyOtp, signInWithOAuth, requestPasswordReset, updatePassword, signInDemo, signOut,
+  }), [isLoading, requestPasswordReset, session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword, user, verifyOtp]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used inside AuthProvider');
+  return context;
+}

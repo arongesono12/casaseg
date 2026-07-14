@@ -1,0 +1,1 @@
+import { RouteScreen } from '@/components/route-screen'; export default function PaymentFailed() { return <RouteScreen title="Pago no completado" description="No se ha confirmado ningún cargo. Puedes revisar el estado o volver a intentarlo." />; }

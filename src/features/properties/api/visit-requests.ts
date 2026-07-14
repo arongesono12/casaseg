@@ -1,0 +1,4 @@
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+export type VisitRequest = { id: string; propertyTitle: string; proposedAt: string; status: string };
+export async function createVisitRequest(propertyId: string, proposedAt: string, note: string) { if (!isSupabaseConfigured) return; const { error } = await supabase.functions.invoke('create-visit-request', { body: { property_id: propertyId, proposed_at: proposedAt, note } }); if (error) throw error; }
+export async function fetchOwnerVisitRequests() { if (!isSupabaseConfigured) return [] as VisitRequest[]; const { data, error } = await supabase.from('visit_requests').select('id,proposed_at,status,properties(title)').order('proposed_at'); if (error) throw error; return data.map((row) => ({ id: String(row.id), propertyTitle: String((row.properties as { title?: string } | null)?.title ?? 'Propiedad'), proposedAt: String(row.proposed_at), status: String(row.status) })); }

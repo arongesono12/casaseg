@@ -1,0 +1,116 @@
+import { createContext, type PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
+import { appStorage } from '@/lib/local-storage';
+
+export type Locale = 'es' | 'fr' | 'en';
+
+const copy = {
+  es: {
+    explore: 'Explorer', saved: 'Guardados', messages: 'Mensajes', profile: 'Perfil',
+    greeting: 'Hola, {name}', guestGreeting: 'Encuentra tu próximo hogar', greetingSubtitle: 'Propiedades verificadas, cerca de ti.',
+    searchTitle: '¿Dónde quieres vivir?', searchSubtitle: 'Ubicación, precio y tipo', list: 'Lista', map: 'Mapa',
+    properties: 'propiedades', sort: 'Ordenar', all: 'Todos', apartments: 'Apartamentos', houses: 'Casas', studios: 'Estudios',
+    back: 'Volver', cancel: 'Cancelar', continue: 'Continuar', confirm: 'Confirmar', retry: 'Reintentar', loading: 'Cargando…',
+    filtersTitle: 'Filtros', filtersSubtitle: 'Ajusta tu búsqueda antes de aplicarla.', reset: 'Restablecer', showResults: 'Mostrar {count} resultados', location: 'Ubicación', propertyName: 'Nombre', maxPrice: 'Precio máximo', availability: 'Disponibilidad', category: 'Categoría',
+    loginTitle: 'Bienvenido a CasaSeg', loginSubtitle: 'Inicia sesión para guardar viviendas, conversar y gestionar contratos.', email: 'Correo', password: 'Contraseña', signIn: 'Iniciar sesión', signingIn: 'Entrando…', createAccount: 'Crear una cuenta', forgotPassword: 'He olvidado mi contraseña', rememberMe: 'Recordarme', showPassword: 'Mostrar contraseña', hidePassword: 'Ocultar contraseña', signInWithGoogle: 'Iniciar sesión con Google', signInWithApple: 'Iniciar sesión con Apple', termsAndConditions: 'Términos y condiciones', privacy: 'Privacidad', devMode: 'Modo de desarrollo', clientDemo: 'Entrar como cliente demo', ownerDemo: 'Entrar como propietario demo',
+    savedSubtitle: 'Tus viviendas favoritas, sincronizadas con tu cuenta.', noSaved: 'No tienes propiedades guardadas', saveHint: 'Usa el corazón en Explorer para guardar una vivienda.',
+    messagesSubtitle: 'Conversaciones sobre propiedades, visitas y contratos.', connectionError: 'Error de conexión. Reintentar', noConversations: 'Aún no hay conversaciones', conversationHint: 'Contacta desde el detalle de una propiedad para empezar.', secureConversation: 'Conversación segura', firstMessage: 'Escribe el primer mensaje de esta conversación.', writeMessage: 'Escribe un mensaje…', sendMessage: 'Enviar mensaje',
+    owner: 'Propietario', description: 'Descripción', amenities: 'Servicios', verifiedIdentity: 'Identidad verificada', requestVisit: 'Solicitar una visita', documentVerified: 'Documentación verificada', verificationPending: 'Verificación en curso', available: 'Disponible', occupied: 'Actualmente ocupada', contact: 'Contactar', editProperty: 'Editar propiedad', loginToContact: 'Iniciar sesión para contactar', openConversation: 'Abrir conversación', waitingList: 'Unirme a la lista de espera', notFound: 'Propiedad no encontrada.', beds: '{count} hab', baths: '{count} baños',
+    mapSearch: 'Buscar en el mapa', viewList: 'Ver lista', myLocation: 'Mi ubicación', mapNativeOnly: 'Mapa disponible en iOS y Android', mapWebHint: 'En web, abre la versión de escritorio de CasaSeg.', offline: 'Sin conexión · mostrando datos guardados',
+    settings: 'Ajustes', settingsSubtitle: 'Personaliza el tema y el idioma de CasaSeg.', theme: 'Tema', language: 'Idioma', light: 'Claro', dark: 'Oscuro', system: 'Sistema',
+    notifications: 'Notificaciones', markRead: 'Marcar leídas', enablePush: 'Activar notificaciones push', pushEnabled: 'Push activado en este dispositivo', newBadge: 'Nuevo', saveProperty: 'Guardar propiedad', removeFavorite: 'Quitar de guardados', viewProperty: 'Ver {title}',
+    noPropertyResults: 'No hay propiedades con estos filtros.', propertyLoadError: 'No pudimos cargar las propiedades. Toca para reintentar.',
+    forgotTitle: 'Recuperar contraseña', forgotSubtitle: 'Te enviaremos un enlace seguro.', sendLink: 'Enviar enlace', checkEmail: 'Revisa tu correo para continuar.', backToLogin: 'Volver al acceso', resetTitle: 'Nueva contraseña', resetSubtitle: 'Crea una contraseña robusta para tu cuenta.', repeatPassword: 'Repite la contraseña', savePassword: 'Guardar contraseña', verifyTitle: 'Verifica tu cuenta', verifySubtitle: 'Introduce el código enviado a tu correo.', otpCode: 'Código OTP', verify: 'Verificar',
+    visitTitle: 'Solicitar visita', visitSubtitle: 'Propón una fecha; el propietario deberá confirmarla.', dateTime: 'Fecha y hora', optionalMessage: 'Mensaje opcional', sending: 'Enviando…', sendRequest: 'Enviar solicitud',
+    ownerPanel: 'Panel del propietario', ownerPanelSubtitle: 'Gestiona publicaciones, pagos y contratos desde el móvil.', myProperties: 'Mis propiedades', myPropertiesSubtitle: 'Publicaciones activas y borradores.', createProperty: 'Crear propiedad', requests: 'Solicitudes', payments: 'Pagos', contracts: 'Contratos', subscription: 'Suscripción', editPublication: 'Editar publicación',
+    paymentsSubtitle: 'El servidor calcula el importe y confirma el pago mediante webhook.', paymentSecurity: 'CasaSeg nunca guarda datos de tarjeta ni confía en el deep link de éxito.', paySecure: 'Pagar con checkout seguro', checking: 'Consultando…', contractsSubtitle: 'Versiones inmutables, documentos privados y firma confirmada por el servidor.', version: 'Versión {count}', openPdf: 'Abrir PDF privado', signMfa: 'Firmar con MFA', subscriptionSubtitle: 'Mejora la visibilidad de tus propiedades desde un checkout seguro.', proPlan: 'Plan Profesional', proPlanDescription: 'Publicaciones destacadas y herramientas avanzadas para propietarios.', upgradePlan: 'Mejorar plan',
+    adminWebNote: 'Las tareas administrativas avanzadas están disponibles preferentemente en el panel web.', signOut: 'Cerrar sesión',
+    registerTitle: 'Crear cuenta', registerSubtitle: 'Regístrate como cliente o propietario.', name: 'Nombre', client: 'Cliente',
+    basicInfo: 'Información básica', priceMode: 'Precio y modalidad', features: 'Características', photos: 'Fotografías', preview: 'Vista previa', publication: 'Publicación', title: 'Título', price: 'Precio', bedrooms: 'Dormitorios', bathrooms: 'Baños', choosePhotos: 'Elegir y comprimir fotos', photo: 'Foto {count}', untitled: 'Sin título', pricePending: 'Precio pendiente', publishNotice: 'La publicación final requiere conexión. El servidor valida propietario, archivos y datos.', uploading: 'Subiendo {count}%', publishProperty: 'Publicar propiedad', saveChanges: 'Guardar cambios', saving: 'Guardando…',
+    personalData: 'Datos personales', phone: 'Teléfono', address: 'Dirección', document: 'Documento', taxInfo: 'Información fiscal', payoutMethod: 'Método de cobro', plan: 'Plan', review: 'Revisión', confirmation: 'Confirmación', stepOf: 'Paso {current} de {total}', secureDocument: 'Los documentos sensibles se envían directamente al backend y no se guardan en el borrador local.', documentSent: 'Documento enviado', sendDocument: 'Enviar documento de forma segura',
+  },
+  fr: {
+    explore: 'Explorer', saved: 'Favoris', messages: 'Messages', profile: 'Profil',
+    greeting: 'Bonjour, {name}', guestGreeting: 'Trouvez votre prochain logement', greetingSubtitle: 'Des biens vérifiés, près de chez vous.',
+    searchTitle: 'Où souhaitez-vous vivre ?', searchSubtitle: 'Lieu, prix et type', list: 'Liste', map: 'Carte',
+    properties: 'propriétés', sort: 'Trier', all: 'Tous', apartments: 'Appartements', houses: 'Maisons', studios: 'Studios',
+    back: 'Retour', cancel: 'Annuler', continue: 'Continuer', confirm: 'Confirmer', retry: 'Réessayer', loading: 'Chargement…',
+    filtersTitle: 'Filtres', filtersSubtitle: 'Ajustez votre recherche avant de l’appliquer.', reset: 'Réinitialiser', showResults: 'Afficher {count} résultats', location: 'Lieu', propertyName: 'Nom', maxPrice: 'Prix maximum', availability: 'Disponibilité', category: 'Catégorie',
+    loginTitle: 'Bienvenue sur CasaSeg', loginSubtitle: 'Connectez-vous pour enregistrer des logements, discuter et gérer vos contrats.', email: 'E-mail', password: 'Mot de passe', signIn: 'Se connecter', signingIn: 'Connexion…', createAccount: 'Créer un compte', forgotPassword: 'Mot de passe oublié', rememberMe: 'Se souvenir de moi', showPassword: 'Afficher le mot de passe', hidePassword: 'Masquer le mot de passe', signInWithGoogle: 'Se connecter avec Google', signInWithApple: 'Se connecter avec Apple', termsAndConditions: 'Conditions générales', privacy: 'Confidentialité', devMode: 'Mode développement', clientDemo: 'Entrer comme client démo', ownerDemo: 'Entrer comme propriétaire démo',
+    savedSubtitle: 'Vos logements favoris, synchronisés avec votre compte.', noSaved: 'Aucun logement enregistré', saveHint: 'Utilisez le cœur dans Explorer pour enregistrer un logement.',
+    messagesSubtitle: 'Conversations sur les logements, visites et contrats.', connectionError: 'Erreur de connexion. Réessayer', noConversations: 'Aucune conversation', conversationHint: 'Contactez un propriétaire depuis la fiche du logement.', secureConversation: 'Conversation sécurisée', firstMessage: 'Écrivez le premier message.', writeMessage: 'Écrire un message…', sendMessage: 'Envoyer le message',
+    owner: 'Propriétaire', description: 'Description', amenities: 'Services', verifiedIdentity: 'Identité vérifiée', requestVisit: 'Demander une visite', documentVerified: 'Documents vérifiés', verificationPending: 'Vérification en cours', available: 'Disponible', occupied: 'Actuellement occupé', contact: 'Contacter', editProperty: 'Modifier le bien', loginToContact: 'Se connecter pour contacter', openConversation: 'Ouvrir la conversation', waitingList: 'Rejoindre la liste d’attente', notFound: 'Bien introuvable.', beds: '{count} ch.', baths: '{count} salles de bain',
+    mapSearch: 'Rechercher sur la carte', viewList: 'Voir la liste', myLocation: 'Ma position', mapNativeOnly: 'Carte disponible sur iOS et Android', mapWebHint: 'Sur le web, ouvrez la version bureau de CasaSeg.', offline: 'Hors ligne · données enregistrées affichées',
+    settings: 'Réglages', settingsSubtitle: 'Personnalisez le thème et la langue de CasaSeg.', theme: 'Thème', language: 'Langue', light: 'Clair', dark: 'Sombre', system: 'Système',
+    notifications: 'Notifications', markRead: 'Tout marquer comme lu', enablePush: 'Activer les notifications push', pushEnabled: 'Push activé sur cet appareil', newBadge: 'Nouveau', saveProperty: 'Enregistrer le bien', removeFavorite: 'Retirer des favoris', viewProperty: 'Voir {title}',
+    noPropertyResults: 'Aucun bien ne correspond à ces filtres.', propertyLoadError: 'Impossible de charger les biens. Touchez pour réessayer.',
+    forgotTitle: 'Réinitialiser le mot de passe', forgotSubtitle: 'Nous vous enverrons un lien sécurisé.', sendLink: 'Envoyer le lien', checkEmail: 'Consultez votre e-mail pour continuer.', backToLogin: 'Retour à la connexion', resetTitle: 'Nouveau mot de passe', resetSubtitle: 'Créez un mot de passe robuste.', repeatPassword: 'Répéter le mot de passe', savePassword: 'Enregistrer le mot de passe', verifyTitle: 'Vérifiez votre compte', verifySubtitle: 'Saisissez le code reçu par e-mail.', otpCode: 'Code OTP', verify: 'Vérifier',
+    visitTitle: 'Demander une visite', visitSubtitle: 'Proposez une date que le propriétaire devra confirmer.', dateTime: 'Date et heure', optionalMessage: 'Message facultatif', sending: 'Envoi…', sendRequest: 'Envoyer la demande',
+    ownerPanel: 'Espace propriétaire', ownerPanelSubtitle: 'Gérez vos annonces, paiements et contrats sur mobile.', myProperties: 'Mes biens', myPropertiesSubtitle: 'Annonces actives et brouillons.', createProperty: 'Créer un bien', requests: 'Demandes', payments: 'Paiements', contracts: 'Contrats', subscription: 'Abonnement', editPublication: 'Modifier l’annonce',
+    paymentsSubtitle: 'Le serveur calcule le montant et confirme le paiement par webhook.', paymentSecurity: 'CasaSeg ne stocke jamais les cartes et ne se fie pas au lien de retour.', paySecure: 'Payer par checkout sécurisé', checking: 'Vérification…', contractsSubtitle: 'Versions immuables, documents privés et signature confirmée par le serveur.', version: 'Version {count}', openPdf: 'Ouvrir le PDF privé', signMfa: 'Signer avec MFA', subscriptionSubtitle: 'Améliorez la visibilité de vos biens via un checkout sécurisé.', proPlan: 'Plan Professionnel', proPlanDescription: 'Annonces mises en avant et outils avancés pour propriétaires.', upgradePlan: 'Améliorer le plan',
+    adminWebNote: 'Les tâches administratives avancées sont disponibles de préférence sur le web.', signOut: 'Se déconnecter',
+    registerTitle: 'Créer un compte', registerSubtitle: 'Inscrivez-vous comme client ou propriétaire.', name: 'Nom', client: 'Client',
+    basicInfo: 'Informations de base', priceMode: 'Prix et modalité', features: 'Caractéristiques', photos: 'Photos', preview: 'Aperçu', publication: 'Publication', title: 'Titre', price: 'Prix', bedrooms: 'Chambres', bathrooms: 'Salles de bain', choosePhotos: 'Choisir et compresser les photos', photo: 'Photo {count}', untitled: 'Sans titre', pricePending: 'Prix en attente', publishNotice: 'La publication finale exige une connexion. Le serveur valide le propriétaire, les fichiers et les données.', uploading: 'Envoi {count}%', publishProperty: 'Publier le bien', saveChanges: 'Enregistrer', saving: 'Enregistrement…',
+    personalData: 'Données personnelles', phone: 'Téléphone', address: 'Adresse', document: 'Document', taxInfo: 'Informations fiscales', payoutMethod: 'Mode de paiement', plan: 'Plan', review: 'Révision', confirmation: 'Confirmation', stepOf: 'Étape {current} sur {total}', secureDocument: 'Les documents sensibles sont envoyés directement au serveur et ne sont pas conservés dans le brouillon.', documentSent: 'Document envoyé', sendDocument: 'Envoyer le document en sécurité',
+  },
+  en: {
+    explore: 'Explore', saved: 'Saved', messages: 'Messages', profile: 'Profile',
+    greeting: 'Hello, {name}', guestGreeting: 'Find your next home', greetingSubtitle: 'Verified properties, close to you.',
+    searchTitle: 'Where do you want to live?', searchSubtitle: 'Location, price and type', list: 'List', map: 'Map',
+    properties: 'properties', sort: 'Sort', all: 'All', apartments: 'Apartments', houses: 'Houses', studios: 'Studios',
+    back: 'Back', cancel: 'Cancel', continue: 'Continue', confirm: 'Confirm', retry: 'Retry', loading: 'Loading…',
+    filtersTitle: 'Filters', filtersSubtitle: 'Adjust your search before applying it.', reset: 'Reset', showResults: 'Show {count} results', location: 'Location', propertyName: 'Name', maxPrice: 'Maximum price', availability: 'Availability', category: 'Category',
+    loginTitle: 'Welcome to CasaSeg', loginSubtitle: 'Sign in to save homes, chat, and manage contracts.', email: 'Email', password: 'Password', signIn: 'Sign in', signingIn: 'Signing in…', createAccount: 'Create an account', forgotPassword: 'I forgot my password', rememberMe: 'Remember me', showPassword: 'Show password', hidePassword: 'Hide password', signInWithGoogle: 'Sign in with Google', signInWithApple: 'Sign in with Apple', termsAndConditions: 'Terms and conditions', privacy: 'Privacy', devMode: 'Development mode', clientDemo: 'Enter as demo client', ownerDemo: 'Enter as demo owner',
+    savedSubtitle: 'Your favorite homes, synced with your account.', noSaved: 'No saved properties', saveHint: 'Use the heart in Explore to save a home.',
+    messagesSubtitle: 'Conversations about properties, visits, and contracts.', connectionError: 'Connection error. Retry', noConversations: 'No conversations yet', conversationHint: 'Contact a property from its detail screen to begin.', secureConversation: 'Secure conversation', firstMessage: 'Write the first message in this conversation.', writeMessage: 'Write a message…', sendMessage: 'Send message',
+    owner: 'Owner', description: 'Description', amenities: 'Amenities', verifiedIdentity: 'Verified identity', requestVisit: 'Request a visit', documentVerified: 'Documents verified', verificationPending: 'Verification in progress', available: 'Available', occupied: 'Currently occupied', contact: 'Contact', editProperty: 'Edit property', loginToContact: 'Sign in to contact', openConversation: 'Open conversation', waitingList: 'Join the waiting list', notFound: 'Property not found.', beds: '{count} beds', baths: '{count} baths',
+    mapSearch: 'Search on map', viewList: 'View list', myLocation: 'My location', mapNativeOnly: 'Map available on iOS and Android', mapWebHint: 'On web, open the CasaSeg desktop version.', offline: 'Offline · showing saved data',
+    settings: 'Settings', settingsSubtitle: 'Customize CasaSeg theme and language.', theme: 'Theme', language: 'Language', light: 'Light', dark: 'Dark', system: 'System',
+    notifications: 'Notifications', markRead: 'Mark as read', enablePush: 'Enable push notifications', pushEnabled: 'Push enabled on this device', newBadge: 'New', saveProperty: 'Save property', removeFavorite: 'Remove from saved', viewProperty: 'View {title}',
+    noPropertyResults: 'No properties match these filters.', propertyLoadError: 'We could not load properties. Tap to retry.',
+    forgotTitle: 'Reset password', forgotSubtitle: 'We will send you a secure link.', sendLink: 'Send link', checkEmail: 'Check your email to continue.', backToLogin: 'Back to sign in', resetTitle: 'New password', resetSubtitle: 'Create a strong password for your account.', repeatPassword: 'Repeat password', savePassword: 'Save password', verifyTitle: 'Verify your account', verifySubtitle: 'Enter the code sent to your email.', otpCode: 'OTP code', verify: 'Verify',
+    visitTitle: 'Request a visit', visitSubtitle: 'Propose a date for the owner to confirm.', dateTime: 'Date and time', optionalMessage: 'Optional message', sending: 'Sending…', sendRequest: 'Send request',
+    ownerPanel: 'Owner dashboard', ownerPanelSubtitle: 'Manage listings, payments, and contracts on mobile.', myProperties: 'My properties', myPropertiesSubtitle: 'Active listings and drafts.', createProperty: 'Create property', requests: 'Requests', payments: 'Payments', contracts: 'Contracts', subscription: 'Subscription', editPublication: 'Edit listing',
+    paymentsSubtitle: 'The server calculates the amount and confirms payment through a webhook.', paymentSecurity: 'CasaSeg never stores card data or trusts a success deep link.', paySecure: 'Pay with secure checkout', checking: 'Checking…', contractsSubtitle: 'Immutable versions, private documents, and server-confirmed signatures.', version: 'Version {count}', openPdf: 'Open private PDF', signMfa: 'Sign with MFA', subscriptionSubtitle: 'Improve property visibility through a secure checkout.', proPlan: 'Professional Plan', proPlanDescription: 'Featured listings and advanced owner tools.', upgradePlan: 'Upgrade plan',
+    adminWebNote: 'Advanced administration tasks are preferably available on the web dashboard.', signOut: 'Sign out',
+    registerTitle: 'Create account', registerSubtitle: 'Register as a client or owner.', name: 'Name', client: 'Client',
+    basicInfo: 'Basic information', priceMode: 'Price and mode', features: 'Features', photos: 'Photos', preview: 'Preview', publication: 'Publication', title: 'Title', price: 'Price', bedrooms: 'Bedrooms', bathrooms: 'Bathrooms', choosePhotos: 'Choose and compress photos', photo: 'Photo {count}', untitled: 'Untitled', pricePending: 'Price pending', publishNotice: 'Final publication requires a connection. The server validates ownership, files, and data.', uploading: 'Uploading {count}%', publishProperty: 'Publish property', saveChanges: 'Save changes', saving: 'Saving…',
+    personalData: 'Personal details', phone: 'Phone', address: 'Address', document: 'Document', taxInfo: 'Tax information', payoutMethod: 'Payout method', plan: 'Plan', review: 'Review', confirmation: 'Confirmation', stepOf: 'Step {current} of {total}', secureDocument: 'Sensitive documents are sent directly to the backend and are not stored in the local draft.', documentSent: 'Document sent', sendDocument: 'Send document securely',
+  },
+} as const;
+
+type TranslationKey = keyof (typeof copy)['es'];
+
+type I18nContextValue = {
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  t: (key: TranslationKey, variables?: Record<string, string>) => string;
+};
+
+const I18nContext = createContext<I18nContextValue | null>(null);
+
+export function I18nProvider({ children }: PropsWithChildren) {
+  const [locale, setLocaleState] = useState<Locale>(() => (appStorage.getItem('casaseg.locale') as Locale | null) ?? 'es');
+  const setLocale = useCallback((value: Locale) => { setLocaleState(value); appStorage.setItem('casaseg.locale', value); }, []);
+  const value = useMemo<I18nContextValue>(
+    () => ({
+      locale,
+      setLocale,
+      t: (key, variables) => {
+        let value: string = copy[locale][key];
+        Object.entries(variables ?? {}).forEach(([name, replacement]) => {
+          value = value.replace(`{${name}}`, replacement);
+        });
+        return value;
+      },
+    }),
+    [locale, setLocale],
+  );
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+export function useI18n() {
+  const context = useContext(I18nContext);
+  if (!context) throw new Error('useI18n must be used inside I18nProvider');
+  return context;
+}
