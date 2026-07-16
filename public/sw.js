@@ -27,12 +27,12 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) =>
-      Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      )
-    )
+    caches.keys().then((cacheNames) => {
+      const staleCacheDeletions = [];
+      for (const name of cacheNames) {
+        if (name !== CACHE_NAME) staleCacheDeletions.push(caches.delete(name));
+      }
+      return Promise.all(staleCacheDeletions);
+    })
   );
 });

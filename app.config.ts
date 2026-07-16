@@ -1,10 +1,16 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
+// EAS project IDs are public identifiers and must be available before EAS can
+// load environment variables or attempt to update this dynamic config.
+const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '7f3eebdd-5f27-4702-8fcc-10cce996380b';
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: config.name ?? 'CasaSeg',
   slug: config.slug ?? 'casaseg',
   scheme: 'casaseg',
+  jsEngine: 'hermes',
+  newArchEnabled: true,
   ios: {
     ...config.ios,
     bundleIdentifier: 'com.casaseg.mobile',
@@ -28,6 +34,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     ...config.android,
     package: 'com.casaseg.mobile',
+    softwareKeyboardLayoutMode: 'resize',
     config: {
       ...config.android?.config,
       googleMaps: { apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY },
@@ -36,6 +43,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     ...config.extra,
-    eas: { projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID },
+    eas: { projectId: easProjectId },
   },
 });

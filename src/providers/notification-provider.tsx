@@ -1,26 +1,25 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { registerPushDevice } from '@/features/notifications/push-notifications';
 import { useQuery } from '@tanstack/react-query';
 import { fetchConversations } from '@/features/messaging/messaging.api';
 import { conversationKeys, useConversationSummaryRealtime } from '@/features/messaging/use-messaging-realtime';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth } from '@/providers/auth-context';
+import { NotificationContext } from '@/providers/notification-context';
 
 function canLoadNativeNotifications() {
   return Platform.OS !== 'web' && Constants.appOwnership !== 'expo';
 }
 
-type NotificationContextValue = { unreadCount: number; messageUnreadCount: number; pushToken?: string; requestPushPermission: (userId: string) => Promise<void>; markAllRead: () => void; incrementUnread: () => void };
-const NotificationContext = createContext<NotificationContextValue | null>(null);
 export function NotificationProvider({ children }: PropsWithChildren) {
   const { user, isAuthenticated } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [pushToken, setPushToken] = useState<string>();
   const conversations = useQuery({
     queryKey: conversationKeys.list(user?.id ?? 'anonymous'),
-    queryFn: () => fetchConversations(user!.id),
+    queryFn: fetchConversations,
     enabled: isAuthenticated && Boolean(user),
   });
   useConversationSummaryRealtime(user?.id);
@@ -54,8 +53,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       subscription?.remove();
     };
   }, []);
-  const requestPushPermission = useCallback(async (userId: string) => setPushToken(await registerPushDevice(userId)), []);
+  const requestPushPermission = useCallback(async () => setPushToken(await registerPushDevice()), []);
   const value = useMemo(() => ({ unreadCount, messageUnreadCount, pushToken, requestPushPermission, markAllRead: () => setUnreadCount(0), incrementUnread: () => { if (isAuthenticated) setUnreadCount((count) => count + 1); } }), [isAuthenticated, messageUnreadCount, pushToken, requestPushPermission, unreadCount]);
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
-export function useNotifications() { const context = useContext(NotificationContext); if (!context) throw new Error('useNotifications must be used inside NotificationProvider'); return context; }

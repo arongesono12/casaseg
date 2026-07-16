@@ -1,19 +1,9 @@
-import { createContext, type PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
+import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { darkPalette, lightPalette, type AppPalette } from '@/constants/theme';
+import { darkPalette, lightPalette } from '@/constants/theme';
 import { appStorage } from '@/lib/local-storage';
-
-export type ThemeMode = 'light' | 'dark' | 'system';
-
-type ThemeContextValue = {
-  mode: ThemeMode;
-  resolvedMode: 'light' | 'dark';
-  palette: AppPalette;
-  setMode: (mode: ThemeMode) => void;
-};
-
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+import { ThemeContext, type ThemeMode } from '@/providers/theme-context';
 
 export function ThemeProvider({ children }: PropsWithChildren) {
   const systemMode = useColorScheme();
@@ -33,11 +23,3 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
-
-export function useAppTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error('useAppTheme must be used inside ThemeProvider');
-  return context;
-}
-
-export const useThemeColors = useAppTheme;

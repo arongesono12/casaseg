@@ -1,10 +1,31 @@
 import type { PriceType } from '@/types';
 
+const numberFormatters = new Map<string, Intl.NumberFormat>();
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getNumberFormatter(locale: string) {
+  let formatter = numberFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale);
+    numberFormatters.set(locale, formatter);
+  }
+  return formatter;
+}
+
+function getDateFormatter(locale: string) {
+  let formatter = dateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+    dateFormatters.set(locale, formatter);
+  }
+  return formatter;
+}
+
 export function formatXaf(amount: number, priceType?: PriceType, locale = 'es-GQ') {
   const suffix = priceType === 'per_month' ? ' / mes' : priceType === 'per_night' ? ' / noche' : '';
-  return `${new Intl.NumberFormat(locale).format(amount)} XAF${suffix}`;
+  return `${getNumberFormatter(locale).format(amount)} XAF${suffix}`;
 }
 
 export function formatDate(value: string | Date, locale = 'es-GQ') {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(value));
+  return getDateFormatter(locale).format(new Date(value));
 }

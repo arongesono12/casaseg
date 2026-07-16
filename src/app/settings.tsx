@@ -1,15 +1,15 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { radius } from '@/constants/theme';
-import { useI18n, type Locale } from '@/providers/i18n-provider';
-import { useAppTheme, type ThemeMode } from '@/providers/theme-provider';
-import { useAuth } from '@/providers/auth-provider';
+import { useI18n, type Locale } from '@/providers/i18n-context';
+import { useAppTheme, type ThemeMode } from '@/providers/theme-context';
+import { useAuth } from '@/providers/auth-context';
 import { saveUserSettings } from '@/features/auth/user-settings';
 
 export default function SettingsScreen() {
   const { mode, setMode, palette } = useAppTheme(); const { locale, setLocale } = useI18n(); const { user } = useAuth();
-  const changeTheme = (value: string) => { const theme = value as ThemeMode; setMode(theme); if (user) void saveUserSettings(user.id, { theme }); };
-  const changeLocale = (value: string) => { const nextLocale = value as Locale; setLocale(nextLocale); if (user) void saveUserSettings(user.id, { locale: nextLocale }); };
+  const changeTheme = (value: string) => { const theme = value as ThemeMode; setMode(theme); if (user) void saveUserSettings({ theme }); };
+  const changeLocale = (value: string) => { const nextLocale = value as Locale; setLocale(nextLocale); if (user) void saveUserSettings({ locale: nextLocale }); };
   const { t } = useI18n();
   return <RouteScreen title={t('settings')} description={t('settingsSubtitle')}><OptionGroup title={t('theme')} values={[['light',t('light')],['dark',t('dark')],['system',t('system')]]} selected={mode} onSelect={changeTheme} /><OptionGroup title={t('language')} values={[['es','Español'],['fr','Français'],['en','English']]} selected={locale} onSelect={changeLocale} /><Text style={{ color: palette.textSecondary, fontSize: 13, lineHeight: 19 }}>RLS protege los datos en el servidor.</Text></RouteScreen>;
 }

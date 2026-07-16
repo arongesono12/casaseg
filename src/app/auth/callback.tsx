@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
-import { useAppTheme } from '@/providers/theme-provider';
+import { useAppTheme } from '@/providers/theme-context';
 
 export default function AuthCallback() {
   const { code } = useLocalSearchParams<{ code?: string }>(); const { palette } = useAppTheme(); const [error, setError] = useState('');

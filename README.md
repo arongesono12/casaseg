@@ -23,6 +23,30 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
+## Native UI on each platform
+
+The shared React code keeps the application state and navigation, while platform files render
+native controls with SwiftUI on iOS and Jetpack Compose/Material 3 on Android.
+
+Expo SDK 54 does not include these platform-specific `@expo/ui` renderers in Expo Go. Expo Go
+therefore uses a safe React Native fallback. Use a development build to see the native SDK UI:
+
+```bash
+npm run android:native
+npm start
+```
+
+Once the development build is installed, `npm start` launches Metro for the custom `casaseg`
+runtime. To use the React Native fallback in Expo Go instead, run `npm run start:go`.
+
+On macOS, use `npm run ios:native`. For a physical device or when building iOS from Windows, use
+the existing EAS development profile:
+
+```bash
+eas build --profile development --platform android
+eas build --profile development --platform ios
+```
+
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project

@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { radius } from '@/constants/theme';
-import { useAppTheme } from '@/providers/theme-provider';
+import { useAppTheme } from '@/providers/theme-context';
 
 type RouteScreenProps = { title: string; description: string; children?: ReactNode; showBack?: boolean; headerContent?: ReactNode };
 

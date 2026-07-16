@@ -1,7 +1,6 @@
-import { createContext, type PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
+import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { appStorage } from '@/lib/local-storage';
-
-export type Locale = 'es' | 'fr' | 'en';
+import { I18nContext, type I18nContextValue, type Locale } from '@/providers/i18n-context';
 
 const copy = {
   es: {
@@ -24,7 +23,7 @@ const copy = {
     ownerPanel: 'Panel del propietario', ownerPanelSubtitle: 'Gestiona publicaciones, pagos y contratos desde el móvil.', myProperties: 'Mis propiedades', myPropertiesSubtitle: 'Publicaciones activas y borradores.', createProperty: 'Crear propiedad', requests: 'Solicitudes', payments: 'Pagos', contracts: 'Contratos', subscription: 'Suscripción', editPublication: 'Editar publicación',
     paymentsSubtitle: 'El servidor calcula el importe y confirma el pago mediante webhook.', paymentSecurity: 'CasaSeg nunca guarda datos de tarjeta ni confía en el deep link de éxito.', paySecure: 'Pagar con checkout seguro', checking: 'Consultando…', contractsSubtitle: 'Versiones inmutables, documentos privados y firma confirmada por el servidor.', version: 'Versión {count}', openPdf: 'Abrir PDF privado', signMfa: 'Firmar con MFA', subscriptionSubtitle: 'Mejora la visibilidad de tus propiedades desde un checkout seguro.', proPlan: 'Plan Profesional', proPlanDescription: 'Publicaciones destacadas y herramientas avanzadas para propietarios.', upgradePlan: 'Mejorar plan',
     adminWebNote: 'Las tareas administrativas avanzadas están disponibles preferentemente en el panel web.', signOut: 'Cerrar sesión',
-    registerTitle: 'Crear cuenta', registerSubtitle: 'Regístrate como cliente o propietario.', name: 'Nombre', client: 'Cliente',
+    registerTitle: 'Crea tu cuenta', registerSubtitle: 'Accede a una experiencia segura para encontrar o publicar tu próximo hogar.', name: 'Nombre', client: 'Cliente', accountType: 'Elige tu experiencia', accountTypeHint: 'Podrás ampliar tu perfil más adelante.', clientRoleDescription: 'Encuentra, guarda y gestiona tus viviendas favoritas.', ownerRoleDescription: 'Publica propiedades y gestiona solicitudes de forma profesional.', passwordRequirement: 'Mínimo 8 caracteres para proteger tu cuenta.', creatingAccount: 'Creando cuenta…', secureRegistration: 'Registro protegido', registrationSecurity: 'Tus datos se cifran y se usan únicamente para proteger tu cuenta.', alreadyHaveAccount: '¿Ya tienes cuenta?',
     basicInfo: 'Información básica', priceMode: 'Precio y modalidad', features: 'Características', photos: 'Fotografías', preview: 'Vista previa', publication: 'Publicación', title: 'Título', price: 'Precio', bedrooms: 'Dormitorios', bathrooms: 'Baños', choosePhotos: 'Elegir y comprimir fotos', photo: 'Foto {count}', untitled: 'Sin título', pricePending: 'Precio pendiente', publishNotice: 'La publicación final requiere conexión. El servidor valida propietario, archivos y datos.', uploading: 'Subiendo {count}%', publishProperty: 'Publicar propiedad', saveChanges: 'Guardar cambios', saving: 'Guardando…',
     personalData: 'Datos personales', phone: 'Teléfono', address: 'Dirección', document: 'Documento', taxInfo: 'Información fiscal', payoutMethod: 'Método de cobro', plan: 'Plan', review: 'Revisión', confirmation: 'Confirmación', stepOf: 'Paso {current} de {total}', secureDocument: 'Los documentos sensibles se envían directamente al backend y no se guardan en el borrador local.', documentSent: 'Documento enviado', sendDocument: 'Enviar documento de forma segura',
   },
@@ -48,7 +47,7 @@ const copy = {
     ownerPanel: 'Espace propriétaire', ownerPanelSubtitle: 'Gérez vos annonces, paiements et contrats sur mobile.', myProperties: 'Mes biens', myPropertiesSubtitle: 'Annonces actives et brouillons.', createProperty: 'Créer un bien', requests: 'Demandes', payments: 'Paiements', contracts: 'Contrats', subscription: 'Abonnement', editPublication: 'Modifier l’annonce',
     paymentsSubtitle: 'Le serveur calcule le montant et confirme le paiement par webhook.', paymentSecurity: 'CasaSeg ne stocke jamais les cartes et ne se fie pas au lien de retour.', paySecure: 'Payer par checkout sécurisé', checking: 'Vérification…', contractsSubtitle: 'Versions immuables, documents privés et signature confirmée par le serveur.', version: 'Version {count}', openPdf: 'Ouvrir le PDF privé', signMfa: 'Signer avec MFA', subscriptionSubtitle: 'Améliorez la visibilité de vos biens via un checkout sécurisé.', proPlan: 'Plan Professionnel', proPlanDescription: 'Annonces mises en avant et outils avancés pour propriétaires.', upgradePlan: 'Améliorer le plan',
     adminWebNote: 'Les tâches administratives avancées sont disponibles de préférence sur le web.', signOut: 'Se déconnecter',
-    registerTitle: 'Créer un compte', registerSubtitle: 'Inscrivez-vous comme client ou propriétaire.', name: 'Nom', client: 'Client',
+    registerTitle: 'Créez votre compte', registerSubtitle: 'Accédez à une expérience sécurisée pour trouver ou publier votre prochain logement.', name: 'Nom', client: 'Client', accountType: 'Choisissez votre expérience', accountTypeHint: 'Vous pourrez enrichir votre profil plus tard.', clientRoleDescription: 'Trouvez, enregistrez et gérez vos logements favoris.', ownerRoleDescription: 'Publiez des biens et gérez les demandes professionnellement.', passwordRequirement: '8 caractères minimum pour protéger votre compte.', creatingAccount: 'Création du compte…', secureRegistration: 'Inscription protégée', registrationSecurity: 'Vos données sont chiffrées et utilisées uniquement pour protéger votre compte.', alreadyHaveAccount: 'Vous avez déjà un compte ?',
     basicInfo: 'Informations de base', priceMode: 'Prix et modalité', features: 'Caractéristiques', photos: 'Photos', preview: 'Aperçu', publication: 'Publication', title: 'Titre', price: 'Prix', bedrooms: 'Chambres', bathrooms: 'Salles de bain', choosePhotos: 'Choisir et compresser les photos', photo: 'Photo {count}', untitled: 'Sans titre', pricePending: 'Prix en attente', publishNotice: 'La publication finale exige une connexion. Le serveur valide le propriétaire, les fichiers et les données.', uploading: 'Envoi {count}%', publishProperty: 'Publier le bien', saveChanges: 'Enregistrer', saving: 'Enregistrement…',
     personalData: 'Données personnelles', phone: 'Téléphone', address: 'Adresse', document: 'Document', taxInfo: 'Informations fiscales', payoutMethod: 'Mode de paiement', plan: 'Plan', review: 'Révision', confirmation: 'Confirmation', stepOf: 'Étape {current} sur {total}', secureDocument: 'Les documents sensibles sont envoyés directement au serveur et ne sont pas conservés dans le brouillon.', documentSent: 'Document envoyé', sendDocument: 'Envoyer le document en sécurité',
   },
@@ -72,21 +71,13 @@ const copy = {
     ownerPanel: 'Owner dashboard', ownerPanelSubtitle: 'Manage listings, payments, and contracts on mobile.', myProperties: 'My properties', myPropertiesSubtitle: 'Active listings and drafts.', createProperty: 'Create property', requests: 'Requests', payments: 'Payments', contracts: 'Contracts', subscription: 'Subscription', editPublication: 'Edit listing',
     paymentsSubtitle: 'The server calculates the amount and confirms payment through a webhook.', paymentSecurity: 'CasaSeg never stores card data or trusts a success deep link.', paySecure: 'Pay with secure checkout', checking: 'Checking…', contractsSubtitle: 'Immutable versions, private documents, and server-confirmed signatures.', version: 'Version {count}', openPdf: 'Open private PDF', signMfa: 'Sign with MFA', subscriptionSubtitle: 'Improve property visibility through a secure checkout.', proPlan: 'Professional Plan', proPlanDescription: 'Featured listings and advanced owner tools.', upgradePlan: 'Upgrade plan',
     adminWebNote: 'Advanced administration tasks are preferably available on the web dashboard.', signOut: 'Sign out',
-    registerTitle: 'Create account', registerSubtitle: 'Register as a client or owner.', name: 'Name', client: 'Client',
+    registerTitle: 'Create your account', registerSubtitle: 'Enjoy a secure experience to find or publish your next home.', name: 'Name', client: 'Client', accountType: 'Choose your experience', accountTypeHint: 'You can expand your profile later.', clientRoleDescription: 'Find, save, and manage your favorite homes.', ownerRoleDescription: 'Publish properties and manage requests professionally.', passwordRequirement: 'Use at least 8 characters to protect your account.', creatingAccount: 'Creating account…', secureRegistration: 'Protected registration', registrationSecurity: 'Your data is encrypted and used only to protect your account.', alreadyHaveAccount: 'Already have an account?',
     basicInfo: 'Basic information', priceMode: 'Price and mode', features: 'Features', photos: 'Photos', preview: 'Preview', publication: 'Publication', title: 'Title', price: 'Price', bedrooms: 'Bedrooms', bathrooms: 'Bathrooms', choosePhotos: 'Choose and compress photos', photo: 'Photo {count}', untitled: 'Untitled', pricePending: 'Price pending', publishNotice: 'Final publication requires a connection. The server validates ownership, files, and data.', uploading: 'Uploading {count}%', publishProperty: 'Publish property', saveChanges: 'Save changes', saving: 'Saving…',
     personalData: 'Personal details', phone: 'Phone', address: 'Address', document: 'Document', taxInfo: 'Tax information', payoutMethod: 'Payout method', plan: 'Plan', review: 'Review', confirmation: 'Confirmation', stepOf: 'Step {current} of {total}', secureDocument: 'Sensitive documents are sent directly to the backend and are not stored in the local draft.', documentSent: 'Document sent', sendDocument: 'Send document securely',
   },
 } as const;
 
-type TranslationKey = keyof (typeof copy)['es'];
-
-type I18nContextValue = {
-  locale: Locale;
-  setLocale: (locale: Locale) => void;
-  t: (key: TranslationKey, variables?: Record<string, string>) => string;
-};
-
-const I18nContext = createContext<I18nContextValue | null>(null);
+export type TranslationKey = keyof (typeof copy)['es'];
 
 export function I18nProvider({ children }: PropsWithChildren) {
   const [locale, setLocaleState] = useState<Locale>(() => (appStorage.getItem('casaseg.locale') as Locale | null) ?? 'es');
@@ -107,10 +98,4 @@ export function I18nProvider({ children }: PropsWithChildren) {
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
-}
-
-export function useI18n() {
-  const context = useContext(I18nContext);
-  if (!context) throw new Error('useI18n must be used inside I18nProvider');
-  return context;
 }

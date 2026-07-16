@@ -1,11 +1,12 @@
 import type { Session as SupabaseSession } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { revokePushDevices } from '@/features/notifications/push-notifications';
 import { appStorage } from '@/lib/local-storage';
 import type { AppUser, UserRole } from '@/types';
+import { AuthContext, type AuthContextValue } from '@/providers/auth-context';
 
 void WebBrowser.maybeCompleteAuthSession();
 const DEMO_KEY = 'casaseg.demo-session';
@@ -21,24 +22,6 @@ function mapUser(session: SupabaseSession | null): AppUser | null {
     avatar: metadata.avatar_url as string | undefined,
   };
 }
-
-type AuthContextValue = {
-  session: SupabaseSession | null;
-  user: AppUser | null;
-  role?: UserRole;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (input: { email: string; password: string; name: string; role: 'client' | 'owner' }) => Promise<void>;
-  verifyOtp: (email: string, token: string) => Promise<void>;
-  signInWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
-  requestPasswordReset: (email: string) => Promise<void>;
-  updatePassword: (password: string) => Promise<void>;
-  signInDemo: (role?: UserRole) => Promise<void>;
-  signOut: () => Promise<void>;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<SupabaseSession | null>(null);
@@ -113,7 +96,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const user = demoUser ?? (session ? profileUser ?? mapUser(session) : null);
 
   const signOut = useCallback(async () => {
-    if (user) await revokePushDevices(user.id);
+    if (user) await revokePushDevices();
     if (isSupabaseConfigured) await supabase.auth.signOut();
     setDemoUser(null);
     appStorage.removeItem(DEMO_KEY);
@@ -125,10 +108,4 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }), [isLoading, requestPasswordReset, session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword, user, verifyOtp]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used inside AuthProvider');
-  return context;
 }

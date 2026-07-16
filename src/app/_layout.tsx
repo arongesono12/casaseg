@@ -17,10 +17,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from '@/constants/theme';
 import { NetworkStatusBanner } from '@/components/network-status-banner';
 import { appStorage } from '@/lib/local-storage';
-import { AuthProvider, useAuth } from '@/providers/auth-provider';
+import { useAuth } from '@/providers/auth-context';
+import { AuthProvider } from '@/providers/auth-provider';
 import { I18nProvider } from '@/providers/i18n-provider';
 import { NotificationProvider } from '@/providers/notification-provider';
-import { ThemeProvider, useAppTheme } from '@/providers/theme-provider';
+import { ThemeProvider } from '@/providers/theme-provider';
+import { useAppTheme } from '@/providers/theme-context';
 
 void SplashScreen.preventAutoHideAsync();
 

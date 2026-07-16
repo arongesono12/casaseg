@@ -1,8 +1,8 @@
 import { MapPinned } from '@/components/ui/icons';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/theme';
-import { useAppTheme } from '@/providers/theme-provider';
-import { useI18n } from '@/providers/i18n-provider';
+import { useAppTheme } from '@/providers/theme-context';
+import { useI18n } from '@/providers/i18n-context';
 
 export function PropertyMap() {
   const { palette } = useAppTheme();

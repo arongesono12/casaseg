@@ -4,11 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Bath, BedDouble, Camera, Heart, MapPin, Maximize2, Star } from '@/components/ui/icons';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { FlatList, type NativeScrollEvent, type NativeSyntheticEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, type ListRenderItem, type NativeScrollEvent, type NativeSyntheticEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius } from '@/constants/theme';
-import { useAppTheme } from '@/providers/theme-provider';
-import { useI18n } from '@/providers/i18n-provider';
+import { colors, radius, touchTarget } from '@/constants/theme';
+import { useAppTheme } from '@/providers/theme-context';
+import { useI18n } from '@/providers/i18n-context';
 import type { Property } from '@/types';
 import { formatXaf } from '@/utils/formatters';
 
@@ -22,6 +22,21 @@ function normalizeImageUrl(value?: string) {
 }
 
 type PropertyCardProps = { property: Property; compact?: boolean; isFavorite?: boolean; onFavoriteChange?: (propertyId: string, favorite: boolean) => void };
+type PropertyImageItem = { id: string; uri: string };
+
+const PropertyCardImage = memo(function PropertyCardImage({ image, imageWidth, title }: { image: PropertyImageItem; imageWidth: number; title: string }) {
+  return (
+    <Image
+      source={{ uri: normalizeImageUrl(image.uri) }}
+      placeholder={{ blurhash }}
+      cachePolicy="disk"
+      contentFit="cover"
+      transition={180}
+      style={[styles.carouselImage, { width: imageWidth }]}
+      accessibilityLabel={`${title}, imagen de la propiedad`}
+    />
+  );
+});
 
 function PropertyCardComponent({ property, compact = false, isFavorite, onFavoriteChange }: PropertyCardProps) {
   const router = useRouter();
@@ -30,7 +45,10 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
   const [localSaved, setLocalSaved] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [imageWidth, setImageWidth] = useState(0);
-  const images = useMemo(() => (property.imageUrls.length ? property.imageUrls : [fallbackImage]), [property.imageUrls]);
+  const images = useMemo<PropertyImageItem[]>(() => {
+    const uniqueUrls = Array.from(new Set(property.imageUrls.length ? property.imageUrls : [fallbackImage]));
+    return uniqueUrls.map((uri) => ({ id: uri, uri }));
+  }, [property.imageUrls]);
 
   const isSaved = isFavorite ?? localSaved;
 
@@ -40,11 +58,16 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
   }, [imageWidth]);
 
   const toggleSaved = useCallback(async () => {
-    if (Platform.OS !== 'web') await Haptics.selectionAsync();
+    if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined);
     const next = !isSaved;
     if (isFavorite === undefined) setLocalSaved(next);
     onFavoriteChange?.(property.id, next);
   }, [isFavorite, isSaved, onFavoriteChange, property.id]);
+
+  const renderImage = useCallback<ListRenderItem<PropertyImageItem>>(
+    ({ item }) => <PropertyCardImage image={item} imageWidth={imageWidth} title={property.title} />,
+    [imageWidth, property.title],
+  );
 
   return (
     <Pressable
@@ -60,20 +83,10 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
             horizontal
             pagingEnabled
             bounces={false}
-            keyExtractor={(item, index) => `${item}-${index}`}
+            keyExtractor={(item) => item.id}
             onMomentumScrollEnd={onMomentumScrollEnd}
             showsHorizontalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <Image
-                source={{ uri: normalizeImageUrl(item) }}
-                placeholder={{ blurhash }}
-                cachePolicy="disk"
-                contentFit="cover"
-                transition={180}
-                style={{ width: imageWidth, height: '100%' }}
-                accessibilityLabel={`${property.title}, imagen de la propiedad`}
-              />
-            )}
+            renderItem={renderImage}
           />
         )}
         <LinearGradient colors={['transparent', 'rgba(15,23,42,0.42)']} style={styles.imageShade} pointerEvents="none" />
@@ -101,7 +114,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
 
         {images.length > 1 && (
           <View style={styles.dots}>
-            {images.map((_, index) => <View key={index} style={[styles.dot, index === activeImage && styles.dotActive]} />)}
+            {images.map((image, index) => <View key={image.id} style={[styles.dot, index === activeImage && styles.dotActive]} />)}
           </View>
         )}
       </View>
@@ -130,11 +143,12 @@ const styles = StyleSheet.create({
   cardCompact: { gap: 8 },
   imageFrame: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.subtle },
   imageFrameCompact: { borderRadius: radius.md },
+  carouselImage: { height: '100%' },
   imageShade: { position: 'absolute', left: 0, right: 0, bottom: 0, top: '55%' },
   statusBadge: { position: 'absolute', left: 12, top: 12, minHeight: 28, borderRadius: radius.pill, paddingHorizontal: 12, justifyContent: 'center' },
   statusText: { color: 'white', fontSize: 12, fontWeight: '800' },
-  favorite: { position: 'absolute', right: 12, top: 12, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.94)' },
-  favoriteCompact: { right: 8, top: 8, width: 36, height: 36, borderRadius: 18 },
+  favorite: { position: 'absolute', right: 12, top: 12, width: touchTarget, height: touchTarget, borderRadius: touchTarget / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.94)' },
+  favoriteCompact: { right: 8, top: 8, width: touchTarget - 8, height: touchTarget - 8, borderRadius: (touchTarget - 8) / 2 },
   counter: { position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', gap: 6, alignItems: 'center', minHeight: 28, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: 'rgba(15,23,42,0.64)' },
   counterText: { color: 'white', fontSize: 12, fontWeight: '700' },
   dots: { position: 'absolute', alignSelf: 'center', bottom: 16, flexDirection: 'row', gap: 5 },

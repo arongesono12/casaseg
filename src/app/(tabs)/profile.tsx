@@ -4,9 +4,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { colors, radius } from '@/constants/theme';
 import { isOwnerRole, isWebAdminRole } from '@/lib/access-control';
-import { useAuth } from '@/providers/auth-provider';
-import { useAppTheme } from '@/providers/theme-provider';
-import { useI18n } from '@/providers/i18n-provider';
+import { useAuth } from '@/providers/auth-context';
+import { useAppTheme } from '@/providers/theme-context';
+import { useI18n } from '@/providers/i18n-context';
 
 export default function ProfileScreen() {
   const { user, role, signOut } = useAuth();

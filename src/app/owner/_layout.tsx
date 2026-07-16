@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { isOwnerRole } from '@/lib/access-control';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth } from '@/providers/auth-context';
 
 export default function OwnerLayout() {
   const { isAuthenticated, role } = useAuth();

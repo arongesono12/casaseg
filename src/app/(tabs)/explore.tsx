@@ -3,24 +3,42 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Bell, ChevronDown, List, Map, Search, SlidersHorizontal, UserRound } from '@/components/ui/icons';
-import { useRef } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { memo, useCallback, useMemo, useRef } from 'react';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FilterSheet, type FilterSheetHandle } from '@/components/filter-sheet';
 import { PropertyCard } from '@/components/property/property-card';
-import { brandGradient, colors, radius } from '@/constants/theme';
+import { brandGradient, colors, radius, type AppPalette } from '@/constants/theme';
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { fetchFavorites } from '@/features/properties/api/property.queries';
 import { useFavoriteMutation } from '@/features/properties/hooks/use-favorite-mutation';
 import { useProperties } from '@/features/properties/hooks/use-properties';
-import { useAuth } from '@/providers/auth-provider';
-import { useI18n } from '@/providers/i18n-provider';
-import { useNotifications } from '@/providers/notification-provider';
-import { useAppTheme } from '@/providers/theme-provider';
+import { useAuth } from '@/providers/auth-context';
+import { useI18n } from '@/providers/i18n-context';
+import { useNotifications } from '@/providers/notification-context';
+import { useAppTheme } from '@/providers/theme-context';
 import { useExplorerStore } from '@/stores/explorer-store';
+import type { Property } from '@/types';
 
 const categoryKeys = ['Todos', 'Apartamentos', 'Casas', 'Estudios'] as const;
+type CategoryKey = (typeof categoryKeys)[number];
+
+const CategoryChip = memo(function CategoryChip({ category, label, selected, palette, onSelect }: { category: CategoryKey; label: string; selected: boolean; palette: AppPalette; onSelect: (category: CategoryKey) => void }) {
+  const handlePress = () => {
+    if (Platform.OS !== 'web') void Haptics.selectionAsync();
+    onSelect(category);
+  };
+  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={handlePress} style={[styles.category, selected ? styles.categorySelected : { backgroundColor: palette.surface, borderColor: palette.border }]}><Text style={[styles.categoryText, { color: selected ? 'white' : palette.textSecondary }]}>{label}</Text></Pressable>;
+});
+
+const PropertyGridCard = memo(function PropertyGridCard({ property, compact, favorite, onFavoriteChange }: { property: Property; compact: boolean; favorite: boolean; onFavoriteChange?: (propertyId: string, favorite: boolean) => void }) {
+  return <View style={styles.gridItem}><PropertyCard compact={compact} property={property} isFavorite={favorite} onFavoriteChange={onFavoriteChange} /></View>;
+});
+
+function PropertySeparator() {
+  return <View style={styles.separator} />;
+}
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -40,7 +58,17 @@ export default function ExploreScreen() {
   const filteredProperties = propertyQuery.data ?? [];
 
   const greeting = user ? t('greeting', { name: user.name.split(' ')[0] }) : t('guestGreeting');
-  const categoryLabels = { Todos: t('all'), Apartamentos: t('apartments'), Casas: t('houses'), Estudios: t('studios') };
+  const categoryLabels = useMemo<Record<CategoryKey, string>>(() => ({ Todos: t('all'), Apartamentos: t('apartments'), Casas: t('houses'), Estudios: t('studios') }), [t]);
+  const favoriteIds = useMemo(() => new Set(favoritesQuery.data ?? []), [favoritesQuery.data]);
+  const handleFavoriteChange = useCallback((propertyId: string, favorite: boolean) => favoriteMutation.mutate({ propertyId, favorite }), [favoriteMutation]);
+  const renderCategory = useCallback<ListRenderItem<CategoryKey>>(
+    ({ item }) => <CategoryChip category={item} label={categoryLabels[item]} selected={item === filters.category} palette={palette} onSelect={setCategory} />,
+    [categoryLabels, filters.category, palette, setCategory],
+  );
+  const renderProperty = useCallback<ListRenderItem<Property>>(
+    ({ item }) => <PropertyGridCard property={item} compact={useCompactCards} favorite={favoriteIds.has(item.id)} onFavoriteChange={user ? handleFavoriteChange : undefined} />,
+    [favoriteIds, handleFavoriteChange, useCompactCards, user],
+  );
 
   const header = (
     <View style={styles.headerContent}>
@@ -69,10 +97,7 @@ export default function ExploreScreen() {
         keyExtractor={(item) => item}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categories}
-        renderItem={({ item }) => {
-          const selected = item === filters.category;
-          return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={() => { if (Platform.OS !== 'web') void Haptics.selectionAsync(); setCategory(item); }} style={[styles.category, { backgroundColor: selected ? colors.brand : palette.surface, borderColor: selected ? colors.brand : palette.border }]}><Text style={[styles.categoryText, { color: selected ? 'white' : palette.textSecondary }]}>{categoryLabels[item]}</Text></Pressable>;
-        }}
+        renderItem={renderCategory}
       />
 
       <View style={styles.resultsRow}><Text style={[styles.results, { color: palette.text }]}>{filteredProperties.length} {t('properties')}</Text><Pressable accessibilityRole="button" onPress={() => sheetRef.current?.present()} style={styles.sort}><Text style={[styles.sortText, { color: palette.textSecondary }]}>{t('sort')}</Text><ChevronDown color={palette.textSecondary} size={18} /></Pressable></View>
@@ -86,8 +111,8 @@ export default function ExploreScreen() {
         data={filteredProperties}
         numColumns={columns}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <View style={styles.gridItem}><PropertyCard compact={useCompactCards} property={item} isFavorite={favoritesQuery.data?.includes(item.id)} onFavoriteChange={user ? (propertyId, favorite) => favoriteMutation.mutate({ propertyId, favorite }) : undefined} /></View>}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        renderItem={renderProperty}
+        ItemSeparatorComponent={PropertySeparator}
         ListHeaderComponent={header}
         ListEmptyComponent={propertyQuery.isLoading ? <ActivityIndicator color={colors.brand} size="large" style={styles.empty} /> : propertyQuery.isError ? <Pressable onPress={() => void propertyQuery.refetch()}><Text style={[styles.empty, { color: colors.error }]}>{t('propertyLoadError')}</Text></Pressable> : <Text style={[styles.empty, { color: palette.textSecondary }]}>{t('noPropertyResults')}</Text>}
         contentContainerStyle={styles.listContent}
@@ -124,6 +149,7 @@ const styles = StyleSheet.create({
   segmentSelectedText: { color: 'white', fontSize: 14, fontWeight: '800' },
   categories: { gap: 8, paddingRight: 16 },
   category: { height: 42, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 16, justifyContent: 'center' },
+  categorySelected: { backgroundColor: colors.brand, borderColor: colors.brand },
   categoryText: { fontSize: 14, fontWeight: '700' },
   resultsRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   results: { fontSize: 18, fontWeight: '900' },

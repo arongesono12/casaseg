@@ -36,7 +36,8 @@ export const radius = {
 } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const;
-export const touchTarget = Platform.OS === 'ios' ? 44 : 48;
+// Use one accessible interaction size across iOS and Android.
+export const touchTarget = 48;
 
 export type AppPalette = {
   background: string;
@@ -89,5 +90,4 @@ export const Fonts = Platform.select({
   web: { sans: 'system-ui', serif: 'Georgia', rounded: 'system-ui', mono: 'monospace' },
 })!;
 export const Spacing = { half: 2, one: 4, two: 8, three: 16, four: 24, five: 32, six: 64 } as const;
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;

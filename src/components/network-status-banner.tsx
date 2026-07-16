@@ -2,7 +2,7 @@ import * as Network from 'expo-network';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/theme';
-import { useI18n } from '@/providers/i18n-provider';
+import { useI18n } from '@/providers/i18n-context';
 
 export function NetworkStatusBanner() {
   const [offline, setOffline] = useState(false);

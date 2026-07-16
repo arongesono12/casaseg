@@ -31,7 +31,10 @@
         "description": "CasaSeg - Encuentra tu hogar ideal",
         "lang": "es",
         "orientation": "portrait-primary",
-        "categories": ["real-estate", "lifestyle"],
+        "categories": [
+          "real-estate",
+          "lifestyle"
+        ],
         "icons": [
           {
             "src": "/icons/pwa-192x192.png",

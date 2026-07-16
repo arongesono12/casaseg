@@ -7,8 +7,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { brandGradient, colors, radius } from '@/constants/theme';
 import { properties } from '@/data/properties';
 import { defaultPropertyFilters, propertyFiltersSchema, type PropertyFilters } from '@/features/properties/schemas/property-filters.schema';
-import { useAppTheme } from '@/providers/theme-provider';
-import { useI18n } from '@/providers/i18n-provider';
+import { useAppTheme } from '@/providers/theme-context';
+import { useI18n } from '@/providers/i18n-context';
 import { useExplorerStore } from '@/stores/explorer-store';
 
 export type FilterSheetHandle = { present: () => void; dismiss: () => void };

@@ -3,10 +3,10 @@ import { Compass, Heart, MessageCircle, UserRound } from '@/components/ui/icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/theme';
-import { useI18n } from '@/providers/i18n-provider';
-import { useAppTheme } from '@/providers/theme-provider';
-import { useNotifications } from '@/providers/notification-provider';
-import { useAuth } from '@/providers/auth-provider';
+import { useI18n } from '@/providers/i18n-context';
+import { useAppTheme } from '@/providers/theme-context';
+import { useNotifications } from '@/providers/notification-context';
+import { useAuth } from '@/providers/auth-context';
 
 export default function TabsLayout() {
   const { t } = useI18n();

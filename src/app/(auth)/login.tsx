@@ -1,21 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { z } from 'zod';
+import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
 import { AuthLogo } from '@/components/auth-logo';
 import { FormField } from '@/components/form-field';
+import { NativeActionButton } from '@/components/native-action-button';
 import { Check, Eye, EyeOff } from '@/components/ui/icons';
-import { brandGradient, colors, radius } from '@/constants/theme';
+import { colors, radius, touchTarget } from '@/constants/theme';
 import { loginSchema } from '@/features/auth/auth.schemas';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { useAuth } from '@/providers/auth-provider';
-import { useI18n } from '@/providers/i18n-provider';
-import { useAppTheme } from '@/providers/theme-provider';
+import { useAuth } from '@/providers/auth-context';
+import { useI18n } from '@/providers/i18n-context';
+import { useAppTheme } from '@/providers/theme-context';
 
 const googleIcon = require('../../../public/icons/google-icon.svg');
 const appleIcon = require('../../../public/icons/icono-apple.svg');
@@ -58,7 +59,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
-      <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <AdaptiveKeyboardView style={styles.safe}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, compact && styles.contentCompact]}>
           <View style={styles.heading}>
             <AuthLogo compact={compact} />
@@ -109,9 +110,11 @@ export default function LoginScreen() {
           </View>
 
           {submitError && <Text accessibilityRole="alert" style={styles.error}>{submitError}</Text>}
-          <Pressable disabled={isSubmitting} onPress={() => void submit()}>
-            <LinearGradient colors={brandGradient} style={styles.primary}><Text style={styles.primaryText}>{isSubmitting ? t('signingIn') : t('signIn')}</Text></LinearGradient>
-          </Pressable>
+          <NativeActionButton
+            disabled={isSubmitting}
+            label={isSubmitting ? t('signingIn') : t('signIn')}
+            onPress={() => void submit()}
+          />
 
           <View style={styles.oauthRow}>
             <Pressable accessibilityRole="button" accessibilityLabel={t('signInWithGoogle')} onPress={() => void oauth('google')} style={styles.googleOauth}>
@@ -132,7 +135,7 @@ export default function LoginScreen() {
             <Pressable onPress={() => router.push('/legal/privacy')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('privacy')}</Text></Pressable>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </AdaptiveKeyboardView>
     </SafeAreaView>
   );
 }
@@ -145,7 +148,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 30, lineHeight: 36, fontWeight: '900' },
   titleCompact: { fontSize: 26, lineHeight: 31 },
   subtitle: { fontSize: 16, lineHeight: 24 },
-  eyeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  eyeButton: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
   optionsRow: { minHeight: 32, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   rememberControl: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 9 },
   checkbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },

@@ -2,13 +2,13 @@ const { spawn } = require('node:child_process');
 
 const cliArgs = process.argv.slice(2);
 const usesTunnel = cliArgs.includes('--tunnel');
+const usesOffline = cliArgs.includes('--offline');
 
-// Expo tunnels require network access. Keep LAN starts available in offline
-// mode, but never pass EXPO_OFFLINE to ngrok because the two are incompatible.
-if (usesTunnel) {
+// Let the Expo CLI enable offline mode through its official --offline flag.
+// Forcing only EXPO_OFFLINE while also passing --host prevents Expo Go from
+// obtaining or generating the development manifest signature.
+if (usesTunnel || !usesOffline) {
   delete process.env.EXPO_OFFLINE;
-} else {
-  process.env.EXPO_OFFLINE ??= '1';
 }
 process.env.EXPO_NO_DEPENDENCY_VALIDATION ??= '1';
 
