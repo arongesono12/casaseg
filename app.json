@@ -66,6 +66,7 @@
       ],
       "expo-secure-store",
       "expo-web-browser",
+      "expo-apple-authentication",
       "expo-sqlite",
       [
         "@stripe/stripe-react-native",

@@ -2,6 +2,8 @@ import type { Session as SupabaseSession } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
+import { getNativeAppleAuthResult } from '@/features/auth/apple-native-auth';
+import { getNativeGoogleAuthResult } from '@/features/auth/google-native-auth';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { revokePushDevices } from '@/features/notifications/push-notifications';
 import { appStorage } from '@/lib/local-storage';
@@ -64,17 +66,47 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
+    if (provider === 'google') {
+      const nativeResult = await getNativeGoogleAuthResult();
+      if (nativeResult.type === 'cancelled') return false;
+      if (nativeResult.type === 'success') {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: nativeResult.idToken,
+        });
+        if (error) throw error;
+        return true;
+      }
+    }
+
+    if (provider === 'apple') {
+      const nativeResult = await getNativeAppleAuthResult();
+      if (nativeResult.type === 'cancelled') return false;
+      if (nativeResult.type === 'success') {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: nativeResult.identityToken,
+        });
+        if (error) throw error;
+        return true;
+      }
+    }
+
     const redirectTo = Linking.createURL('auth/callback');
-    const { data, error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true } });
+    const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo, skipBrowserRedirect: true, queryParams },
+    });
     if (error) throw error;
     if (!data.url) throw new Error('No se pudo iniciar OAuth');
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type !== 'success') return;
+    if (result.type !== 'success') return false;
     const code = new URL(result.url).searchParams.get('code');
-    if (code) {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-      if (exchangeError) throw exchangeError;
-    }
+    if (!code) throw new Error('El proveedor OAuth no devolvió el código de autorización.');
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    if (exchangeError) throw exchangeError;
+    return true;
   }, []);
 
   const requestPasswordReset = useCallback(async (email: string) => {

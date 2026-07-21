@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { registerPushDevice } from '@/features/notifications/push-notifications';
 import { useQuery } from '@tanstack/react-query';
 import { fetchConversations } from '@/features/messaging/messaging.api';
@@ -53,7 +53,16 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       subscription?.remove();
     };
   }, []);
-  const requestPushPermission = useCallback(async () => setPushToken(await registerPushDevice()), []);
+  const requestPushPermission = useCallback(async () => {
+    try {
+      setPushToken(await registerPushDevice());
+    } catch (error) {
+      Alert.alert(
+        'No se pudieron activar las notificaciones',
+        error instanceof Error ? error.message : 'Inténtalo de nuevo cuando el servicio esté disponible.',
+      );
+    }
+  }, []);
   const value = useMemo(() => ({ unreadCount, messageUnreadCount, pushToken, requestPushPermission, markAllRead: () => setUnreadCount(0), incrementUnread: () => { if (isAuthenticated) setUnreadCount((count) => count + 1); } }), [isAuthenticated, messageUnreadCount, pushToken, requestPushPermission, unreadCount]);
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

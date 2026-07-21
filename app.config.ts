@@ -11,6 +11,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'casaseg',
   jsEngine: 'hermes',
   newArchEnabled: true,
+  runtimeVersion: { policy: 'appVersion' },
+  updates: {
+    ...config.updates,
+    url: `https://u.expo.dev/${easProjectId}`,
+  },
   ios: {
     ...config.ios,
     bundleIdentifier: 'com.casaseg.mobile',
@@ -19,9 +24,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     config: {
       ...config.ios?.config,
       googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+      usesNonExemptEncryption: false,
     },
     infoPlist: {
       ...config.ios?.infoPlist,
+      ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription: 'CasaSeg usa tu ubicación solo cuando lo solicitas para mostrar viviendas cercanas.',
       NSPhotoLibraryUsageDescription: 'CasaSeg necesita acceso a tus fotos para publicar imágenes de una propiedad.',
     },

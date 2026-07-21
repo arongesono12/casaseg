@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Building2, CreditCard, FileText, LogOut, Settings } from '@/components/ui/icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
@@ -11,12 +11,7 @@ import { useI18n } from '@/providers/i18n-context';
 export default function ProfileScreen() {
   const { user, role, signOut } = useAuth();
   const { palette } = useAppTheme(); const { t } = useI18n();
-  if (!user) return <RouteScreen title={t('profile')} description={t('loginSubtitle')} showBack={false}>
-    <View style={styles.actions}>
-      <Action title={t('signIn')} icon={<Settings color={colors.brand} size={22} />} onPress={() => router.push('/(auth)/login')} palette={palette} />
-      <Action title={t('createAccount')} icon={<Building2 color={colors.brandDark} size={22} />} onPress={() => router.push('/(auth)/register')} palette={palette} />
-    </View>
-  </RouteScreen>;
+  if (!user) return <Redirect href="/(auth)/login" />;
   return <RouteScreen title={user?.name ?? 'Perfil'} description={`${user?.email ?? ''} · ${role ?? ''}`} showBack={false}>
     {isWebAdminRole(role) && <Text style={[styles.adminNote, { color: palette.textSecondary }]}>{t('adminWebNote')}</Text>}
     <View style={styles.actions}>

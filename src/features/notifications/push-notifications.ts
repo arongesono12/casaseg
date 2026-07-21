@@ -7,6 +7,10 @@ function isExpoGo() {
   return Constants.appOwnership === 'expo';
 }
 
+function isMissingDeviceTokensTable(error: { code?: string } | null) {
+  return error?.code === 'PGRST205';
+}
+
 export async function registerPushDevice() {
   if (Platform.OS === 'web') throw new Error('Las notificaciones push no están disponibles en web.');
   if (isExpoGo()) {
@@ -23,6 +27,9 @@ export async function registerPushDevice() {
   const token = (await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined)).data;
   if (isSupabaseConfigured) {
     const { error } = await supabase.from('device_tokens').upsert({ expo_push_token: token, platform: Platform.OS, device_name: Device.deviceName, revoked_at: null }, { onConflict: 'user_id,expo_push_token' });
+    if (isMissingDeviceTokensTable(error)) {
+      throw new Error('La tabla de dispositivos push todavía no existe en Supabase. Aplica las migraciones pendientes y vuelve a intentarlo.');
+    }
     if (error) throw error;
   }
   return token;
@@ -31,5 +38,6 @@ export async function registerPushDevice() {
 export async function revokePushDevices() {
   if (!isSupabaseConfigured) return;
   const { error } = await supabase.from('device_tokens').update({ revoked_at: new Date().toISOString() }).is('revoked_at', null);
+  if (isMissingDeviceTokensTable(error)) return;
   if (error) throw error;
 }

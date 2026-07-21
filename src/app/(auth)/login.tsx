@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -7,26 +6,26 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { z } from 'zod';
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
+import { AppleAuthButton } from '@/components/apple-auth-button';
 import { AuthLogo } from '@/components/auth-logo';
 import { FormField } from '@/components/form-field';
+import { GoogleAuthButton } from '@/components/google-auth-button';
 import { NativeActionButton } from '@/components/native-action-button';
 import { Check, Eye, EyeOff } from '@/components/ui/icons';
-import { colors, radius, touchTarget } from '@/constants/theme';
+import { colors, touchTarget } from '@/constants/theme';
 import { loginSchema } from '@/features/auth/auth.schemas';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
-const googleIcon = require('../../../public/icons/google-icon.svg');
-const appleIcon = require('../../../public/icons/icono-apple.svg');
-
 type LoginValues = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
   const auth = useAuth();
-  const { palette } = useAppTheme();
+  const { palette, resolvedMode } = useAppTheme();
   const { t } = useI18n();
+  const [oauthProvider, setOauthProvider] = useState<'google' | 'apple' | null>(null);
   const [submitError, setSubmitError] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -48,14 +47,21 @@ export default function LoginScreen() {
   });
 
   const oauth = async (provider: 'google' | 'apple') => {
+    if (oauthProvider) return;
+
     try {
+      setOauthProvider(provider);
       setSubmitError('');
-      await auth.signInWithOAuth(provider);
-      router.replace('/(tabs)/explore');
+      const signedIn = await auth.signInWithOAuth(provider);
+      if (signedIn) router.replace('/(tabs)/explore');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
+    } finally {
+      setOauthProvider(null);
     }
   };
+
+  const oauthDisabled = isSubmitting || oauthProvider !== null;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
@@ -116,14 +122,25 @@ export default function LoginScreen() {
             onPress={() => void submit()}
           />
 
-          <View style={styles.oauthRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('signInWithGoogle')} onPress={() => void oauth('google')} style={styles.googleOauth}>
-              <Image contentFit="contain" source={googleIcon} style={styles.googleIcon} />
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('signInWithApple')} onPress={() => void oauth('apple')} style={[styles.appleOauth, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <Image contentFit="contain" source={appleIcon} style={styles.appleIcon} />
-              <Text style={{ color: palette.text, fontWeight: '800' }}>Apple</Text>
-            </Pressable>
+          <View style={styles.oauthButtons}>
+            <GoogleAuthButton
+              backgroundColor={palette.surface}
+              borderColor={palette.border}
+              colorScheme={resolvedMode}
+              disabled={oauthDisabled}
+              label={t('signInWithGoogle')}
+              onPress={() => void oauth('google')}
+              textColor={palette.text}
+            />
+            <AppleAuthButton
+              backgroundColor={palette.surface}
+              borderColor={palette.border}
+              colorScheme={resolvedMode}
+              disabled={oauthDisabled}
+              label={t('signInWithApple')}
+              onPress={() => void oauth('apple')}
+              textColor={palette.text}
+            />
           </View>
 
           {!isSupabaseConfigured && <View style={styles.demo}><Text style={[styles.demoTitle, { color: palette.textSecondary }]}>{t('devMode')}</Text><Pressable onPress={async () => { await auth.signInDemo('client'); router.replace('/(tabs)/explore'); }}><Text style={styles.link}>{t('clientDemo')}</Text></Pressable><Pressable onPress={async () => { await auth.signInDemo('owner'); router.replace('/(tabs)/explore'); }}><Text style={styles.link}>{t('ownerDemo')}</Text></Pressable></View>}
@@ -154,13 +171,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   optionText: { fontSize: 14, fontWeight: '700' },
   forgotLink: { fontSize: 14, fontWeight: '700', paddingVertical: 6 },
-  primary: { minHeight: 56, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: 'white', fontSize: 16, fontWeight: '800' },
-  oauthRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  googleOauth: { flex: 1, minWidth: 140, minHeight: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  googleIcon: { width: '100%', height: 44 },
-  appleOauth: { flex: 1, minWidth: 140, minHeight: 52, borderWidth: 1, borderRadius: radius.md, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
-  appleIcon: { width: 24, height: 24 },
+  oauthButtons: { gap: 10 },
   demo: { alignItems: 'center', gap: 2, paddingVertical: 8 },
   demoTitle: { fontSize: 12, fontWeight: '800' },
   link: { color: colors.brandDark, textAlign: 'center', fontSize: 15, fontWeight: '800', padding: 9 },
