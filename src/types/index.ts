@@ -35,6 +35,7 @@ export type Property = {
   isOccupied?: boolean;
   amenities: string[];
   ownerName: string;
+  ownerAvatar?: string;
   legalStatus: 'verified' | 'pending' | 'restricted';
   coordinates?: { latitude: number; longitude: number };
 };

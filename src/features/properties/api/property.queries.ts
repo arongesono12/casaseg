@@ -26,6 +26,7 @@ function mapProperty(row: PropertyRow): Property {
     isOccupied: Boolean(row.is_occupied ?? row.isOccupied),
     amenities: (row.amenities ?? row.features ?? []) as string[],
     ownerName: String(row.owner_name ?? row.ownerName ?? 'Propietario verificado'),
+    ownerAvatar: row.owner_avatar ? String(row.owner_avatar) : row.ownerAvatar ? String(row.ownerAvatar) : undefined,
     legalStatus: (row.legal_status ?? 'verified') as Property['legalStatus'],
     coordinates: row.coordinates as Property['coordinates'],
   };

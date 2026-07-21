@@ -118,6 +118,7 @@ export default function RegisterScreen() {
               render={({ field }) => (
                 <FormField
                   label={t('name')}
+                  placeholder={t('namePlaceholder')}
                   autoCapitalize="words"
                   autoComplete="name"
                   returnKeyType="next"
@@ -135,6 +136,7 @@ export default function RegisterScreen() {
               render={({ field }) => (
                 <FormField
                   label={t('email')}
+                  placeholder={t('emailPlaceholder')}
                   autoCapitalize="none"
                   autoComplete="email"
                   keyboardType="email-address"
@@ -153,6 +155,7 @@ export default function RegisterScreen() {
               render={({ field }) => (
                 <FormField
                   label={t('password')}
+                  placeholder={t('newPasswordPlaceholder')}
                   autoCapitalize="none"
                   autoComplete="new-password"
                   returnKeyType="done"

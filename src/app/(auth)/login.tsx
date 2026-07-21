@@ -73,18 +73,24 @@ export default function LoginScreen() {
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('loginSubtitle')}</Text>
           </View>
 
-          <Controller control={control} name="email" render={({ field }) => <FormField label={t('email')} autoCapitalize="none" keyboardType="email-address" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.email?.message} />} />
+          <Controller control={control} name="email" render={({ field }) => <FormField label={t('email')} placeholder={t('emailPlaceholder')} autoCapitalize="none" autoComplete="email" keyboardType="email-address" returnKeyType="next" textContentType="emailAddress" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.email?.message} />} />
           <Controller
             control={control}
             name="password"
             render={({ field }) => (
               <FormField
                 label={t('password')}
+                placeholder={t('passwordPlaceholder')}
+                autoCapitalize="none"
+                autoComplete="current-password"
+                returnKeyType="done"
                 secureTextEntry={!passwordVisible}
+                textContentType="password"
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
                 error={errors.password?.message}
+                onSubmitEditing={() => void submit()}
                 rightAccessory={(
                   <Pressable
                     accessibilityRole="button"

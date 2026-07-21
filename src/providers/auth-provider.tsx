@@ -2,16 +2,22 @@ import type { Session as SupabaseSession } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { getNativeAppleAuthResult } from '@/features/auth/apple-native-auth';
 import { getNativeGoogleAuthResult } from '@/features/auth/google-native-auth';
+import { createOAuthRedirectUrl, exchangeOAuthCode, getOAuthCode } from '@/features/auth/oauth-session';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { revokePushDevices } from '@/features/notifications/push-notifications';
 import { appStorage } from '@/lib/local-storage';
 import type { AppUser, UserRole } from '@/types';
 import { AuthContext, type AuthContextValue } from '@/providers/auth-context';
 
-void WebBrowser.maybeCompleteAuthSession();
 const DEMO_KEY = 'casaseg.demo-session';
+
+function metadataAvatar(metadata: Record<string, unknown>) {
+  const value = metadata.avatar_url ?? metadata.picture ?? metadata.avatar;
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
 
 function mapUser(session: SupabaseSession | null): AppUser | null {
   if (!session?.user) return null;
@@ -21,7 +27,7 @@ function mapUser(session: SupabaseSession | null): AppUser | null {
     email: session.user.email ?? '',
     name: String(metadata.name ?? metadata.full_name ?? session.user.email?.split('@')[0] ?? 'Usuario'),
     role: (metadata.role ?? 'client') as UserRole,
-    avatar: metadata.avatar_url as string | undefined,
+    avatar: metadataAvatar(metadata),
   };
 }
 
@@ -43,9 +49,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!session?.user || !isSupabaseConfigured) return;
     let active = true;
-    void supabase.from('profiles').select('id,name,email,role,avatar').eq('id', session.user.id).maybeSingle().then(({ data }) => {
+    setProfileUser(null);
+    void supabase.from('users').select('id,name,email,role,avatar').eq('id', session.user.id).maybeSingle().then(({ data }) => {
       if (!active || !data) return;
-      setProfileUser({ id: String(data.id), name: String(data.name ?? session.user.user_metadata.name ?? 'Usuario'), email: String(data.email ?? session.user.email ?? ''), role: (data.role ?? 'client') as UserRole, avatar: data.avatar ? String(data.avatar) : undefined });
+      const oauthAvatar = metadataAvatar(session.user.user_metadata);
+      const avatar = data.avatar ? String(data.avatar) : oauthAvatar;
+      setProfileUser({ id: String(data.id), name: String(data.name ?? session.user.user_metadata.name ?? 'Usuario'), email: String(data.email ?? session.user.email ?? ''), role: (data.role ?? 'client') as UserRole, avatar });
+      if (!data.avatar && oauthAvatar) {
+        void supabase.from('users').update({ avatar: oauthAvatar }).eq('id', session.user.id);
+      }
     });
     return () => { active = false; };
   }, [session]);
@@ -77,6 +89,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (error) throw error;
         return true;
       }
+      if (Platform.OS === 'android') {
+        throw new Error('Google requiere el cliente Android nativo de CasaSeg. Recompílalo con "npm run android:native".');
+      }
     }
 
     if (provider === 'apple') {
@@ -92,7 +107,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     }
 
-    const redirectTo = Linking.createURL('auth/callback');
+    const redirectTo = createOAuthRedirectUrl();
     const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -100,12 +115,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
     if (error) throw error;
     if (!data.url) throw new Error('No se pudo iniciar OAuth');
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, {
+      preferEphemeralSession: true,
+      showInRecents: false,
+    });
     if (result.type !== 'success') return false;
-    const code = new URL(result.url).searchParams.get('code');
-    if (!code) throw new Error('El proveedor OAuth no devolvió el código de autorización.');
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-    if (exchangeError) throw exchangeError;
+    const code = getOAuthCode(result.url);
+    await exchangeOAuthCode(code);
     return true;
   }, []);
 

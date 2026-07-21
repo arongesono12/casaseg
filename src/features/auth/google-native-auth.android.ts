@@ -1,3 +1,5 @@
+import { isExpoGo } from '@/lib/execution-environment';
+
 export type NativeGoogleAuthResult =
   | { type: 'unsupported' }
   | { type: 'cancelled' }
@@ -23,12 +25,22 @@ function configureGoogleSignIn({ GoogleOneTapSignIn }: GoogleSignInModule) {
 }
 
 export async function getNativeGoogleAuthResult(): Promise<NativeGoogleAuthResult> {
+  // Chrome Custom Tabs cannot be closed reliably after an Android deep link.
+  // Keep Google authentication native so the account chooser returns directly
+  // to CasaSeg without leaving a browser session open.
+  if (isExpoGo) {
+    throw new Error(
+      'El acceso con Google en Android requiere el cliente de desarrollo de CasaSeg; Expo Go no incluye el módulo nativo necesario.',
+    );
+  }
+
   let googleSignIn: GoogleSignInModule;
   try {
     googleSignIn = await import('react-native-nitro-google-signin');
   } catch {
-    // Expo Go does not contain this native module; use the browser fallback.
-    return { type: 'unsupported' };
+    throw new Error(
+      'No se encontró el módulo nativo de Google. Recompila el cliente Android con "npm run android:native".',
+    );
   }
 
   const { GoogleOneTapSignIn, isCancelledResponse, isSuccessResponse } = googleSignIn;
