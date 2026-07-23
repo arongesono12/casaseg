@@ -21,6 +21,12 @@ param(
   [Parameter(Mandatory = $true, ParameterSetName = 'EnableLeakedPasswordProtection')]
   [switch]$EnableLeakedPasswordProtection,
 
+  [Parameter(Mandatory = $true, ParameterSetName = 'AuthConfig')]
+  [switch]$AuthConfig,
+
+  [Parameter(Mandatory = $true, ParameterSetName = 'AddAuthRedirectUrls')]
+  [string[]]$AddAuthRedirectUrl,
+
   [switch]$ReadOnly
 )
 
@@ -94,7 +100,36 @@ $headers = @{
 }
 
 try {
-  if ($SecurityAdvisors) {
+  if ($AuthConfig) {
+    $response = Invoke-WebRequest `
+      -UseBasicParsing `
+      -Method Get `
+      -Uri "https://api.supabase.com/v1/projects/$ProjectRef/config/auth" `
+      -Headers $headers
+  } elseif ($PSCmdlet.ParameterSetName -eq 'AddAuthRedirectUrls') {
+    $currentAuthResponse = Invoke-WebRequest `
+      -UseBasicParsing `
+      -Method Get `
+      -Uri "https://api.supabase.com/v1/projects/$ProjectRef/config/auth" `
+      -Headers $headers
+    $currentAuthConfig = $currentAuthResponse.Content | ConvertFrom-Json
+    $redirectUrls = @(
+      @($currentAuthConfig.uri_allow_list -split ',') + @($AddAuthRedirectUrl | ForEach-Object { $_ -split ',' }) |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -Unique
+    )
+    $authRedirectBody = @{
+      uri_allow_list = $redirectUrls -join ','
+    } | ConvertTo-Json -Compress
+    $response = Invoke-WebRequest `
+      -UseBasicParsing `
+      -Method Patch `
+      -Uri "https://api.supabase.com/v1/projects/$ProjectRef/config/auth" `
+      -Headers $headers `
+      -ContentType 'application/json' `
+      -Body $authRedirectBody
+  } elseif ($SecurityAdvisors) {
     $response = Invoke-WebRequest `
       -UseBasicParsing `
       -Method Get `
@@ -122,7 +157,14 @@ try {
       -ContentType 'application/json' `
       -Body $requestBody
   }
-  if ($EnableLeakedPasswordProtection) {
+  if ($AuthConfig -or $PSCmdlet.ParameterSetName -eq 'AddAuthRedirectUrls') {
+    $authConfigResponse = $response.Content | ConvertFrom-Json
+    [pscustomobject]@{
+      site_url = $authConfigResponse.site_url
+      uri_allow_list = $authConfigResponse.uri_allow_list
+      external_google_enabled = [bool]$authConfigResponse.external_google_enabled
+    } | ConvertTo-Json -Depth 4 -Compress
+  } elseif ($EnableLeakedPasswordProtection) {
     $authConfigResponse = $response.Content | ConvertFrom-Json
     [pscustomobject]@{
       password_hibp_enabled = [bool]$authConfigResponse.password_hibp_enabled

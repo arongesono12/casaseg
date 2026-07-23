@@ -20,6 +20,11 @@ export default function AuthCallback() {
 
     let active = true;
     const exchange = async () => {
+      if (Platform.OS !== 'web') {
+        await WebBrowser.dismissBrowser().catch(() => undefined);
+        if (!active) return;
+      }
+
       const oauthError = params.error_description ?? params.error;
       if (oauthError) {
         setError(oauthError);

@@ -28,11 +28,7 @@ export async function getNativeGoogleAuthResult(): Promise<NativeGoogleAuthResul
   // Chrome Custom Tabs cannot be closed reliably after an Android deep link.
   // Keep Google authentication native so the account chooser returns directly
   // to CasaSeg without leaving a browser session open.
-  if (isExpoGo) {
-    throw new Error(
-      'El acceso con Google en Android requiere el cliente de desarrollo de CasaSeg; Expo Go no incluye el módulo nativo necesario.',
-    );
-  }
+  if (isExpoGo) return { type: 'unsupported' };
 
   let googleSignIn: GoogleSignInModule;
   try {

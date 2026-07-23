@@ -5,8 +5,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
 import { UserAvatar } from '@/components/user-avatar';
-import { AlertCircle, ArrowRight, Building2, Clock, ShieldCheck, Sparkles, UsersRound } from '@/components/ui/icons';
-import { IconTile, MetricCard, PremiumEmptyState, PremiumErrorState, SectionTitle, StatusPill } from '@/components/ui/premium';
+import { AlertCircle, ArrowRight, Building2, Clock, RefreshCw, ShieldCheck, Sparkles, UsersRound } from '@/components/ui/icons';
+import { IconTile, MetricCard, PremiumEmptyState, SectionTitle, StatusPill } from '@/components/ui/premium';
 import { colors, radius } from '@/constants/theme';
 import { fetchAdminOverview } from '@/features/admin/admin.api';
 import { useAuth } from '@/providers/auth-context';
@@ -17,6 +17,9 @@ export default function AdminDashboard() {
   const { palette } = useAppTheme();
   const overview = useQuery({ queryKey: ['admin', 'overview'], queryFn: fetchAdminOverview });
   const metrics = overview.data?.metrics;
+  const unavailableSections = overview.data?.unavailableSections ?? [];
+  const usersAvailable = !unavailableSections.includes('users');
+  const propertiesAvailable = !unavailableSections.includes('properties');
   const pendingProperties = overview.data?.properties.filter((property) => property.legalStatus === 'pending').slice(0, 3) ?? [];
   const recentUsers = overview.data?.users.slice(0, 3) ?? [];
 
@@ -31,8 +34,24 @@ export default function AdminDashboard() {
         </View>
       </LinearGradient>
 
+      <View style={styles.actions}>
+        <AdminAction icon={UsersRound} title="Gestión de usuarios" description="Consulta roles, estados y solicitudes de propietario." tone={colors.brand} onPress={() => router.push('/admin/users')} />
+        <AdminAction icon={Building2} title="Supervisión de propiedades" description="Revisa publicaciones pendientes, verificadas o restringidas." tone="#7C3AED" onPress={() => router.push('/admin/properties')} />
+      </View>
+
       {overview.isLoading ? <PremiumEmptyState icon={ShieldCheck} title="Preparando el panel" description="Estamos validando métricas y responsabilidades administrativas." loading /> : null}
-      {overview.isError ? <PremiumErrorState title="No pudimos abrir el panel" description="Tu sesión sigue protegida. Comprueba la conexión y vuelve a intentarlo." onRetry={() => void overview.refetch()} /> : null}
+      {overview.isError || unavailableSections.length ? (
+        <View style={[styles.syncNotice, { backgroundColor: `${colors.warning}0E`, borderColor: `${colors.warning}2B` }]}>
+          <AlertCircle color={colors.warning} size={22} />
+          <View style={styles.syncCopy}>
+            <Text style={[styles.syncTitle, { color: palette.text }]}>Datos parcialmente actualizados</Text>
+            <Text style={[styles.syncDescription, { color: palette.textSecondary }]}>Las herramientas siguen disponibles. Puedes reintentar la sincronización sin salir del panel.</Text>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Reintentar sincronización" onPress={() => void overview.refetch()} style={styles.syncButton}>
+            <RefreshCw color={colors.warning} size={19} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {overview.data ? (
         <>
@@ -42,13 +61,8 @@ export default function AdminDashboard() {
             <MetricCard label="Revisiones pendientes" value={metrics?.pendingProperties ?? 0} icon={AlertCircle} tone={colors.warning} />
           </View>
 
-          <View style={styles.actions}>
-            <AdminAction icon={UsersRound} title="Gestión de usuarios" description="Consulta roles, estados y solicitudes de propietario." tone={colors.brand} onPress={() => router.push('/admin/users')} />
-            <AdminAction icon={Building2} title="Supervisión de propiedades" description="Revisa publicaciones pendientes, verificadas o restringidas." tone="#7C3AED" onPress={() => router.push('/admin/properties')} />
-          </View>
-
-          <SectionTitle title="Publicaciones por revisar" detail="Propiedades cuya verificación legal sigue pendiente." action={pendingProperties.length ? <StatusPill label={`${metrics?.pendingProperties ?? 0} pendientes`} tone={colors.warning} icon={Clock} /> : undefined} />
-          {pendingProperties.length ? (
+          {propertiesAvailable ? <SectionTitle title="Publicaciones por revisar" detail="Propiedades cuya verificación legal sigue pendiente." action={pendingProperties.length ? <StatusPill label={`${metrics?.pendingProperties ?? 0} pendientes`} tone={colors.warning} icon={Clock} /> : undefined} /> : null}
+          {propertiesAvailable && pendingProperties.length ? (
             <View style={styles.previewList}>
               {pendingProperties.map((property) => (
                 <Pressable key={property.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.previewRow, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
@@ -58,10 +72,10 @@ export default function AdminDashboard() {
                 </Pressable>
               ))}
             </View>
-          ) : <PremiumEmptyState icon={ShieldCheck} title="Revisión al día" description="No hay propiedades pendientes de verificación en este momento." />}
+          ) : propertiesAvailable ? <PremiumEmptyState icon={ShieldCheck} title="Revisión al día" description="No hay propiedades pendientes de verificación en este momento." /> : null}
 
-          <SectionTitle title="Usuarios recientes" detail="Últimas cuentas visibles para tu rol." action={<Pressable onPress={() => router.push('/admin/users')}><Text style={styles.viewAll}>Ver todos</Text></Pressable>} />
-          <View style={styles.previewList}>
+          {usersAvailable ? <SectionTitle title="Usuarios recientes" detail="Últimas cuentas visibles para tu rol." action={<Pressable onPress={() => router.push('/admin/users')}><Text style={styles.viewAll}>Ver todos</Text></Pressable>} /> : null}
+          {usersAvailable ? <View style={styles.previewList}>
             {recentUsers.map((user) => (
               <View key={user.id} style={[styles.previewRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
                 <UserAvatar name={user.name} uri={user.avatar} size={44} />
@@ -69,7 +83,7 @@ export default function AdminDashboard() {
                 <StatusPill label={user.role} tone={user.role === 'owner' ? '#7C3AED' : user.role === 'client' ? colors.success : colors.brand} />
               </View>
             ))}
-          </View>
+          </View> : null}
         </>
       ) : null}
     </RouteScreen>
@@ -97,6 +111,11 @@ const styles = StyleSheet.create({
   roleDescription: { color: '#DBEAFE', fontSize: 12, lineHeight: 18 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   actions: { gap: 10 },
+  syncNotice: { minHeight: 76, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  syncCopy: { flex: 1, minWidth: 0, gap: 3 },
+  syncTitle: { fontSize: 14, fontWeight: '900' },
+  syncDescription: { fontSize: 12, lineHeight: 17 },
+  syncButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: `${colors.warning}16` },
   action: { minHeight: 94, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   actionCopy: { flex: 1, minWidth: 0, gap: 4 },
   actionTitle: { fontSize: 16, fontWeight: '900' },

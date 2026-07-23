@@ -26,8 +26,8 @@ describe('role permissions', () => {
   test('only accepts roles from trusted application sources', () => {
     expect(parseUserRole('superadmin')).toBe('superadmin');
     expect(parseUserRole('client')).toBe('client');
-    expect(parseUserRole('SUPERADMIN')).toBeUndefined();
-    expect(parseUserRole('unknown')).toBeUndefined();
-    expect(parseUserRole(null)).toBeUndefined();
+    expect(parseUserRole('SUPERADMIN')).toBe(undefined);
+    expect(parseUserRole('unknown')).toBe(undefined);
+    expect(parseUserRole(null)).toBe(undefined);
   });
 });

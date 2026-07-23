@@ -4,9 +4,11 @@ import * as WebBrowser from 'expo-web-browser';
 import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { getNativeAppleAuthResult } from '@/features/auth/apple-native-auth';
+import { getGoogleAuthStrategy } from '@/features/auth/google-auth-strategy';
 import { getNativeGoogleAuthResult } from '@/features/auth/google-native-auth';
 import { createOAuthRedirectUrl, exchangeOAuthCode, getOAuthCode } from '@/features/auth/oauth-session';
 import { parseUserRole } from '@/lib/access-control';
+import { isExpoGo } from '@/lib/execution-environment';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { revokePushDevices } from '@/features/notifications/push-notifications';
 import { appStorage } from '@/lib/local-storage';
@@ -123,7 +125,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
-    if (provider === 'google') {
+    const googleStrategy = getGoogleAuthStrategy(Platform.OS, isExpoGo);
+
+    if (provider === 'google' && googleStrategy === 'native') {
       const nativeResult = await getNativeGoogleAuthResult();
       if (nativeResult.type === 'cancelled') return false;
       if (nativeResult.type === 'success') {
@@ -134,9 +138,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (error) throw error;
         return true;
       }
-      if (Platform.OS === 'android') {
-        throw new Error('Google requiere el cliente Android nativo de CasaSeg. Recompílalo con "npm run android:native".');
-      }
+      throw new Error('El cliente Android no incluye Google nativo. Recompílalo con "npm run android:native".');
     }
 
     if (provider === 'apple') {
@@ -165,6 +167,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       showInRecents: false,
     });
     if (result.type !== 'success') return false;
+    await WebBrowser.dismissBrowser().catch(() => undefined);
     const code = getOAuthCode(result.url);
     await exchangeOAuthCode(code);
     return true;
