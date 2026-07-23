@@ -16,6 +16,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/theme';
 import { NetworkStatusBanner } from '@/components/network-status-banner';
+import { canAccessAdminPanel, canAccessOwnerPanel } from '@/lib/access-control';
 import { appStorage } from '@/lib/local-storage';
 import { useAuth } from '@/providers/auth-context';
 import { AuthProvider } from '@/providers/auth-provider';
@@ -39,7 +40,7 @@ onlineManager.setEventListener((setOnline) => {
 });
 
 function RootNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, role } = useAuth();
   const { resolvedMode, palette } = useAppTheme();
 
   useEffect(() => {
@@ -78,8 +79,12 @@ function RootNavigator() {
           <Stack.Screen name="payment/failed" />
         </Stack.Protected>
 
-        <Stack.Protected guard={isAuthenticated}>
+        <Stack.Protected guard={isAuthenticated && canAccessOwnerPanel(role)}>
           <Stack.Screen name="owner" />
+        </Stack.Protected>
+
+        <Stack.Protected guard={isAuthenticated && canAccessAdminPanel(role)}>
+          <Stack.Screen name="admin" />
         </Stack.Protected>
       </Stack>
       <NetworkStatusBanner />

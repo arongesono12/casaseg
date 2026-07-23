@@ -1,10 +1,10 @@
 import { Stack } from 'expo-router';
-import { isOwnerRole } from '@/lib/access-control';
+import { canAccessOwnerPanel } from '@/lib/access-control';
 import { useAuth } from '@/providers/auth-context';
 
 export default function OwnerLayout() {
   const { isAuthenticated, role } = useAuth();
-  const ownerAccess = isAuthenticated && isOwnerRole(role);
+  const ownerAccess = isAuthenticated && canAccessOwnerPanel(role);
   return <Stack screenOptions={{ headerShown: false }}>
     <Stack.Protected guard={ownerAccess}>
       <Stack.Screen name="index" />

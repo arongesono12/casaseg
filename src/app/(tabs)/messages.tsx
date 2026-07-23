@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { memo, useCallback } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
+import { memo, useCallback, useMemo } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MessageCircle, RefreshCw } from '@/components/ui/icons';
+
+import { ChevronRight, Lock, MessageCircle, MessagesSquare, Sparkles } from '@/components/ui/icons';
+import { PremiumEmptyState, PremiumErrorState, PremiumHero, SectionTitle, StatusPill } from '@/components/ui/premium';
 import { colors, radius, type AppPalette } from '@/constants/theme';
 import { fetchConversations, type Conversation } from '@/features/messaging/messaging.api';
 import { conversationKeys } from '@/features/messaging/use-messaging-realtime';
@@ -13,16 +16,25 @@ import { useAppTheme } from '@/providers/theme-context';
 
 const ConversationRow = memo(function ConversationRow({ conversation, palette }: { conversation: Conversation; palette: AppPalette }) {
   const openConversation = () => router.push({ pathname: '/chat/[conversationId]', params: { conversationId: conversation.id } });
+  const initial = conversation.title.trim().charAt(0).toUpperCase() || 'C';
   return (
-    <Pressable onPress={openConversation} style={[styles.row, { backgroundColor: palette.surface }]}>
-      <View style={styles.icon}><MessageCircle color="white" size={22} /></View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Abrir conversación ${conversation.title}`}
+      onPress={openConversation}
+      style={({ pressed }) => [styles.row, { backgroundColor: palette.surface, borderColor: conversation.unreadCount > 0 ? `${colors.brand}35` : palette.border }, pressed && styles.pressed]}
+    >
+      <LinearGradient colors={conversation.unreadCount > 0 ? ['#1D4ED8', '#60A5FA'] : ['#334155', '#64748B']} style={styles.avatar}>
+        <Text style={styles.avatarText}>{initial}</Text>
+      </LinearGradient>
       <View style={styles.copy}>
         <View style={styles.nameRow}>
           <Text numberOfLines={1} style={[styles.name, { color: palette.text }]}>{conversation.title}</Text>
-          {conversation.unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{conversation.unreadCount}</Text></View>}
+          {conversation.unreadCount > 0 ? <StatusPill label={`${conversation.unreadCount} nueva${conversation.unreadCount > 1 ? 's' : ''}`} tone={colors.brand} /> : null}
         </View>
         <Text numberOfLines={1} style={[styles.preview, { color: palette.textSecondary }]}>{conversation.lastMessage}</Text>
       </View>
+      <ChevronRight color={palette.muted} size={21} />
     </Pressable>
   );
 });
@@ -36,30 +48,66 @@ export default function MessagesScreen() {
   const { palette } = useAppTheme();
   const { t } = useI18n();
   const conversations = useQuery({ queryKey: conversationKeys.list(user?.id ?? 'guest'), queryFn: fetchConversations, enabled: Boolean(user) });
+  const unreadTotal = useMemo(() => (conversations.data ?? []).reduce((total, item) => total + item.unreadCount, 0), [conversations.data]);
   const renderConversation = useCallback<ListRenderItem<Conversation>>(
     ({ item }) => <ConversationRow conversation={item} palette={palette} />,
     [palette],
   );
 
+  const listHeader = (
+    <View style={styles.header}>
+      <PremiumHero title={t('messages')} description={t('messagesSubtitle')} eyebrow="CONVERSACIONES SEGURAS" icon={Lock} />
+      <SectionTitle
+        title="Bandeja de entrada"
+        detail="Consultas sobre propiedades, visitas y contratos."
+        action={unreadTotal > 0 ? <StatusPill label={`${unreadTotal} sin leer`} tone={colors.brand} icon={MessageCircle} /> : undefined}
+      />
+    </View>
+  );
+
   if (!user) {
-    return <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}><View style={styles.center}><MessageCircle color={colors.brand} size={42} /><Text style={[styles.title, { color: palette.text }]}>{t('messages')}</Text><Text style={[styles.emptyCopy, { color: palette.textSecondary }]}>{t('messagesSubtitle')}</Text><Pressable onPress={() => router.push('/(auth)/login')} style={styles.loginButton}><Text style={styles.loginText}>{t('signIn')}</Text></Pressable></View></SafeAreaView>;
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
+        <View style={styles.guestContent}>
+          <PremiumHero title={t('messages')} description={t('messagesSubtitle')} eyebrow="CONVERSACIONES SEGURAS" icon={Lock} />
+          <PremiumEmptyState icon={MessageCircle} title="Habla directamente con propietarios" description="Inicia sesión para resolver dudas, coordinar visitas y conservar el historial de cada propiedad." actionLabel={t('signIn')} onAction={() => router.push('/(auth)/login')} />
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
-      <View style={styles.header}><Text style={[styles.title, { color: palette.text }]}>{t('messages')}</Text><Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('messagesSubtitle')}</Text></View>
-      {conversations.isLoading ? <ActivityIndicator color={colors.brand} size="large" style={styles.center} /> : conversations.isError ? <Pressable onPress={() => void conversations.refetch()} style={styles.center}><RefreshCw color={colors.error} size={26} /><Text style={styles.connectionError}>{t('connectionError')}</Text></Pressable> : (
-        <FlatList
-          data={conversations.data}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          renderItem={renderConversation}
-          ItemSeparatorComponent={ListSeparator}
-          ListEmptyComponent={<View style={styles.center}><MessageCircle color={palette.muted} size={38} /><Text style={[styles.emptyTitle, { color: palette.text }]}>{t('noConversations')}</Text><Text style={[styles.emptyCopy, { color: palette.textSecondary }]}>{t('conversationHint')}</Text></View>}
-        />
-      )}
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: palette.background }]}>
+      <FlatList
+        data={conversations.isLoading || conversations.isError ? [] : conversations.data}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        renderItem={renderConversation}
+        ItemSeparatorComponent={ListSeparator}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={conversations.isLoading
+          ? <PremiumEmptyState icon={Sparkles} title="Abriendo tus conversaciones" description="Estamos recuperando tus mensajes de forma segura." loading />
+          : conversations.isError
+            ? <PremiumErrorState title="No pudimos abrir la bandeja" description={t('connectionError')} onRetry={() => void conversations.refetch()} />
+            : <PremiumEmptyState icon={MessagesSquare} title={t('noConversations')} description={t('conversationHint')} actionLabel="Explorar propiedades" onAction={() => router.push('/(tabs)/explore')} />}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1 }, header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18, gap: 5 }, title: { fontSize: 28, fontWeight: '900', textAlign: 'center' }, subtitle: { fontSize: 14, lineHeight: 20 }, list: { flexGrow: 1, paddingHorizontal: 16, paddingBottom: 24 }, row: { minHeight: 76, borderRadius: radius.lg, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }, icon: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1, gap: 4 }, nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, name: { flex: 1, fontSize: 16, fontWeight: '800' }, preview: { fontSize: 13 }, badge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 }, badgeText: { color: 'white', fontSize: 11, fontWeight: '900' }, center: { flex: 1, minHeight: 260, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 24 }, emptyTitle: { fontSize: 18, fontWeight: '900' }, emptyCopy: { fontSize: 14, textAlign: 'center', lineHeight: 20 }, loginButton: { marginTop: 8, minHeight: 48, borderRadius: 24, backgroundColor: colors.brand, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' }, loginText: { color: 'white', fontSize: 15, fontWeight: '900' }, separator: { height: 10 }, connectionError: { color: colors.error, fontWeight: '800' } });
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  list: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 130 },
+  guestContent: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', padding: 16, paddingBottom: 120, gap: 20 },
+  header: { gap: 22, paddingTop: 8, paddingBottom: 18 },
+  row: { minHeight: 88, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 13, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
+  pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
+  avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: 'white', fontSize: 19, fontWeight: '900' },
+  copy: { flex: 1, minWidth: 0, gap: 6 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  name: { flex: 1, fontSize: 16, fontWeight: '900' },
+  preview: { fontSize: 13, lineHeight: 18 },
+  separator: { height: 10 },
+});

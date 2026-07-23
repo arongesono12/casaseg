@@ -8,6 +8,8 @@ export type AuthContextValue = {
   role?: UserRole;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isRoleLoading: boolean;
+  roleError: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (input: { email: string; password: string; name: string; role: 'client' | 'owner' }) => Promise<void>;
   verifyOtp: (email: string, token: string) => Promise<void>;

@@ -1,8 +1,33 @@
 import { describe, expect, test } from 'bun:test';
-import { isOwnerRole, isWebAdminRole } from '../../src/lib/access-control';
+import { canAccessAdminPanel, canAccessOwnerPanel, isAdminRole, isClientRole, isOwnerRole, parseUserRole } from '../../src/lib/access-control';
 
 describe('role permissions', () => {
-  test('owner areas reject clients', () => expect(isOwnerRole('client')).toBe(false));
-  test('owner areas accept owner and admins', () => { expect(isOwnerRole('owner')).toBe(true); expect(isOwnerRole('admin')).toBe(true); expect(isOwnerRole('superadmin')).toBe(true); });
-  test('admin panel preference only applies to admin roles', () => { expect(isWebAdminRole('owner')).toBe(false); expect(isWebAdminRole('admin')).toBe(true); });
+  test('client responsibility is exclusive to client accounts', () => {
+    expect(isClientRole('client')).toBe(true);
+    expect(isClientRole('owner')).toBe(false);
+    expect(isClientRole('admin')).toBe(false);
+  });
+
+  test('owner panel only accepts property owners', () => {
+    expect(isOwnerRole('owner')).toBe(true);
+    expect(canAccessOwnerPanel('owner')).toBe(true);
+    expect(canAccessOwnerPanel('client')).toBe(false);
+    expect(canAccessOwnerPanel('admin')).toBe(false);
+    expect(canAccessOwnerPanel('superadmin')).toBe(false);
+  });
+
+  test('admin panel only accepts administrative roles', () => {
+    expect(isAdminRole('admin')).toBe(true);
+    expect(isAdminRole('superadmin')).toBe(true);
+    expect(canAccessAdminPanel('owner')).toBe(false);
+    expect(canAccessAdminPanel('client')).toBe(false);
+  });
+
+  test('only accepts roles from trusted application sources', () => {
+    expect(parseUserRole('superadmin')).toBe('superadmin');
+    expect(parseUserRole('client')).toBe('client');
+    expect(parseUserRole('SUPERADMIN')).toBeUndefined();
+    expect(parseUserRole('unknown')).toBeUndefined();
+    expect(parseUserRole(null)).toBeUndefined();
+  });
 });

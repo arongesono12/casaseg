@@ -1,9 +1,22 @@
 import type { UserRole } from '@/types';
 
-export const isOwnerRole = (role?: UserRole) =>
-  role === 'owner' || role === 'admin' || role === 'superadmin';
+const userRoles: readonly UserRole[] = ['client', 'owner', 'admin', 'superadmin'];
 
-export const isWebAdminRole = (role?: UserRole) => role === 'admin' || role === 'superadmin';
+export const parseUserRole = (value: unknown): UserRole | undefined =>
+  typeof value === 'string' && userRoles.includes(value as UserRole) ? (value as UserRole) : undefined;
+
+export const isClientRole = (role?: UserRole) => role === 'client';
+
+export const isOwnerRole = (role?: UserRole) => role === 'owner';
+
+export const isAdminRole = (role?: UserRole) => role === 'admin' || role === 'superadmin';
+
+// Compatibility alias for callers that still use the previous helper name.
+export const isWebAdminRole = isAdminRole;
+
+export const canAccessOwnerPanel = (role?: UserRole) => isOwnerRole(role);
+
+export const canAccessAdminPanel = (role?: UserRole) => isAdminRole(role);
 
 // These guards improve navigation UX only. Authorization must still be enforced
 // by Supabase Row Level Security policies and server-side role checks.

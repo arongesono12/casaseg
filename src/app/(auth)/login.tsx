@@ -40,7 +40,6 @@ export default function LoginScreen() {
     try {
       setSubmitError('');
       await auth.signIn(values.email, values.password);
-      router.replace('/(tabs)/explore');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
     }
@@ -52,8 +51,7 @@ export default function LoginScreen() {
     try {
       setOauthProvider(provider);
       setSubmitError('');
-      const signedIn = await auth.signInWithOAuth(provider);
-      if (signedIn) router.replace('/(tabs)/explore');
+      await auth.signInWithOAuth(provider);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
     } finally {
@@ -149,7 +147,7 @@ export default function LoginScreen() {
             />
           </View>
 
-          {!isSupabaseConfigured && <View style={styles.demo}><Text style={[styles.demoTitle, { color: palette.textSecondary }]}>{t('devMode')}</Text><Pressable onPress={async () => { await auth.signInDemo('client'); router.replace('/(tabs)/explore'); }}><Text style={styles.link}>{t('clientDemo')}</Text></Pressable><Pressable onPress={async () => { await auth.signInDemo('owner'); router.replace('/(tabs)/explore'); }}><Text style={styles.link}>{t('ownerDemo')}</Text></Pressable></View>}
+          {!isSupabaseConfigured && <View style={styles.demo}><Text style={[styles.demoTitle, { color: palette.textSecondary }]}>{t('devMode')}</Text><Pressable onPress={() => void auth.signInDemo('client')}><Text style={styles.link}>{t('clientDemo')}</Text></Pressable><Pressable onPress={() => void auth.signInDemo('owner')}><Text style={styles.link}>{t('ownerDemo')}</Text></Pressable><Pressable onPress={() => void auth.signInDemo('admin')}><Text style={styles.link}>{t('adminDemo')}</Text></Pressable></View>}
 
           <Pressable onPress={() => router.push('/(auth)/register')}><Text style={styles.link}>{t('createAccount')}</Text></Pressable>
           <View style={styles.legalLinks}>

@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
+import { FlatList, StyleSheet, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { PropertyCard } from '@/components/property/property-card';
-import { Heart } from '@/components/ui/icons';
-import { colors, type AppPalette } from '@/constants/theme';
+import { Heart, Home, Sparkles } from '@/components/ui/icons';
+import { PremiumEmptyState, PremiumErrorState, PremiumHero, SectionTitle, StatusPill } from '@/components/ui/premium';
+import { colors } from '@/constants/theme';
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { fetchFavorites } from '@/features/properties/api/property.queries';
 import { useFavoriteMutation } from '@/features/properties/hooks/use-favorite-mutation';
@@ -36,18 +38,55 @@ export default function SavedScreen() {
     [handleFavoriteChange],
   );
 
-  if (!user) return <AuthRequiredScreen title={t('saved')} subtitle={t('savedSubtitle')} action={t('signIn')} palette={palette} />;
+  const listHeader = (
+    <View style={styles.header}>
+      <PremiumHero title={t('saved')} description={t('savedSubtitle')} eyebrow="TU COLECCIÓN" icon={Heart} />
+      <SectionTitle
+        title={saved.length ? 'Hogares que te inspiran' : 'Tu selección personal'}
+        detail={saved.length ? 'Compara tus favoritos y elige con calma.' : 'Guarda propiedades para encontrarlas rápidamente.'}
+        action={saved.length ? <StatusPill label={`${saved.length} guardadas`} tone={colors.favorite} icon={Heart} /> : undefined}
+      />
+    </View>
+  );
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
+        <View style={styles.guestContent}>
+          <PremiumHero title={t('saved')} description={t('savedSubtitle')} eyebrow="TU COLECCIÓN" icon={Heart} />
+          <PremiumEmptyState icon={Heart} title="Tus favoritos, siempre contigo" description="Inicia sesión para guardar propiedades, compararlas y sincronizarlas en todos tus dispositivos." actionLabel={t('signIn')} onAction={() => router.push('/(auth)/login')} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const isLoading = favorites.isLoading || properties.isLoading;
+  const isError = favorites.isError || properties.isError;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
-      <View style={styles.header}><Text style={[styles.title, { color: palette.text }]}>{t('saved')}</Text><Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('savedSubtitle')}</Text></View>
-      <FlatList data={saved} keyExtractor={(item) => item.id} contentContainerStyle={styles.list} renderItem={renderProperty} ItemSeparatorComponent={PropertySeparator} ListEmptyComponent={<View style={styles.empty}><Heart color={colors.favorite} size={36} /><Text style={[styles.emptyTitle, { color: palette.text }]}>{t('noSaved')}</Text><Text style={[styles.emptyCopy, { color: palette.textSecondary }]}>{t('saveHint')}</Text></View>} />
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: palette.background }]}>
+      <FlatList
+        data={isLoading || isError ? [] : saved}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        renderItem={renderProperty}
+        ItemSeparatorComponent={PropertySeparator}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={isLoading
+          ? <PremiumEmptyState icon={Sparkles} title="Preparando tu colección" description="Estamos sincronizando las propiedades que has guardado." loading />
+          : isError
+            ? <PremiumErrorState title="No pudimos cargar tus favoritos" description="Tu colección sigue segura. Comprueba la conexión e inténtalo de nuevo." onRetry={() => { void favorites.refetch(); void properties.refetch(); }} />
+            : <PremiumEmptyState icon={Home} title={t('noSaved')} description={t('saveHint')} actionLabel="Explorar propiedades" onAction={() => router.push('/(tabs)/explore')} />}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 }
 
-function AuthRequiredScreen({ title, subtitle, action, palette }: { title: string; subtitle: string; action: string; palette: AppPalette }) {
-  return <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}><View style={styles.authRequired}><Heart color={colors.favorite} size={42} /><Text style={[styles.title, { color: palette.text }]}>{title}</Text><Text style={[styles.emptyCopy, { color: palette.textSecondary }]}>{subtitle}</Text><Pressable onPress={() => router.push('/(auth)/login')} style={styles.loginButton}><Text style={styles.loginText}>{action}</Text></Pressable></View></SafeAreaView>;
-}
-
-const styles = StyleSheet.create({ safe: { flex: 1 }, header: { padding: 20, gap: 5 }, title: { fontSize: 28, fontWeight: '900' }, subtitle: { fontSize: 14 }, list: { flexGrow: 1, paddingHorizontal: 16, paddingBottom: 28 }, separator: { height: 24 }, empty: { flex: 1, minHeight: 320, alignItems: 'center', justifyContent: 'center', gap: 10 }, emptyTitle: { fontSize: 18, fontWeight: '900' }, emptyCopy: { fontSize: 14, textAlign: 'center', lineHeight: 20 }, authRequired: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 12 }, loginButton: { marginTop: 8, minHeight: 48, borderRadius: 24, backgroundColor: colors.brand, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' }, loginText: { color: 'white', fontSize: 15, fontWeight: '900' } });
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  list: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 130, gap: 0 },
+  guestContent: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', padding: 16, paddingBottom: 120, gap: 20 },
+  header: { gap: 22, paddingTop: 8, paddingBottom: 20 },
+  separator: { height: 24 },
+});

@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import { getNativeAppleAuthResult } from '@/features/auth/apple-native-auth';
 import { getNativeGoogleAuthResult } from '@/features/auth/google-native-auth';
 import { createOAuthRedirectUrl, exchangeOAuthCode, getOAuthCode } from '@/features/auth/oauth-session';
+import { parseUserRole } from '@/lib/access-control';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { revokePushDevices } from '@/features/notifications/push-notifications';
 import { appStorage } from '@/lib/local-storage';
@@ -19,46 +20,90 @@ function metadataAvatar(metadata: Record<string, unknown>) {
   return typeof value === 'string' && value.trim() ? value : undefined;
 }
 
-function mapUser(session: SupabaseSession | null): AppUser | null {
+function mapUser(session: SupabaseSession | null, role?: UserRole): AppUser | null {
   if (!session?.user) return null;
   const metadata = session.user.user_metadata;
   return {
     id: session.user.id,
     email: session.user.email ?? '',
     name: String(metadata.name ?? metadata.full_name ?? session.user.email?.split('@')[0] ?? 'Usuario'),
-    role: (metadata.role ?? 'client') as UserRole,
+    // user_metadata can be edited by the account owner. Only app_metadata,
+    // public.users or a protected RPC may grant a privileged role.
+    role: role ?? parseUserRole(session.user.app_metadata.role) ?? 'client',
     avatar: metadataAvatar(metadata),
   };
+}
+
+async function fetchProtectedRole() {
+  const { data, error } = await supabase.rpc('get_user_role');
+  if (error) throw error;
+  return parseUserRole(data);
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<SupabaseSession | null>(null);
   const [profileUser, setProfileUser] = useState<AppUser | null>(null);
   const [demoUser, setDemoUser] = useState<AppUser | null>(() => { const stored = !isSupabaseConfigured ? appStorage.getItem(DEMO_KEY) : null; return stored ? JSON.parse(stored) as AppUser : null; });
-  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
+  const [isSessionLoading, setIsSessionLoading] = useState(isSupabaseConfigured);
+  const [isRoleLoading, setIsRoleLoading] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
       return;
     }
-    supabase.auth.getSession().then(({ data }) => setSession(data.session)).finally(() => setIsLoading(false));
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    }).finally(() => setIsSessionLoading(false));
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setProfileUser(null);
+      setSession(nextSession);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!session?.user || !isSupabaseConfigured) return;
+    if (!session?.user || !isSupabaseConfigured) {
+      setProfileUser(null);
+      setIsRoleLoading(false);
+      setRoleError(null);
+      return;
+    }
     let active = true;
     setProfileUser(null);
-    void supabase.from('users').select('id,name,email,role,avatar').eq('id', session.user.id).maybeSingle().then(({ data }) => {
-      if (!active || !data) return;
-      const oauthAvatar = metadataAvatar(session.user.user_metadata);
-      const avatar = data.avatar ? String(data.avatar) : oauthAvatar;
-      setProfileUser({ id: String(data.id), name: String(data.name ?? session.user.user_metadata.name ?? 'Usuario'), email: String(data.email ?? session.user.email ?? ''), role: (data.role ?? 'client') as UserRole, avatar });
-      if (!data.avatar && oauthAvatar) {
-        void supabase.from('users').update({ avatar: oauthAvatar }).eq('id', session.user.id);
+    setIsRoleLoading(true);
+    setRoleError(null);
+    void (async () => {
+      try {
+        const { data, error } = await supabase.from('users').select('id,name,email,role,avatar').eq('id', session.user.id).maybeSingle();
+        if (!active) return;
+
+        if (error || !data) {
+          const protectedRole = await fetchProtectedRole();
+          if (!active) return;
+          if (!protectedRole) {
+            throw error ?? new Error('La cuenta autenticada no tiene un rol asignado.');
+          }
+          setProfileUser(mapUser(session, protectedRole));
+          return;
+        }
+
+        const protectedRole = parseUserRole(data.role);
+        if (!protectedRole) throw new Error('El perfil contiene un rol no reconocido.');
+        const oauthAvatar = metadataAvatar(session.user.user_metadata);
+        const avatar = data.avatar ? String(data.avatar) : oauthAvatar;
+        setProfileUser({ id: String(data.id), name: String(data.name ?? session.user.user_metadata.name ?? 'Usuario'), email: String(data.email ?? session.user.email ?? ''), role: protectedRole, avatar });
+        if (!data.avatar && oauthAvatar) {
+          void supabase.from('users').update({ avatar: oauthAvatar }).eq('id', session.user.id);
+        }
+      } catch (error) {
+        if (!active) return;
+        setProfileUser(null);
+        setRoleError(error instanceof Error ? error.message : 'No se pudo verificar el rol de esta cuenta.');
+      } finally {
+        if (active) setIsRoleLoading(false);
       }
-    });
+    })();
     return () => { active = false; };
   }, [session]);
 
@@ -141,7 +186,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     appStorage.setItem(DEMO_KEY, JSON.stringify(next));
   }, []);
 
-  const user = demoUser ?? (session ? profileUser ?? mapUser(session) : null);
+  // Keep a secure session identity available while the richer database profile
+  // resolves. This lets protected-route guards update without unmounting the
+  // root navigator during post-login navigation.
+  const sessionRole = parseUserRole(session?.user.app_metadata.role);
+  const role = demoUser?.role ?? profileUser?.role ?? sessionRole;
+  const user = demoUser ?? (session ? profileUser ?? mapUser(session, role) : null);
+  const isLoading = isSessionLoading;
 
   const signOut = useCallback(async () => {
     if (user) await revokePushDevices();
@@ -151,9 +202,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [user]);
 
   const value = useMemo<AuthContextValue>(() => ({
-    session, user, role: user?.role, isAuthenticated: Boolean(user), isLoading,
+    session, user, role, isAuthenticated: Boolean(demoUser || session), isLoading, isRoleLoading, roleError,
     signIn, signUp, verifyOtp, signInWithOAuth, requestPasswordReset, updatePassword, signInDemo, signOut,
-  }), [isLoading, requestPasswordReset, session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword, user, verifyOtp]);
+  }), [demoUser, isLoading, isRoleLoading, requestPasswordReset, role, roleError, session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword, user, verifyOtp]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

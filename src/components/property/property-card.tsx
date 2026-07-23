@@ -74,7 +74,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
       accessibilityRole="button"
       accessibilityLabel={t('viewProperty', { title: property.title })}
       onPress={() => router.push({ pathname: '/property/[id]', params: { id: property.id } })}
-      style={({ pressed }) => [styles.card, compact && styles.cardCompact, { opacity: pressed ? 0.96 : 1 }]}
+      style={({ pressed }) => [styles.card, compact && styles.cardCompact, { backgroundColor: palette.surface, borderColor: palette.border, opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.994 : 1 }] }]}
     >
       <View style={[styles.imageFrame, compact && styles.imageFrameCompact]} onLayout={(event) => setImageWidth(event.nativeEvent.layout.width)}>
         {imageWidth > 0 && (
@@ -139,8 +139,8 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
 export const PropertyCard = memo(PropertyCardComponent);
 
 const styles = StyleSheet.create({
-  card: { gap: 12 },
-  cardCompact: { gap: 8 },
+  card: { gap: 12, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 8, boxShadow: '0 10px 26px rgba(15,23,42,0.07)' },
+  cardCompact: { gap: 8, borderRadius: radius.md, padding: 6 },
   imageFrame: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.subtle },
   imageFrameCompact: { borderRadius: radius.md },
   carouselImage: { height: '100%' },

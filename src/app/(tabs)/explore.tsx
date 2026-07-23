@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Bell, ChevronDown, List, Map, Search, SlidersHorizontal, UserRound } from '@/components/ui/icons';
+import { Bell, ChevronDown, Home, List, Map, Search, ShieldCheck, SlidersHorizontal, Sparkles, UserRound } from '@/components/ui/icons';
+import { PremiumEmptyState, PremiumErrorState, PremiumHero } from '@/components/ui/premium';
 import { memo, useCallback, useMemo, useRef } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type ListRenderItem } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FilterSheet, type FilterSheetHandle } from '@/components/filter-sheet';
@@ -72,13 +73,12 @@ export default function ExploreScreen() {
 
   const header = (
     <View style={styles.headerContent}>
-      <LinearGradient colors={['rgba(37,99,235,0.18)', 'rgba(59,130,246,0.08)']} style={styles.hero}>
-        <View style={styles.heroCopy}><Text style={[styles.heroTitle, { color: palette.text }]}>{greeting}</Text><Text style={[styles.heroSubtitle, { color: palette.textSecondary }]}>{t('greetingSubtitle')}</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel={isAuthenticated ? 'Notificaciones' : 'Iniciar sesión'} onPress={() => router.push(isAuthenticated ? '/notifications' : '/(auth)/login')} style={[styles.notificationButton, { backgroundColor: palette.surface }]}>
+      <PremiumHero title={greeting} description={t('greetingSubtitle')} eyebrow="PROPIEDADES VERIFICADAS" icon={ShieldCheck} accessory={(
+        <Pressable accessibilityRole="button" accessibilityLabel={isAuthenticated ? 'Notificaciones' : 'Iniciar sesión'} onPress={() => router.push(isAuthenticated ? '/notifications' : '/(auth)/login')} style={styles.notificationButton}>
           {isAuthenticated ? <Bell color={palette.text} size={23} /> : <UserRound color={palette.text} size={23} />}
           {isAuthenticated && unreadCount > 0 && <View style={styles.notificationDot}><Text style={styles.notificationCount}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>}
         </Pressable>
-      </LinearGradient>
+      )} />
 
       <Pressable accessibilityRole="button" accessibilityLabel="Abrir filtros" onPress={() => sheetRef.current?.present()} style={[styles.search, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Search color={palette.textSecondary} size={23} />
@@ -114,7 +114,7 @@ export default function ExploreScreen() {
         renderItem={renderProperty}
         ItemSeparatorComponent={PropertySeparator}
         ListHeaderComponent={header}
-        ListEmptyComponent={propertyQuery.isLoading ? <ActivityIndicator color={colors.brand} size="large" style={styles.empty} /> : propertyQuery.isError ? <Pressable onPress={() => void propertyQuery.refetch()}><Text style={[styles.empty, { color: colors.error }]}>{t('propertyLoadError')}</Text></Pressable> : <Text style={[styles.empty, { color: palette.textSecondary }]}>{t('noPropertyResults')}</Text>}
+        ListEmptyComponent={propertyQuery.isLoading ? <PremiumEmptyState icon={Sparkles} title="Buscando propiedades" description="Estamos preparando las mejores opciones para ti." loading /> : propertyQuery.isError ? <PremiumErrorState title="No pudimos cargar las propiedades" description={t('propertyLoadError')} onRetry={() => void propertyQuery.refetch()} /> : <PremiumEmptyState icon={Home} title="Sin resultados para estos filtros" description={t('noPropertyResults')} actionLabel="Cambiar filtros" onAction={() => sheetRef.current?.present()} />}
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
@@ -126,18 +126,14 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  listContent: { width: '100%', maxWidth: 860, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 32 },
+  listContent: { width: '100%', maxWidth: 860, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 132 },
   gridRow: { gap: 12 },
   gridItem: { flex: 1, minWidth: 0 },
   headerContent: { gap: 16, paddingTop: 8, paddingBottom: 20 },
-  hero: { minHeight: 148, borderRadius: radius.hero, padding: 20, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', overflow: 'hidden' },
-  heroCopy: { flex: 1, paddingTop: 4, paddingRight: 12, gap: 8 },
-  heroTitle: { fontSize: 28, lineHeight: 33, fontWeight: '900', letterSpacing: -0.7 },
-  heroSubtitle: { fontSize: 15, lineHeight: 21 },
-  notificationButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  notificationButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   notificationDot: { position: 'absolute', right: -2, top: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   notificationCount: { color: 'white', fontSize: 11, fontWeight: '900' },
-  search: { minHeight: 58, borderRadius: radius.lg, borderWidth: 1, paddingLeft: 16, paddingRight: 7, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  search: { minHeight: 62, borderRadius: radius.lg, borderWidth: 1, paddingLeft: 16, paddingRight: 7, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 10px 24px rgba(15,23,42,0.07)' },
   searchCopy: { flex: 1, gap: 2 },
   searchTitle: { fontSize: 16, fontWeight: '800' },
   searchSubtitle: { fontSize: 13 },
@@ -156,5 +152,4 @@ const styles = StyleSheet.create({
   sort: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 16 },
   sortText: { fontSize: 14, fontWeight: '700' },
   separator: { height: 18 },
-  empty: { textAlign: 'center', paddingVertical: 48, fontSize: 15 },
 });

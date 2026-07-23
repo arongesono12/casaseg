@@ -21,9 +21,11 @@ export default function TabsLayout() {
       headerShown: false,
       tabBarActiveTintColor: colors.primary,
       tabBarInactiveTintColor: palette.muted,
-      tabBarLabelStyle: { fontSize: 12, fontWeight: '700', marginTop: 1 },
-      tabBarItemStyle: { paddingVertical: 4 },
-      tabBarStyle: { minHeight: 60 + bottomInset, paddingTop: 6, paddingBottom: bottomInset, backgroundColor: palette.surface, borderTopColor: palette.border },
+      tabBarActiveBackgroundColor: `${colors.primary}0D`,
+      tabBarLabelStyle: { fontSize: 11, fontWeight: '800', marginTop: 1 },
+      tabBarItemStyle: { margin: 4, borderRadius: 18, paddingVertical: 3 },
+      tabBarHideOnKeyboard: true,
+      tabBarStyle: { position: 'absolute', left: 10, right: 10, bottom: 8, minHeight: 58 + bottomInset, paddingTop: 5, paddingBottom: bottomInset, paddingHorizontal: 4, backgroundColor: palette.surface, borderWidth: 1, borderTopWidth: 1, borderColor: palette.border, borderRadius: 26, borderCurve: 'continuous', boxShadow: '0 16px 34px rgba(15,23,42,0.14)' },
       sceneStyle: { backgroundColor: palette.background },
     }}>
       <Tabs.Screen name="explore" options={{ title: t('explore'), tabBarIcon: ({ color, focused }) => <Compass color={color} fill={focused ? colors.primary : 'transparent'} size={23} /> }} />
