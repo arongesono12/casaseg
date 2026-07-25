@@ -23,7 +23,7 @@ function getDateFormatter(locale: string) {
 
 export function formatXaf(amount: number, priceType?: PriceType, locale = 'es-GQ') {
   const suffix = priceType === 'per_month' ? ' / mes' : priceType === 'per_night' ? ' / noche' : '';
-  return `${getNumberFormatter(locale).format(amount)} XAF${suffix}`;
+  return `${getNumberFormatter(locale).format(amount)} FCFA${suffix}`;
 }
 
 export function formatDate(value: string | Date, locale = 'es-GQ') {

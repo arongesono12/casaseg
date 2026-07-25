@@ -1,0 +1,31 @@
+project_id = "casaseg"
+
+[auth]
+site_url = "https://casaseg.com"
+additional_redirect_urls = [
+  "http://localhost:3000/auth/callback",
+  "https://casaseg.com/reset-password",
+  "https://casaseg.com/auth/callback",
+  "casaseg://auth/callback",
+  "exp://10.100.132.58:8081/--/auth/callback",
+]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = false
+max_frequency = "1m"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.email.template.confirmation]
+subject = "{{ .Token }} es tu código de verificación de CasaSeg"
+content_path = "./supabase/templates/confirmation.html"
+
+[storage.vector]
+enabled = false

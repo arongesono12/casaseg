@@ -1,10 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ArrowRight, RefreshCw, Sparkles, type IconProps } from '@/components/ui/icons';
-import { brandGradient, colors, radius } from '@/constants/theme';
+import { actionGradient, colors, radius } from '@/constants/theme';
 import { useAppTheme } from '@/providers/theme-context';
 
 export type IconComponent = (props: IconProps) => ReactNode;
@@ -51,6 +51,7 @@ type ButtonProps = {
 
 export function PremiumButton({ label, onPress, icon: Icon, trailingIcon: TrailingIcon, loading = false, disabled = false, variant = 'primary', style }: ButtonProps) {
   const { palette } = useAppTheme();
+  const [focused, setFocused] = useState(false);
   const inactive = disabled || loading;
   const content = (
     <>
@@ -67,14 +68,14 @@ export function PremiumButton({ label, onPress, icon: Icon, trailingIcon: Traili
 
   if (variant === 'primary') {
     return (
-      <Pressable accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={press} style={({ pressed }) => [styles.buttonShell, style, (pressed || inactive) && styles.buttonPressed]}>
-        <LinearGradient colors={brandGradient} style={styles.buttonGradient}>{content}</LinearGradient>
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, style, focused && styles.buttonFocused, (pressed || inactive) && styles.buttonPressed]}>
+        <LinearGradient colors={actionGradient} style={styles.buttonGradient}>{content}</LinearGradient>
       </Pressable>
     );
   }
 
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={press} style={({ pressed }) => [styles.buttonShell, styles.secondaryButton, { backgroundColor: variant === 'danger' ? `${colors.error}12` : palette.surface, borderColor: variant === 'danger' ? `${colors.error}35` : palette.border }, style, (pressed || inactive) && styles.buttonPressed]}>
+    <Pressable accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, styles.secondaryButton, { backgroundColor: variant === 'danger' ? `${colors.error}12` : palette.surface, borderColor: variant === 'danger' ? `${colors.error}35` : palette.border }, style, focused && styles.buttonFocused, (pressed || inactive) && styles.buttonPressed]}>
       {content}
     </Pressable>
   );
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
   buttonGradient: { minHeight: 54, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   secondaryButton: { minHeight: 54, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: 'none' },
   buttonPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
+  buttonFocused: { boxShadow: '0 0 0 3px rgba(20,184,166,0.38)' },
   buttonLabel: { color: 'white', fontSize: 15, fontWeight: '900' },
   dangerLabel: { color: colors.error },
   emptyCard: { minHeight: 300, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 28, alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 12px 30px rgba(15,23,42,0.06)' },

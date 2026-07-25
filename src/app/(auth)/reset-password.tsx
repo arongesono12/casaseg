@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import type { z } from 'zod';
 
 import { FormField } from '@/components/form-field';
 import { RouteScreen } from '@/components/route-screen';
-import { colors, radius } from '@/constants/theme';
+import { PremiumButton } from '@/components/ui/premium';
+import { colors } from '@/constants/theme';
 import { resetSchema } from '@/features/auth/auth.schemas';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
@@ -37,13 +38,11 @@ export default function ResetPasswordScreen() {
       <Controller control={control} name="password" render={({ field }) => <FormField label={t('password')} secureTextEntry value={field.value} onChangeText={field.onChange} error={errors.password?.message} />} />
       <Controller control={control} name="confirmPassword" render={({ field }) => <FormField label={t('repeatPassword')} secureTextEntry value={field.value} onChangeText={field.onChange} error={errors.confirmPassword?.message} />} />
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-      <Pressable onPress={() => void submit()} style={styles.button}><Text style={styles.buttonText}>{t('savePassword')}</Text></Pressable>
+      <PremiumButton label={t('savePassword')} onPress={() => void submit()} />
     </RouteScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  button: { minHeight: 54, backgroundColor: colors.brand, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: 'white', fontWeight: '900' },
   error: { color: colors.error },
 });

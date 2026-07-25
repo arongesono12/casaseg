@@ -4,6 +4,12 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { Property } from '@/types';
 
 type PropertyRow = Record<string, unknown>;
+export const PROPERTY_PAGE_SIZE = 12;
+
+export type PropertyPage = {
+  items: Property[];
+  nextPage?: number;
+};
 
 function mapProperty(row: PropertyRow): Property {
   return {
@@ -47,6 +53,34 @@ export async function fetchProperties(filters: PropertyFilters, signal?: AbortSi
   const { data, error } = await query.abortSignal(signal ?? new AbortController().signal);
   if (error) throw error;
   return (data as PropertyRow[]).map(mapProperty);
+}
+
+export async function fetchPropertiesPage(filters: PropertyFilters, page: number, signal?: AbortSignal): Promise<PropertyPage> {
+  const from = page * PROPERTY_PAGE_SIZE;
+  const to = from + PROPERTY_PAGE_SIZE - 1;
+
+  if (!isSupabaseConfigured) {
+    const filtered = filterFallback(filters);
+    const items = filtered.slice(from, to + 1);
+    return { items, nextPage: from + items.length < filtered.length ? page + 1 : undefined };
+  }
+
+  let query = supabase.from('properties').select('*').eq('status', 'active').range(from, to);
+  if (filters.location) query = query.ilike('location', `%${filters.location}%`);
+  if (filters.name) query = query.ilike('title', `%${filters.name}%`);
+  if (filters.category !== 'Todos') query = query.eq('category', filters.category);
+  if (filters.maxPrice) query = query.lte('price', Number(filters.maxPrice));
+  if (filters.availability !== 'all') query = query.eq('is_occupied', filters.availability === 'occupied');
+  if (filters.sort === 'rating') query = query.order('rating', { ascending: false });
+  else if (filters.sort === 'price-asc') query = query.order('price', { ascending: true });
+  else if (filters.sort === 'price-desc') query = query.order('price', { ascending: false });
+  else query = query.order('created_at', { ascending: false });
+  query = query.order('id', { ascending: true });
+
+  const { data, error } = await query.abortSignal(signal ?? new AbortController().signal);
+  if (error) throw error;
+  const items = (data as PropertyRow[]).map(mapProperty);
+  return { items, nextPage: items.length === PROPERTY_PAGE_SIZE ? page + 1 : undefined };
 }
 
 export async function fetchProperty(id: string, signal?: AbortSignal) {

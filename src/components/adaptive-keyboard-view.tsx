@@ -8,13 +8,13 @@ type AdaptiveKeyboardViewProps = PropsWithChildren<{
 
 /**
  * Keeps focused fields and composers visible with equivalent behavior on both
- * native platforms. Android uses height together with adjustResize; iOS uses
- * padding because its window is not resized by the system keyboard.
+ * native platforms. Android delegates resizing to adjustResize in app config;
+ * iOS adds padding because its window is not resized by the system keyboard.
  */
 export function AdaptiveKeyboardView({ children, keyboardVerticalOffset = 0, style }: AdaptiveKeyboardViewProps) {
   return (
     <KeyboardAvoidingView
-      behavior={Platform.select({ ios: 'padding', android: 'height' })}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       enabled={Platform.OS !== 'web'}
       keyboardVerticalOffset={keyboardVerticalOffset}
       style={style}

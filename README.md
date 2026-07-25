@@ -47,6 +47,25 @@ eas build --profile development --platform android
 eas build --profile development --platform ios
 ```
 
+## Google sign-in on Android and iOS
+
+CasaSeg uses Google Credential Manager on Android and Google Sign-In SDK on iOS through
+`react-native-nitro-google-signin`. Google authentication therefore requires a development or
+store build; Expo Go cannot load this native module.
+
+Configure these public OAuth identifiers before rebuilding:
+
+```bash
+EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID=your-web-client.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client.apps.googleusercontent.com
+```
+
+The iOS OAuth client must use bundle identifier `com.casaseg.mobile`. The app config derives and
+registers its reversed URL scheme automatically. Android OAuth credentials must use package
+`com.casaseg.mobile` and include every SHA-1 used by local, EAS and Google Play signing.
+
+After changing either credential, rebuild the native client; restarting Metro is not enough.
+
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project

@@ -28,13 +28,21 @@ function keyboardType(value: FormFieldProps['keyboardType']): TextFieldKeyboardT
 }
 
 /** Uses UIKit through SwiftUI while React Hook Form continues to own form state. */
-export function FormField({ error, label, rightAccessory, ...inputProps }: FormFieldProps) {
+export function FormField({ error, inputRef, label, rightAccessory, ...inputProps }: FormFieldProps) {
   const { palette, resolvedMode } = useAppTheme();
   const nativeRef = useRef<TextFieldRef>(null);
   const value = typeof inputProps.value === 'string' ? inputProps.value : undefined;
   const initialValue = value ?? (typeof inputProps.defaultValue === 'string' ? inputProps.defaultValue : '');
   const nativeValue = useRef(initialValue);
-  const useFallback = Boolean(isExpoGo || inputProps.secureTextEntry || rightAccessory || inputProps.editable === false);
+  const useFallback = Boolean(
+    isExpoGo
+    || inputRef
+    || inputProps.autoComplete
+    || inputProps.textContentType
+    || inputProps.secureTextEntry
+    || rightAccessory
+    || inputProps.editable === false
+  );
 
   useEffect(() => {
     if (!useFallback && value !== undefined && value !== nativeValue.current) {
@@ -44,7 +52,7 @@ export function FormField({ error, label, rightAccessory, ...inputProps }: FormF
   }, [useFallback, value]);
 
   if (useFallback) {
-    return <FallbackFormField error={error} label={label} rightAccessory={rightAccessory} {...inputProps} />;
+    return <FallbackFormField error={error} inputRef={inputRef} label={label} rightAccessory={rightAccessory} {...inputProps} />;
   }
 
   // Conditional loading keeps SDK 54 Expo Go from resolving unavailable native views.

@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { z } from 'zod';
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
@@ -29,6 +30,7 @@ export default function LoginScreen() {
   const [submitError, setSubmitError] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const passwordRef = useRef<TextInput>(null);
   const { height, width } = useWindowDimensions();
   const compact = height < 700 || width < 360;
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginValues>({
@@ -38,8 +40,13 @@ export default function LoginScreen() {
 
   const submit = handleSubmit(async (values) => {
     try {
+      Keyboard.dismiss();
       setSubmitError('');
       await auth.signIn(values.email, values.password);
+      if (Platform.OS !== 'web') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      router.replace('/(tabs)/explore');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
     }
@@ -49,9 +56,11 @@ export default function LoginScreen() {
     if (oauthProvider) return;
 
     try {
+      Keyboard.dismiss();
       setOauthProvider(provider);
       setSubmitError('');
-      await auth.signInWithOAuth(provider);
+      const authenticated = await auth.signInWithOAuth(provider);
+      if (authenticated) router.replace('/(tabs)/explore');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
     } finally {
@@ -62,16 +71,45 @@ export default function LoginScreen() {
   const oauthDisabled = isSubmitting || oauthProvider !== null;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.safe, { backgroundColor: palette.background }]}>
       <AdaptiveKeyboardView style={styles.safe}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, compact && styles.contentCompact]}>
+        <ScrollView
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.content, compact && styles.contentCompact]}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.heading}>
             <AuthLogo compact={compact} />
             <Text style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{t('loginTitle')}</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('loginSubtitle')}</Text>
           </View>
 
-          <Controller control={control} name="email" render={({ field }) => <FormField label={t('email')} placeholder={t('emailPlaceholder')} autoCapitalize="none" autoComplete="email" keyboardType="email-address" returnKeyType="next" textContentType="emailAddress" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={errors.email?.message} />} />
+          <Controller
+            control={control}
+            name="email"
+            render={({ field }) => (
+              <FormField
+                label={t('email')}
+                placeholder={t('emailPlaceholder')}
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                importantForAutofill="yes"
+                keyboardType="email-address"
+                returnKeyType="next"
+                spellCheck={false}
+                textContentType="emailAddress"
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                error={errors.email?.message}
+              />
+            )}
+          />
           <Controller
             control={control}
             name="password"
@@ -81,8 +119,12 @@ export default function LoginScreen() {
                 placeholder={t('passwordPlaceholder')}
                 autoCapitalize="none"
                 autoComplete="current-password"
+                autoCorrect={false}
+                importantForAutofill="yes"
+                inputRef={passwordRef}
                 returnKeyType="done"
                 secureTextEntry={!passwordVisible}
+                spellCheck={false}
                 textContentType="password"
                 value={field.value}
                 onChangeText={field.onChange}
@@ -136,15 +178,17 @@ export default function LoginScreen() {
               onPress={() => void oauth('google')}
               textColor={palette.text}
             />
-            <AppleAuthButton
-              backgroundColor={palette.surface}
-              borderColor={palette.border}
-              colorScheme={resolvedMode}
-              disabled={oauthDisabled}
-              label={t('signInWithApple')}
-              onPress={() => void oauth('apple')}
-              textColor={palette.text}
-            />
+            {Platform.OS !== 'android' ? (
+              <AppleAuthButton
+                backgroundColor={palette.surface}
+                borderColor={palette.border}
+                colorScheme={resolvedMode}
+                disabled={oauthDisabled}
+                label={t('signInWithApple')}
+                onPress={() => void oauth('apple')}
+                textColor={palette.text}
+              />
+            ) : null}
           </View>
 
           {!isSupabaseConfigured && <View style={styles.demo}><Text style={[styles.demoTitle, { color: palette.textSecondary }]}>{t('devMode')}</Text><Pressable onPress={() => void auth.signInDemo('client')}><Text style={styles.link}>{t('clientDemo')}</Text></Pressable><Pressable onPress={() => void auth.signInDemo('owner')}><Text style={styles.link}>{t('ownerDemo')}</Text></Pressable><Pressable onPress={() => void auth.signInDemo('admin')}><Text style={styles.link}>{t('adminDemo')}</Text></Pressable></View>}

@@ -3,6 +3,11 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 // EAS project IDs are public identifiers and must be available before EAS can
 // load environment variables or attempt to update this dynamic config.
 const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '7f3eebdd-5f27-4702-8fcc-10cce996380b';
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim();
+const googleIosClientSuffix = '.apps.googleusercontent.com';
+const googleIosUrlScheme = googleIosClientId?.endsWith(googleIosClientSuffix)
+  ? `com.googleusercontent.apps.${googleIosClientId.slice(0, -googleIosClientSuffix.length)}`
+  : undefined;
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -11,6 +16,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'casaseg',
   jsEngine: 'hermes',
   newArchEnabled: true,
+  plugins: [
+    ...(config.plugins ?? []),
+    ...(googleIosUrlScheme
+      ? [['react-native-nitro-google-signin', { iosUrlScheme: googleIosUrlScheme }] as [string, { iosUrlScheme: string }]]
+      : []),
+  ],
   runtimeVersion: { policy: 'appVersion' },
   updates: {
     ...config.updates,

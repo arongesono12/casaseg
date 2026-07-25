@@ -1,1 +1,49 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'; import { useLocalSearchParams } from 'expo-router'; import { useState } from 'react'; import { Pressable, StyleSheet, Text } from 'react-native'; import { FormField } from '@/components/form-field'; import { RouteScreen } from '@/components/route-screen'; import { colors, radius } from '@/constants/theme'; import { propertyKeys } from '@/features/properties/api/property.keys'; import { useProperty } from '@/features/properties/hooks/use-properties'; import { updateProperty } from '@/features/owner/update-property'; import type { Property } from '@/types'; export default function EditPropertyScreen() { const { id } = useLocalSearchParams<{ id: string }>(); const property = useProperty(id); if (!property.data) return <RouteScreen title="Editar propiedad" description="Cargando publicación…" />; return <EditForm property={property.data} />; } function EditForm({ property }: { property: Property }) { const [title, setTitle] = useState(property.title); const [description, setDescription] = useState(property.description); const [price, setPrice] = useState(String(property.price)); const client = useQueryClient(); const save = useMutation({ mutationFn: () => updateProperty(property.id, { title, description, price: Number(price) }), onSuccess: () => client.invalidateQueries({ queryKey: propertyKeys.detail(property.id) }) }); return <RouteScreen title="Editar propiedad" description="Los cambios se validan de nuevo en el servidor."><FormField label="Título" value={title} onChangeText={setTitle} /><FormField label="Descripción" value={description} onChangeText={setDescription} multiline /><FormField label="Precio" value={price} onChangeText={setPrice} keyboardType="numeric" /><Pressable onPress={() => save.mutate()} style={styles.button}><Text style={styles.text}>{save.isPending ? 'Guardando…' : 'Guardar cambios'}</Text></Pressable>{save.error && <Text style={{ color: colors.error }}>{save.error.message}</Text>}</RouteScreen>; } const styles = StyleSheet.create({ button: { minHeight: 54, borderRadius: radius.md, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' }, text: { color: 'white', fontWeight: '900' } });
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocalSearchParams } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { Text } from 'react-native';
+
+import { FormField } from '@/components/form-field';
+import { RouteScreen } from '@/components/route-screen';
+import { PremiumButton } from '@/components/ui/premium';
+import { colors } from '@/constants/theme';
+import { propertyKeys } from '@/features/properties/api/property.keys';
+import { useProperty } from '@/features/properties/hooks/use-properties';
+import { updateProperty } from '@/features/owner/update-property';
+import type { Property } from '@/types';
+
+export default function EditPropertyScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const property = useProperty(id);
+  if (!property.data) return <RouteScreen title="Editar propiedad" description="Cargando publicación…" />;
+  return <EditForm property={property.data} />;
+}
+
+function EditForm({ property }: { property: Property }) {
+  const client = useQueryClient();
+  const { control, handleSubmit } = useForm({
+    defaultValues: {
+      title: property.title,
+      description: property.description,
+      price: String(property.price),
+    },
+  });
+  const save = useMutation({
+    mutationFn: (values: { title: string; description: string; price: string }) => updateProperty(property.id, {
+      title: values.title,
+      description: values.description,
+      price: Number(values.price),
+    }),
+    onSuccess: () => client.invalidateQueries({ queryKey: propertyKeys.detail(property.id) }),
+  });
+
+  return (
+    <RouteScreen title="Editar propiedad" description="Los cambios se validan de nuevo en el servidor.">
+      <Controller control={control} name="title" render={({ field }) => <FormField label="Título" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} />} />
+      <Controller control={control} name="description" render={({ field }) => <FormField label="Descripción" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} multiline />} />
+      <Controller control={control} name="price" render={({ field }) => <FormField label="Precio" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} keyboardType="numeric" />} />
+      <PremiumButton label={save.isPending ? 'Guardando…' : 'Guardar cambios'} loading={save.isPending} onPress={() => void handleSubmit((values) => save.mutate(values))()} />
+      {save.error ? <Text style={{ color: colors.error }}>{save.error.message}</Text> : null}
+    </RouteScreen>
+  );
+}

@@ -28,14 +28,22 @@ function capitalization(value: FormFieldProps['autoCapitalize']): ComposeTextInp
 }
 
 /** Uses Material 3 through Jetpack Compose while React continues to own form state. */
-export function FormField({ error, label, rightAccessory, ...inputProps }: FormFieldProps) {
+export function FormField({ error, inputRef, label, rightAccessory, ...inputProps }: FormFieldProps) {
   const { palette, resolvedMode } = useAppTheme();
   const nativeRef = useRef<TextInputRef>(null);
   const value = typeof inputProps.value === 'string' ? inputProps.value : undefined;
   const initialValue = value ?? (typeof inputProps.defaultValue === 'string' ? inputProps.defaultValue : '');
   const nativeValue = useRef(initialValue);
   // Compose's current TextInput maps password keyboards but does not apply a secure visual transformation.
-  const useFallback = Boolean(isExpoGo || inputProps.secureTextEntry || rightAccessory || inputProps.editable === false);
+  const useFallback = Boolean(
+    isExpoGo
+    || inputRef
+    || inputProps.autoComplete
+    || inputProps.textContentType
+    || inputProps.secureTextEntry
+    || rightAccessory
+    || inputProps.editable === false
+  );
 
   useEffect(() => {
     if (!useFallback && value !== undefined && value !== nativeValue.current) {
@@ -45,7 +53,7 @@ export function FormField({ error, label, rightAccessory, ...inputProps }: FormF
   }, [useFallback, value]);
 
   if (useFallback) {
-    return <FallbackFormField error={error} label={label} rightAccessory={rightAccessory} {...inputProps} />;
+    return <FallbackFormField error={error} inputRef={inputRef} label={label} rightAccessory={rightAccessory} {...inputProps} />;
   }
 
   // Conditional loading keeps SDK 54 Expo Go from resolving unavailable native views.

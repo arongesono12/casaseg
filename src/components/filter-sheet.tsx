@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { brandGradient, colors, radius } from '@/constants/theme';
+import { actionGradient, colors, radius } from '@/constants/theme';
 import { properties } from '@/data/properties';
 import { defaultPropertyFilters, propertyFiltersSchema, type PropertyFilters } from '@/features/properties/schemas/property-filters.schema';
 import { useAppTheme } from '@/providers/theme-context';
@@ -55,7 +55,7 @@ export const FilterSheet = forwardRef<FilterSheetHandle>(function FilterSheet(_,
           <ChoiceField control={control} name="availability" label={t('availability')} options={availability} />
           <ChoiceField control={control} name="sort" label={t('sort')} options={sorting} />
         </BottomSheetScrollView>
-        <View style={[styles.footer, { borderColor: palette.border, backgroundColor: palette.surface }]}><Pressable accessibilityRole="button" onPress={() => void handleSubmit(onValid)()}><LinearGradient colors={brandGradient} style={styles.applyButton}><Text style={styles.applyText}>{t('showResults', { count: String(resultCount) })}</Text></LinearGradient></Pressable></View>
+        <View style={[styles.footer, { borderColor: palette.border, backgroundColor: palette.surface }]}><Pressable accessibilityRole="button" onPress={() => void handleSubmit(onValid)()}><LinearGradient colors={actionGradient} style={styles.applyButton}><Text style={styles.applyText}>{t('showResults', { count: String(resultCount) })}</Text></LinearGradient></Pressable></View>
       </BottomSheetView>
     </BottomSheetModal>
   );

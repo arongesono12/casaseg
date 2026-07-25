@@ -4,6 +4,9 @@ export const colors = {
   brand: '#2563EB',
   brandDark: '#1D4ED8',
   primary: '#3B82F6',
+  accent: '#14B8A6',
+  accentDark: '#0F766E',
+  accentSoft: '#ECFDF5',
   background: '#F8FAFC',
   surface: '#FFFFFF',
   subtle: '#EEF2F7',
@@ -23,8 +26,10 @@ export const colors = {
   favorite: '#F43F5E',
 } as const;
 
-// Blue is the primary interactive color; teal remains a supporting brand tone.
-export const brandGradient = ['#1D4ED8', '#3B82F6'] as const;
+// One semantic gradient keeps every branded action consistent with Explore.
+export const actionGradient = ['#14B8A6', '#2563EB'] as const;
+export const brandGradient = actionGradient;
+export const exploreGradient = actionGradient;
 
 export const radius = {
   sm: 10,

@@ -1,22 +1,25 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, type Href } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { Keyboard, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { FormField } from '@/components/form-field';
 import { RouteScreen } from '@/components/route-screen';
 import { UserAvatar } from '@/components/user-avatar';
-import { ArrowRight, Bell, Building2, CreditCard, FileText, Heart, HomeCheck, Lock, LogOut, MessageCircle, Settings, ShieldCheck, Sparkles, UsersRound } from '@/components/ui/icons';
-import { IconTile, StatusPill } from '@/components/ui/premium';
-import { colors, radius, type AppPalette } from '@/constants/theme';
+import { ArrowRight, Bell, Building2, Check, CheckCircle2, CreditCard, FileText, Heart, HomeCheck, Lock, LogOut, MessageCircle, Settings, ShieldCheck, Sparkles, UsersRound } from '@/components/ui/icons';
+import { IconTile, PremiumButton, SectionTitle, StatusPill, SurfaceCard } from '@/components/ui/premium';
+import { actionGradient, colors, radius, type AppPalette } from '@/constants/theme';
 import { isAdminRole, isClientRole, isOwnerRole } from '@/lib/access-control';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 export default function ProfileScreen() {
-  const { user, role, isRoleLoading, roleError, signOut } = useAuth();
+  const { user, role, isRoleLoading, roleError, signOut, updateProfileName } = useAuth();
   const { palette } = useAppTheme();
   const { t } = useI18n();
+  const { width } = useWindowDimensions();
 
   if (!user) return <Redirect href="/(auth)/login" />;
 
@@ -25,7 +28,7 @@ export default function ProfileScreen() {
   const RoleIcon = isAdminRole(role) ? ShieldCheck : isOwnerRole(role) ? Building2 : role === 'client' ? HomeCheck : Lock;
 
   return (
-    <RouteScreen title={t('profile')} description={t('profileSubtitle')} showBack={false}>
+    <RouteScreen title={t('profile')} description={t('profileSubtitle')} showBack={false} maxWidth={960}>
       <View style={[styles.identityCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.avatarWrap}>
           <UserAvatar name={user.name} uri={user.avatar} size={92} />
@@ -37,6 +40,15 @@ export default function ProfileScreen() {
           <Text selectable numberOfLines={1} style={[styles.email, { color: palette.textSecondary }]}>{user.email}</Text>
         </View>
       </View>
+
+      <ProfileDetailsForm
+        key={user.id}
+        email={user.email}
+        initialName={user.name}
+        onSave={updateProfileName}
+        palette={palette}
+        wide={width >= 760}
+      />
 
       {roleError ? (
         <View style={[styles.roleWarning, { backgroundColor: `${colors.error}0E`, borderColor: `${colors.error}26` }]}>
@@ -58,7 +70,7 @@ export default function ProfileScreen() {
 
       {isAdminRole(role) ? (
         <Pressable accessibilityRole="button" onPress={() => router.push('/admin' as Href)} style={({ pressed }) => [styles.ownerCta, pressed && styles.pressed]}>
-          <LinearGradient colors={role === 'superadmin' ? ['#3B0764', '#7C3AED'] : ['#172554', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
+          <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
             <View style={styles.ownerCopy}>
               <View style={styles.ownerEyebrow}><ShieldCheck color="#DDD6FE" size={15} /><Text style={styles.ownerEyebrowText}>RESPONSABILIDAD ADMINISTRATIVA</Text></View>
               <Text style={styles.ownerTitle}>Panel de administración</Text>
@@ -71,7 +83,7 @@ export default function ProfileScreen() {
 
       {isOwnerRole(role) ? (
         <Pressable accessibilityRole="button" onPress={() => router.push('/owner')} style={({ pressed }) => [styles.ownerCta, pressed && styles.pressed]}>
-          <LinearGradient colors={['#0B1F4D', '#1D4ED8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
+          <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
             <View style={styles.ownerCopy}>
               <View style={styles.ownerEyebrow}><Sparkles color="#BFDBFE" size={15} /><Text style={styles.ownerEyebrowText}>ESPACIO PROFESIONAL</Text></View>
               <Text style={styles.ownerTitle}>{t('ownerPanel')}</Text>
@@ -136,8 +148,24 @@ export default function ProfileScreen() {
 }
 
 function Action({ title, description, icon, tone, onPress, palette }: { title: string; description: string; icon: ReactNode; tone: string; onPress: () => void; palette: AppPalette }) {
+  const [focused, setFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={({ pressed }) => [styles.action, { backgroundColor: pressed ? palette.subtle : palette.surface }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.action,
+        { backgroundColor: pressed || hovered ? palette.subtle : palette.surface },
+        focused && styles.focusRing,
+      ]}
+    >
       <View style={[styles.actionIcon, { backgroundColor: `${tone}14` }]}>{icon}</View>
       <View style={styles.actionCopy}>
         <Text style={[styles.actionText, { color: palette.text }]}>{title}</Text>
@@ -148,6 +176,98 @@ function Action({ title, description, icon, tone, onPress, palette }: { title: s
   );
 }
 
+function ProfileDetailsForm({
+  email,
+  initialName,
+  onSave,
+  palette,
+  wide,
+}: {
+  email: string;
+  initialName: string;
+  onSave: (name: string) => Promise<void>;
+  palette: AppPalette;
+  wide: boolean;
+}) {
+  const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string }>();
+  const { control, handleSubmit, formState: { isSubmitting } } = useForm({
+    defaultValues: { name: initialName, email },
+  });
+
+  const submit = handleSubmit(async ({ name }) => {
+    Keyboard.dismiss();
+    setFeedback(undefined);
+    try {
+      await onSave(name);
+      setFeedback({ tone: 'success', message: 'Tu perfil se ha actualizado correctamente.' });
+    } catch (error) {
+      setFeedback({ tone: 'error', message: error instanceof Error ? error.message : 'No pudimos actualizar tu perfil.' });
+    }
+  });
+
+  return (
+    <SurfaceCard style={styles.profileForm}>
+      <SectionTitle title="Información personal" detail="Mantén tus datos identificativos actualizados." />
+      <View style={[styles.formFields, wide && styles.formFieldsWide]}>
+        <View style={styles.formField}>
+          <Controller
+            control={control}
+            name="name"
+            rules={{ required: 'Introduce tu nombre.', minLength: { value: 2, message: 'Introduce al menos 2 caracteres.' } }}
+            render={({ field, fieldState }) => (
+              <FormField
+                label="Nombre completo"
+                autoCapitalize="words"
+                autoComplete="name"
+                returnKeyType="done"
+                textContentType="name"
+                value={field.value}
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                onSubmitEditing={() => void submit()}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+        </View>
+        <View style={styles.formField}>
+          <Controller
+            control={control}
+            name="email"
+            render={({ field }) => (
+              <FormField
+                label="Correo verificado"
+                autoCapitalize="none"
+                editable={false}
+                keyboardType="email-address"
+                value={field.value}
+                onChangeText={field.onChange}
+              />
+            )}
+          />
+        </View>
+      </View>
+      <Text style={[styles.emailHint, { color: palette.textSecondary }]}>El correo se gestiona mediante el proceso seguro de autenticación.</Text>
+      {feedback ? (
+        <View
+          accessibilityRole="alert"
+          style={[
+            styles.feedback,
+            {
+              backgroundColor: feedback.tone === 'success' ? `${colors.success}10` : `${colors.error}10`,
+              borderColor: feedback.tone === 'success' ? `${colors.success}30` : `${colors.error}30`,
+            },
+          ]}
+        >
+          {feedback.tone === 'success' ? <CheckCircle2 color={colors.success} size={19} /> : <Lock color={colors.error} size={19} />}
+          <Text selectable style={[styles.feedbackText, { color: feedback.tone === 'success' ? colors.success : colors.error }]}>{feedback.message}</Text>
+        </View>
+      ) : null}
+      <PremiumButton label={isSubmitting ? 'Guardando…' : 'Guardar cambios'} icon={Check} loading={isSubmitting} onPress={() => void submit()} style={wide ? styles.saveButton : undefined} />
+    </SurfaceCard>
+  );
+}
+
 const styles = StyleSheet.create({
   identityCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 20, flexDirection: 'row', alignItems: 'center', gap: 18, boxShadow: '0 12px 30px rgba(15,23,42,0.07)' },
   avatarWrap: { position: 'relative' },
@@ -155,6 +275,14 @@ const styles = StyleSheet.create({
   identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start', gap: 8 },
   name: { fontSize: 23, lineHeight: 29, fontWeight: '900' },
   email: { maxWidth: '100%', fontSize: 14, lineHeight: 20 },
+  profileForm: { padding: 20, gap: 16 },
+  formFields: { gap: 14 },
+  formFieldsWide: { flexDirection: 'row' },
+  formField: { flex: 1, minWidth: 0 },
+  emailHint: { fontSize: 12, lineHeight: 18 },
+  feedback: { minHeight: 46, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  feedbackText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  saveButton: { alignSelf: 'flex-end', width: 240 },
   trustStrip: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   roleWarning: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   trustCopy: { flex: 1, gap: 3 },
@@ -173,6 +301,7 @@ const styles = StyleSheet.create({
   actions: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', boxShadow: '0 10px 24px rgba(15,23,42,0.05)' },
   divider: { height: StyleSheet.hairlineWidth, marginLeft: 70 },
   action: { minHeight: 76, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  focusRing: { boxShadow: '0 0 0 3px rgba(20,184,166,0.34)' },
   actionIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   actionCopy: { flex: 1, minWidth: 0, gap: 3 },
   actionText: { fontSize: 15, fontWeight: '900' },

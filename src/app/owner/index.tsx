@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { ArrowRight, Building2, Calendar, ChartLine, CreditCard, Crown, FileText, Plus, ShieldCheck, Sparkles } from '@/components/ui/icons';
 import { IconTile, MetricCard, SectionTitle, StatusPill } from '@/components/ui/premium';
-import { colors, radius, type AppPalette } from '@/constants/theme';
+import { actionGradient, colors, radius, type AppPalette } from '@/constants/theme';
 import { fetchPaymentOrders } from '@/features/payments/payments.api';
 import { fetchOwnerProperties } from '@/features/properties/api/property.queries';
 import { fetchOwnerVisitRequests } from '@/features/properties/api/visit-requests';
@@ -51,7 +51,7 @@ export default function OwnerHome() {
       </View>
 
       <Pressable accessibilityRole="button" onPress={() => router.push('/owner/property/create')} style={({ pressed }) => [styles.createCard, pressed && styles.pressed]}>
-        <LinearGradient colors={['#1D4ED8', '#3B82F6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.createGradient}>
+        <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.createGradient}>
           <View style={styles.createIcon}><Plus color="white" size={25} /></View>
           <View style={styles.createCopy}>
             <View style={styles.createEyebrow}><Sparkles color="#DBEAFE" size={14} /><Text style={styles.createEyebrowText}>NUEVA PUBLICACIÓN</Text></View>

@@ -91,7 +91,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
         )}
         <LinearGradient colors={['transparent', 'rgba(15,23,42,0.42)']} style={styles.imageShade} pointerEvents="none" />
 
-        {property.isNew && (
+        {property.isNew && !compact && (
           <LinearGradient colors={[colors.brand, colors.primary]} style={styles.statusBadge}>
             <Text style={styles.statusText}>{t('newBadge')}</Text>
           </LinearGradient>
@@ -100,17 +100,17 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isSaved ? t('removeFavorite') : t('saveProperty')}
-          hitSlop={4}
+          hitSlop={compact ? 8 : 4}
           onPress={(event) => { event.stopPropagation(); void toggleSaved(); }}
           style={({ pressed }) => [styles.favorite, compact && styles.favoriteCompact, { opacity: pressed ? 0.78 : 1 }]}
         >
           <Heart color={isSaved ? colors.favorite : colors.text} fill={isSaved ? colors.favorite : 'transparent'} size={compact ? 18 : 22} strokeWidth={2.2} />
         </Pressable>
 
-        {!compact && <View style={styles.counter}>
+        <View style={[styles.counter, compact && styles.counterCompact]}>
           <Camera color="white" size={14} />
           <Text style={styles.counterText}>{activeImage + 1} / {images.length}</Text>
-        </View>}
+        </View>
 
         {images.length > 1 && (
           <View style={styles.dots}>
@@ -122,14 +122,14 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
       <View style={styles.summary}>
         <View style={styles.titleRow}>
           <Text numberOfLines={compact ? 2 : 1} style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{property.title}</Text>
-          {!compact && <View style={styles.rating}><Star color={colors.warning} fill={colors.warning} size={16} /><Text style={[styles.ratingText, { color: palette.text }]}>{property.rating.toFixed(1)}</Text></View>}
+          <View style={styles.rating}><Star color={colors.warning} fill={colors.warning} size={compact ? 13 : 16} /><Text style={[styles.ratingText, compact && styles.ratingTextCompact, { color: palette.text }]}>{property.rating.toFixed(1)}</Text></View>
         </View>
         <View style={styles.metaRow}><MapPin color={palette.textSecondary} size={compact ? 14 : 17} /><Text numberOfLines={1} style={[styles.location, compact && styles.locationCompact, { color: palette.textSecondary }]}>{property.location}</Text></View>
-        {!compact && <View style={[styles.features, { borderColor: palette.border }]}>
-          <View style={styles.feature}><BedDouble color={palette.textSecondary} size={18} /><Text style={[styles.featureText, { color: palette.textSecondary }]}>{property.bedrooms} hab</Text></View>
-          <View style={[styles.feature, styles.featureDivider, { borderColor: palette.border }]}><Bath color={palette.textSecondary} size={18} /><Text style={[styles.featureText, { color: palette.textSecondary }]}>{property.bathrooms} baños</Text></View>
-          <View style={[styles.feature, styles.featureDivider, { borderColor: palette.border }]}><Maximize2 color={palette.textSecondary} size={17} /><Text style={[styles.featureText, { color: palette.textSecondary }]}>{property.area} m²</Text></View>
-        </View>}
+        <View style={[styles.features, compact && styles.featuresCompact, { borderColor: palette.border }]}>
+          <View style={[styles.feature, compact && styles.featureCompact]}><BedDouble color={palette.textSecondary} size={compact ? 13 : 18} /><Text numberOfLines={1} style={[styles.featureText, compact && styles.featureTextCompact, { color: palette.textSecondary }]}>{property.bedrooms} hab</Text></View>
+          <View style={[styles.feature, styles.featureDivider, compact && styles.featureCompact, { borderColor: palette.border }]}><Bath color={palette.textSecondary} size={compact ? 13 : 18} /><Text numberOfLines={1} style={[styles.featureText, compact && styles.featureTextCompact, { color: palette.textSecondary }]}>{property.bathrooms} baños</Text></View>
+          <View style={[styles.feature, styles.featureDivider, compact && styles.featureCompact, { borderColor: palette.border }]}><Maximize2 color={palette.textSecondary} size={compact ? 12 : 17} /><Text numberOfLines={1} style={[styles.featureText, compact && styles.featureTextCompact, { color: palette.textSecondary }]}>{property.area} m²</Text></View>
+        </View>
         <Text numberOfLines={compact ? 1 : undefined} style={[styles.price, compact && styles.priceCompact, { color: palette.text }]}>{formatXaf(property.price, property.priceType)}</Text>
       </View>
     </Pressable>
@@ -140,16 +140,17 @@ export const PropertyCard = memo(PropertyCardComponent);
 
 const styles = StyleSheet.create({
   card: { gap: 12, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 8, boxShadow: '0 10px 26px rgba(15,23,42,0.07)' },
-  cardCompact: { gap: 8, borderRadius: radius.md, padding: 6 },
+  cardCompact: { gap: 7, borderWidth: 0, borderRadius: 0, padding: 0, boxShadow: '0 0 0 rgba(0,0,0,0)' },
   imageFrame: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.subtle },
-  imageFrameCompact: { borderRadius: radius.md },
+  imageFrameCompact: { aspectRatio: 1.08, borderRadius: radius.sm },
   carouselImage: { height: '100%' },
   imageShade: { position: 'absolute', left: 0, right: 0, bottom: 0, top: '55%' },
   statusBadge: { position: 'absolute', left: 12, top: 12, minHeight: 28, borderRadius: radius.pill, paddingHorizontal: 12, justifyContent: 'center' },
   statusText: { color: 'white', fontSize: 12, fontWeight: '800' },
   favorite: { position: 'absolute', right: 12, top: 12, width: touchTarget, height: touchTarget, borderRadius: touchTarget / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.94)' },
-  favoriteCompact: { right: 8, top: 8, width: touchTarget - 8, height: touchTarget - 8, borderRadius: (touchTarget - 8) / 2 },
+  favoriteCompact: { right: 8, top: 8, width: 30, height: 30, borderRadius: 7 },
   counter: { position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', gap: 6, alignItems: 'center', minHeight: 28, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: 'rgba(15,23,42,0.64)' },
+  counterCompact: { left: 8, bottom: 8, minHeight: 24, paddingHorizontal: 7, gap: 4 },
   counterText: { color: 'white', fontSize: 12, fontWeight: '700' },
   dots: { position: 'absolute', alignSelf: 'center', bottom: 16, flexDirection: 'row', gap: 5 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
@@ -157,16 +158,20 @@ const styles = StyleSheet.create({
   summary: { paddingHorizontal: 2, gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { flex: 1, fontSize: 17, lineHeight: 22, fontWeight: '800' },
-  titleCompact: { fontSize: 14, lineHeight: 18 },
+  titleCompact: { fontSize: 13, lineHeight: 17 },
   rating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ratingText: { fontSize: 14, fontWeight: '700' },
+  ratingTextCompact: { fontSize: 11 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   location: { flex: 1, fontSize: 14, lineHeight: 20 },
-  locationCompact: { fontSize: 12, lineHeight: 16 },
+  locationCompact: { fontSize: 11, lineHeight: 15 },
   features: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth },
+  featuresCompact: { paddingVertical: 7 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10 },
+  featureCompact: { flex: 1, minWidth: 0, gap: 3, paddingHorizontal: 4 },
   featureDivider: { borderLeftWidth: StyleSheet.hairlineWidth },
   featureText: { fontSize: 13, fontWeight: '600' },
+  featureTextCompact: { flexShrink: 1, fontSize: 10, fontWeight: '700' },
   price: { fontSize: 19, lineHeight: 25, fontWeight: '900' },
-  priceCompact: { fontSize: 14, lineHeight: 19 },
+  priceCompact: { fontSize: 13, lineHeight: 18 },
 });

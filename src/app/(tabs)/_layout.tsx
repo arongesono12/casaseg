@@ -1,37 +1,72 @@
-import { Tabs } from 'expo-router';
-import { Compass, Heart, MessageCircle, UserRound } from '@/components/ui/icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Badge, Icon, Label, NativeTabs, VectorIcon } from 'expo-router/unstable-native-tabs';
 
 import { colors } from '@/constants/theme';
-import { useI18n } from '@/providers/i18n-context';
-import { useAppTheme } from '@/providers/theme-context';
-import { useNotifications } from '@/providers/notification-context';
 import { useAuth } from '@/providers/auth-context';
+import { useI18n } from '@/providers/i18n-context';
+import { useNotifications } from '@/providers/notification-context';
+import { useAppTheme } from '@/providers/theme-context';
 
 export default function TabsLayout() {
   const { t } = useI18n();
-  const { palette } = useAppTheme();
+  const { palette, resolvedMode } = useAppTheme();
   const { messageUnreadCount } = useNotifications();
   const { isAuthenticated } = useAuth();
-  const insets = useSafeAreaInsets();
-  const bottomInset = Math.max(insets.bottom, 8);
+  const messageBadge = isAuthenticated && messageUnreadCount > 0
+    ? (messageUnreadCount > 99 ? '99+' : String(messageUnreadCount))
+    : null;
 
   return (
-    <Tabs screenOptions={{
-      headerShown: false,
-      tabBarActiveTintColor: colors.primary,
-      tabBarInactiveTintColor: palette.muted,
-      tabBarActiveBackgroundColor: `${colors.primary}0D`,
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '800', marginTop: 1 },
-      tabBarItemStyle: { margin: 4, borderRadius: 18, paddingVertical: 3 },
-      tabBarHideOnKeyboard: true,
-      tabBarStyle: { position: 'absolute', left: 10, right: 10, bottom: 8, minHeight: 58 + bottomInset, paddingTop: 5, paddingBottom: bottomInset, paddingHorizontal: 4, backgroundColor: palette.surface, borderWidth: 1, borderTopWidth: 1, borderColor: palette.border, borderRadius: 26, borderCurve: 'continuous', boxShadow: '0 16px 34px rgba(15,23,42,0.14)' },
-      sceneStyle: { backgroundColor: palette.background },
-    }}>
-      <Tabs.Screen name="explore" options={{ title: t('explore'), tabBarIcon: ({ color, focused }) => <Compass color={color} fill={focused ? colors.primary : 'transparent'} size={23} /> }} />
-      <Tabs.Screen name="saved" options={{ title: t('saved'), tabBarIcon: ({ color, focused }) => <Heart color={color} fill={focused ? colors.primary : 'transparent'} size={23} /> }} />
-      <Tabs.Screen name="messages" options={{ title: t('messages'), tabBarBadge: isAuthenticated && messageUnreadCount > 0 ? messageUnreadCount : undefined, tabBarBadgeStyle: { backgroundColor: colors.error, color: 'white' }, tabBarIcon: ({ color, focused }) => <MessageCircle color={color} fill={focused ? colors.primary : 'transparent'} size={23} /> }} />
-      <Tabs.Screen name="profile" options={{ title: t('profile'), tabBarIcon: ({ color, focused }) => <UserRound color={color} fill={focused ? colors.primary : 'transparent'} size={23} /> }} />
-    </Tabs>
+    <NativeTabs
+      backgroundColor={process.env.EXPO_OS === 'ios' ? null : palette.surface}
+      badgeBackgroundColor={colors.error}
+      badgeTextColor="white"
+      blurEffect={resolvedMode === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+      disableTransparentOnScrollEdge={false}
+      iconColor={{ default: palette.muted, selected: colors.accent }}
+      indicatorColor={colors.accentSoft}
+      labelStyle={{
+        default: { color: palette.muted, fontSize: 11, fontWeight: '600' },
+        selected: { color: colors.accentDark, fontSize: 11, fontWeight: '800' },
+      }}
+      labelVisibilityMode="labeled"
+      minimizeBehavior="never"
+      rippleColor={`${colors.accent}20`}
+      shadowColor={palette.border}
+      tintColor={colors.accent}
+    >
+      <NativeTabs.Trigger name="explore">
+        <Icon
+          sf={{ default: 'safari', selected: 'safari.fill' }}
+          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="compass-outline" />}
+        />
+        <Label>{t('homeTab')}</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="saved">
+        <Icon
+          sf={{ default: 'heart', selected: 'heart.fill' }}
+          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="heart-outline" />}
+        />
+        <Label>{t('saved')}</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="messages">
+        <Icon
+          sf={{ default: 'bubble.left.and.bubble.right', selected: 'bubble.left.and.bubble.right.fill' }}
+          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="message-text-outline" />}
+        />
+        <Label>{t('messages')}</Label>
+        {messageBadge ? <Badge>{messageBadge}</Badge> : null}
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="profile">
+        <Icon
+          sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
+          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="account-circle-outline" />}
+        />
+        <Label>{isAuthenticated ? t('profile') : t('accessShort')}</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

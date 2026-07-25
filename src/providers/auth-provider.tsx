@@ -115,17 +115,46 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signUp = useCallback(async ({ email, password, name, role }: { email: string; password: string; name: string; role: 'client' | 'owner' }) => {
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { name, role } } });
+    if (!isSupabaseConfigured) throw new Error('El registro requiere una conexión válida con CasaSeg.');
+    const normalizedEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: { data: { name: name.trim(), role } },
+    });
     if (error) throw error;
+    if (!data.user) throw new Error('No se pudo crear la cuenta. Inténtalo de nuevo.');
+    if (data.user.identities && data.user.identities.length === 0) {
+      throw new Error('No se pudo completar el registro. Si ya tienes una cuenta, inicia sesión o recupera tu contraseña.');
+    }
   }, []);
 
   const verifyOtp = useCallback(async (email: string, token: string) => {
-    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'email',
+    });
+    if (error) throw error;
+    if (!data.user || !data.session) {
+      throw new Error('El código no pudo crear una sesión verificada. Solicita uno nuevo.');
+    }
+  }, []);
+
+  const resendSignupOtp = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+    });
     if (error) throw error;
   }, []);
 
   const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
     const googleStrategy = getGoogleAuthStrategy(Platform.OS, isExpoGo);
+
+    if (provider === 'google' && googleStrategy === 'unavailable') {
+      throw new Error('Google nativo no está disponible dentro de Expo Go. Abre CasaSeg con el development build para iniciar sesión sin salir de la app.');
+    }
 
     if (provider === 'google' && googleStrategy === 'native') {
       const nativeResult = await getNativeGoogleAuthResult();
@@ -138,7 +167,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (error) throw error;
         return true;
       }
-      throw new Error('El cliente Android no incluye Google nativo. Recompílalo con "npm run android:native".');
+      throw new Error('Este cliente no incluye Google nativo. Recompila la aplicación e instala el nuevo development build.');
     }
 
     if (provider === 'apple') {
@@ -178,6 +207,34 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (error) throw error;
   }, []);
 
+  const updateProfileName = useCallback(async (name: string) => {
+    const nextName = name.trim();
+    if (nextName.length < 2) throw new Error('Introduce un nombre válido.');
+
+    if (!isSupabaseConfigured) {
+      if (!demoUser) throw new Error('No hay una sesión activa.');
+      const nextDemoUser = { ...demoUser, name: nextName };
+      setDemoUser(nextDemoUser);
+      appStorage.setItem(DEMO_KEY, JSON.stringify(nextDemoUser));
+      return;
+    }
+
+    if (!session?.user) throw new Error('No hay una sesión activa.');
+
+    const { error: profileError } = await supabase
+      .from('users')
+      .update({ name: nextName })
+      .eq('id', session.user.id);
+    if (profileError) throw profileError;
+
+    const { error: authError } = await supabase.auth.updateUser({
+      data: { ...session.user.user_metadata, name: nextName, full_name: nextName },
+    });
+    if (authError) throw authError;
+
+    setProfileUser((current) => current ? { ...current, name: nextName } : current);
+  }, [demoUser, session]);
+
   const updatePassword = useCallback(async (password: string) => {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
@@ -206,8 +263,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AuthContextValue>(() => ({
     session, user, role, isAuthenticated: Boolean(demoUser || session), isLoading, isRoleLoading, roleError,
-    signIn, signUp, verifyOtp, signInWithOAuth, requestPasswordReset, updatePassword, signInDemo, signOut,
-  }), [demoUser, isLoading, isRoleLoading, requestPasswordReset, role, roleError, session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword, user, verifyOtp]);
+    signIn, signUp, verifyOtp, resendSignupOtp, signInWithOAuth, requestPasswordReset, updateProfileName, updatePassword, signInDemo, signOut,
+  }), [demoUser, isLoading, isRoleLoading, requestPasswordReset, resendSignupOtp, role, roleError, session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword, updateProfileName, user, verifyOtp]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
