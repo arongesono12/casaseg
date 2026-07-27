@@ -7,10 +7,10 @@ import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, use
 import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ExploreMenu } from '@/components/explore-menu';
 import { FilterSheet, type FilterSheetHandle } from '@/components/filter-sheet';
 import { PropertyCard } from '@/components/property/property-card';
-import { CasasegLogo } from '@/components/ui/casaseg-logo';
-import { BedDouble, Building2, ChevronDown, Grid2X2, Home, Map, Moon, Search, Sparkles, Sun, UserRound } from '@/components/ui/icons';
+import { BedDouble, Building2, ChevronDown, Grid2X2, Home, Map, Menu, Search, Sparkles } from '@/components/ui/icons';
 import { PremiumEmptyState, PremiumErrorState } from '@/components/ui/premium';
 import { colors, exploreGradient, radius, type AppPalette } from '@/constants/theme';
 import { propertyKeys } from '@/features/properties/api/property.keys';
@@ -26,8 +26,6 @@ import type { Property } from '@/types';
 const categoryKeys = ['Todos', 'Apartamentos', 'Casas', 'Estudios'] as const;
 type CategoryKey = (typeof categoryKeys)[number];
 
-const localeFlags = { es: '🇬🇶', fr: '🇫🇷', en: '🇬🇧' } as const;
-const localeOrder = ['es', 'fr', 'en'] as const;
 const HERO_COLLAPSE_DISTANCE = 140;
 
 const CategoryChip = memo(function CategoryChip({ category, label, selected, palette, onSelect }: { category: CategoryKey; label: string; selected: boolean; palette: AppPalette; onSelect: (category: CategoryKey) => void }) {
@@ -70,14 +68,15 @@ function PropertySeparator() {
 export default function ExploreScreen() {
   const router = useRouter();
   const sheetRef = useRef<FilterSheetHandle>(null);
-  const { user, isAuthenticated } = useAuth();
-  const { palette, resolvedMode, setMode } = useAppTheme();
-  const { t, locale, setLocale } = useI18n();
+  const { user } = useAuth();
+  const { palette } = useAppTheme();
+  const { t } = useI18n();
   const { width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const heroCollapseProgress = useSharedValue(0);
   const [heroHeight, setHeroHeight] = useState(0);
   const [isHeroHidden, setIsHeroHidden] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const columns = width >= 1280 ? 4 : width >= 760 ? 3 : width >= 360 ? 2 : 1;
   const useCompactCards = columns > 1;
   const filters = useExplorerStore((state) => state.filters);
@@ -115,13 +114,6 @@ export default function ExploreScreen() {
     ({ item }) => <PropertyGridCard property={item} compact={useCompactCards} favorite={favoriteIds.has(item.id)} onFavoriteChange={user ? handleFavoriteChange : undefined} />,
     [favoriteIds, handleFavoriteChange, useCompactCards, user],
   );
-  const cycleLocale = useCallback(() => {
-    const currentIndex = localeOrder.indexOf(locale);
-    setLocale(localeOrder[(currentIndex + 1) % localeOrder.length]);
-  }, [locale, setLocale]);
-  const toggleTheme = useCallback(() => {
-    setMode(resolvedMode === 'dark' ? 'light' : 'dark');
-  }, [resolvedMode, setMode]);
   const openMap = useCallback(() => {
     setViewMode('map');
     router.push('/map');
@@ -162,67 +154,54 @@ export default function ExploreScreen() {
   );
 
   const searchSummary = filters.location || filters.name || t('searchSubtitle');
-  const accountLabel = isAuthenticated ? user?.name.split(' ')[0] || t('profile') : t('accessShort');
 
   const persistentHeader = (
     <View style={styles.persistentHeader}>
-      <View style={styles.topBar}>
-        <View accessibilityLabel="CasaSeg" style={styles.brand}>
-          <CasasegLogo width={29} height={24} />
-          <Text style={[styles.brandText, { color: palette.text }]}>CASASEG</Text>
-        </View>
+      <View style={styles.primaryRow}>
+        <Pressable
+          accessibilityLabel={t('menu')}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isMenuOpen }}
+          onPress={() => setIsMenuOpen(true)}
+          style={({ pressed }) => [
+            styles.menuButton,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Menu color={palette.text} size={23} />
+        </Pressable>
 
-        <View style={styles.topActions}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cambiar idioma" onPress={cycleLocale} style={({ pressed }) => [styles.languageButton, { borderColor: palette.border }, pressed && styles.pressed]}>
-            <Text style={styles.flag}>{localeFlags[locale]}</Text>
-            <ChevronDown color={palette.textSecondary} size={15} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={accountLabel}
-            onPress={() => router.push(isAuthenticated ? '/(tabs)/profile' : '/(auth)/login')}
-            style={({ pressed }) => [styles.accountButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && styles.pressed]}>
-            <LinearGradient colors={exploreGradient} style={styles.accountIcon}>
-              <UserRound color="white" fill="white" size={21} />
-            </LinearGradient>
-            <Text numberOfLines={1} style={[styles.accountText, { color: palette.textSecondary }]}>{accountLabel}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={resolvedMode === 'dark' ? 'Usar tema claro' : 'Usar tema oscuro'} onPress={toggleTheme} style={({ pressed }) => [styles.themeButton, pressed && styles.pressed]}>
-            {resolvedMode === 'dark' ? <Sun color={palette.text} size={20} /> : <Moon color={palette.textSecondary} size={20} />}
-          </Pressable>
-        </View>
-      </View>
-
-      <Pressable accessibilityRole="button" accessibilityLabel="Abrir filtros de búsqueda" onPress={() => sheetRef.current?.present()} style={({ pressed }) => [styles.search, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
-        <View style={[styles.searchLead, { backgroundColor: palette.subtle }]}>
+        <Pressable
+          accessibilityLabel={`${t('searchTitle')}: ${searchSummary}`}
+          accessibilityRole="button"
+          onPress={() => sheetRef.current?.present()}
+          style={({ pressed }) => [
+            styles.search,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+            pressed && styles.pressed,
+          ]}
+        >
           <Search color={palette.muted} size={20} />
-        </View>
-        <View style={styles.searchCopy}>
-          <Text style={[styles.searchTitle, { color: palette.text }]}>{t('searchTitle')}</Text>
-          <Text numberOfLines={1} style={[styles.searchSubtitle, { color: palette.textSecondary }]}>{searchSummary}</Text>
-        </View>
-        <LinearGradient colors={exploreGradient} style={styles.searchAction}>
-          <Search color="white" size={21} />
-        </LinearGradient>
-      </Pressable>
+          <Text numberOfLines={1} style={[styles.searchText, { color: palette.textSecondary }]}>{searchSummary}</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityLabel={t('map')}
+          accessibilityRole="button"
+          onPress={openMap}
+          style={({ pressed }) => [styles.viewToggle, pressed && styles.pressed]}
+        >
+          <LinearGradient colors={exploreGradient} style={styles.viewToggleGradient}>
+            <Map color="white" size={21} />
+          </LinearGradient>
+        </Pressable>
+      </View>
     </View>
   );
 
   const collapsibleHero = (
     <View collapsable={false} onLayout={handleHeroLayout} style={styles.collapsibleHeroContent}>
-      <View style={[styles.segmented, { backgroundColor: palette.subtle }]}>
-        <Pressable accessibilityRole="button" accessibilityState={{ selected: true }} onPress={() => setViewMode('list')} style={styles.segmentButton}>
-          <LinearGradient colors={exploreGradient} style={styles.segmentSelected}>
-            <Grid2X2 color="white" fill="white" size={18} />
-            <Text style={styles.segmentSelectedText}>{t('list')}</Text>
-          </LinearGradient>
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityState={{ selected: false }} onPress={openMap} style={({ pressed }) => [styles.segment, pressed && styles.pressed]}>
-          <Map color={palette.textSecondary} size={18} />
-          <Text style={[styles.segmentText, { color: palette.textSecondary }]}>{t('map')}</Text>
-        </Pressable>
-      </View>
-
       <FlatList
         data={categoryKeys}
         horizontal
@@ -294,6 +273,7 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       />
       <FilterSheet ref={sheetRef} />
+      <ExploreMenu onClose={() => setIsMenuOpen(false)} visible={isMenuOpen} />
     </SafeAreaView>
   );
 }
@@ -305,31 +285,15 @@ const styles = StyleSheet.create({
   gridRow: { gap: 12 },
   gridItem: { flex: 1, minWidth: 0 },
   headerContent: { width: '100%', maxWidth: 1180, alignSelf: 'center', paddingHorizontal: 12 },
-  persistentHeader: { gap: 10, paddingTop: 2 },
+  persistentHeader: { paddingBottom: 8, paddingTop: 8 },
   collapsibleHero: { overflow: 'hidden' },
-  collapsibleHeroContent: { gap: 10, paddingTop: 10, paddingBottom: 12 },
-  topBar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  brandText: { fontSize: 12, lineHeight: 16, fontWeight: '900', letterSpacing: 0.5 },
-  topActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
-  languageButton: { height: 40, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 3 },
-  flag: { fontSize: 20, lineHeight: 24 },
-  accountButton: { maxWidth: 118, height: 42, borderWidth: 1, borderRadius: radius.pill, paddingLeft: 4, paddingRight: 10, flexDirection: 'row', alignItems: 'center', gap: 6, boxShadow: '0 2px 8px rgba(15,23,42,0.05)' },
-  accountIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  accountText: { flexShrink: 1, fontSize: 12, fontWeight: '700' },
-  themeButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  search: { minHeight: 58, borderRadius: radius.lg, borderWidth: 1, paddingLeft: 8, paddingRight: 6, flexDirection: 'row', alignItems: 'center', gap: 9, boxShadow: '0 8px 22px rgba(15,23,42,0.06)' },
-  searchLead: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  searchCopy: { flex: 1, minWidth: 0, gap: 1 },
-  searchTitle: { fontSize: 14, lineHeight: 18, fontWeight: '800' },
-  searchSubtitle: { fontSize: 12, lineHeight: 16 },
-  searchAction: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', boxShadow: '0 7px 16px rgba(20,184,166,0.2)' },
-  segmented: { width: 242, height: 54, padding: 4, borderRadius: radius.sm, flexDirection: 'row', alignSelf: 'center' },
-  segmentButton: { flex: 1 },
-  segment: { flex: 1, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  segmentSelected: { flex: 1, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 5px 14px rgba(37,99,235,0.18)' },
-  segmentText: { fontSize: 13, fontWeight: '700' },
-  segmentSelectedText: { color: 'white', fontSize: 13, fontWeight: '800' },
+  collapsibleHeroContent: { gap: 10, paddingBottom: 12, paddingTop: 6 },
+  primaryRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  menuButton: { alignItems: 'center', borderRadius: 25, borderWidth: 1, height: 50, justifyContent: 'center', width: 50 },
+  search: { alignItems: 'center', borderRadius: radius.pill, borderWidth: 1, boxShadow: '0 7px 18px rgba(15,23,42,0.06)', flex: 1, flexDirection: 'row', gap: 9, height: 50, minWidth: 0, paddingHorizontal: 16 },
+  searchText: { flex: 1, fontSize: 13, fontWeight: '700' },
+  viewToggle: { borderRadius: 25, height: 50, overflow: 'hidden', width: 50 },
+  viewToggleGradient: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   categories: { gap: 8, paddingRight: 14 },
   category: { minHeight: 40, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
   categoryText: { fontSize: 12, fontWeight: '700' },

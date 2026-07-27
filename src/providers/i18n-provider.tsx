@@ -5,7 +5,7 @@ import { I18nContext, type I18nContextValue, type Locale } from '@/providers/i18
 const copy = {
   es: {
     emailPlaceholder: 'correo@ejemplo.com', passwordPlaceholder: 'Introduce tu contraseña', newPasswordPlaceholder: 'Mínimo 8 caracteres', namePlaceholder: 'Nombre y apellidos',
-    explore: 'Explorer', homeTab: 'Inicio', accessShort: 'Acceder', saved: 'Guardados', messages: 'Mensajes', profile: 'Perfil', profileSubtitle: 'Gestiona tu cuenta y accede a tus herramientas.', account: 'Tu cuenta',
+    explore: 'Explorer', homeTab: 'Inicio', accessShort: 'Acceder', saved: 'Guardados', messages: 'Mensajes', profile: 'Perfil', profileSubtitle: 'Gestiona tu cuenta y accede a tus herramientas.', account: 'Tu cuenta', menu: 'Menú',
     greeting: 'Hola, {name}', guestGreeting: 'Encuentra tu próximo hogar', greetingSubtitle: 'Propiedades verificadas, cerca de ti.',
     searchTitle: 'Buscar', searchSubtitle: 'Buscar por ubicación, tipo…', list: 'Lista', map: 'Mapa',
     exploreEyebrow: 'EXPLORAR VIVIENDAS', featuredProperties: 'Propiedades destacadas', featuredDescription: 'Opciones verificadas con fotos, ubicación y detalles listos para comparar rápido.', recommended: 'Recomendadas', sortRating: 'Mejor valoradas', sortPriceAsc: 'Precio menor', sortPriceDesc: 'Precio mayor', sortNewest: 'Más recientes',
@@ -31,7 +31,7 @@ const copy = {
   },
   fr: {
     emailPlaceholder: 'nom@exemple.com', passwordPlaceholder: 'Saisissez votre mot de passe', newPasswordPlaceholder: '8 caractères minimum', namePlaceholder: 'Nom et prénom',
-    explore: 'Explorer', homeTab: 'Accueil', accessShort: 'Accéder', saved: 'Favoris', messages: 'Messages', profile: 'Profil', profileSubtitle: 'Gérez votre compte et accédez à vos outils.', account: 'Votre compte',
+    explore: 'Explorer', homeTab: 'Accueil', accessShort: 'Accéder', saved: 'Favoris', messages: 'Messages', profile: 'Profil', profileSubtitle: 'Gérez votre compte et accédez à vos outils.', account: 'Votre compte', menu: 'Menu',
     greeting: 'Bonjour, {name}', guestGreeting: 'Trouvez votre prochain logement', greetingSubtitle: 'Des biens vérifiés, près de chez vous.',
     searchTitle: 'Rechercher', searchSubtitle: 'Lieu, type de bien…', list: 'Liste', map: 'Carte',
     exploreEyebrow: 'EXPLORER LES LOGEMENTS', featuredProperties: 'Biens en vedette', featuredDescription: 'Des options vérifiées avec photos, emplacement et détails pour comparer rapidement.', recommended: 'Recommandées', sortRating: 'Mieux notées', sortPriceAsc: 'Prix croissant', sortPriceDesc: 'Prix décroissant', sortNewest: 'Plus récentes',
@@ -57,7 +57,7 @@ const copy = {
   },
   en: {
     emailPlaceholder: 'name@example.com', passwordPlaceholder: 'Enter your password', newPasswordPlaceholder: 'At least 8 characters', namePlaceholder: 'Full name',
-    explore: 'Explore', homeTab: 'Home', accessShort: 'Sign in', saved: 'Saved', messages: 'Messages', profile: 'Profile', profileSubtitle: 'Manage your account and access your tools.', account: 'Your account',
+    explore: 'Explore', homeTab: 'Home', accessShort: 'Sign in', saved: 'Saved', messages: 'Messages', profile: 'Profile', profileSubtitle: 'Manage your account and access your tools.', account: 'Your account', menu: 'Menu',
     greeting: 'Hello, {name}', guestGreeting: 'Find your next home', greetingSubtitle: 'Verified properties, close to you.',
     searchTitle: 'Search', searchSubtitle: 'Location, property type…', list: 'List', map: 'Map',
     exploreEyebrow: 'EXPLORE HOMES', featuredProperties: 'Featured properties', featuredDescription: 'Verified options with photos, locations, and details ready for quick comparison.', recommended: 'Recommended', sortRating: 'Top rated', sortPriceAsc: 'Lowest price', sortPriceDesc: 'Highest price', sortNewest: 'Newest',
