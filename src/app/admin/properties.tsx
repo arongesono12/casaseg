@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   notice: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   noticeText: { flex: 1, fontSize: 12, lineHeight: 18 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  filter: { minHeight: 40, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center' },
+  filter: { minHeight: 44, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   filterText: { fontSize: 12, fontWeight: '800' },
   list: { gap: 10 },
   card: { minHeight: 104, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },

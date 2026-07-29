@@ -26,8 +26,8 @@ export const colors = {
   favorite: '#F43F5E',
 } as const;
 
-// One semantic gradient keeps every branded action consistent with Explore.
-export const actionGradient = ['#14B8A6', '#2563EB'] as const;
+// Trust teal leads every branded action; blue remains the supporting accent.
+export const actionGradient = ['#0F766E', '#0369A1'] as const;
 export const brandGradient = actionGradient;
 export const exploreGradient = actionGradient;
 

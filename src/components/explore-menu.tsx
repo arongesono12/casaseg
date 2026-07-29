@@ -164,7 +164,7 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
                 {languageOptions.map((option) => (
                   <Choice
                     key={option.value}
-                    label={`${option.flag} ${option.label}`}
+                    label={option.label}
                     onPress={(value) => setLocale(value as Locale)}
                     selected={locale === option.value}
                     value={option.value}
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 6,
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 12,
   },
   choiceLabel: { fontSize: 12, fontWeight: '800' },
@@ -270,10 +270,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 12,
-    shadowColor: '#020617',
-    shadowOffset: { height: 0, width: -8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
+    boxShadow: '-8px 0 24px rgba(2,6,23,0.18)',
   },
   pressed: { opacity: 0.76 },
   rowIcon: { alignItems: 'center', borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },

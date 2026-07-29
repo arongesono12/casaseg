@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   syncCopy: { flex: 1, minWidth: 0, gap: 3 },
   syncTitle: { fontSize: 14, fontWeight: '900' },
   syncDescription: { fontSize: 12, lineHeight: 17 },
-  syncButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: `${colors.warning}16` },
+  syncButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: `${colors.warning}16` },
   action: { minHeight: 94, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   actionCopy: { flex: 1, minWidth: 0, gap: 4 },
   actionTitle: { fontSize: 16, fontWeight: '900' },

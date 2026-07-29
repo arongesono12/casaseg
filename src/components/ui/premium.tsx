@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { ArrowRight, RefreshCw, Sparkles, type IconProps } from '@/components/ui/icons';
+import { ArrowRight, RefreshCw, ShieldCheck, type IconProps } from '@/components/ui/icons';
 import { actionGradient, colors, radius } from '@/constants/theme';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -18,14 +18,14 @@ type HeroProps = {
   compact?: boolean;
 };
 
-export function PremiumHero({ title, description, eyebrow = 'CASASEG', icon: Icon = Sparkles, accessory, compact = false }: HeroProps) {
+export function PremiumHero({ title, description, eyebrow = 'CASASEG', icon: Icon = ShieldCheck, accessory, compact = false }: HeroProps) {
   return (
-    <LinearGradient colors={['#0B1F4D', '#163D8F', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, compact && styles.heroCompact]}>
+    <LinearGradient colors={['#0B2F3A', '#0F4C5C', '#0F766E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, compact && styles.heroCompact]}>
       <View pointerEvents="none" style={styles.heroOrbLarge} />
       <View pointerEvents="none" style={styles.heroOrbSmall} />
       <View style={styles.heroTopRow}>
         <View style={styles.eyebrowPill}>
-          <Icon color="#BFDBFE" size={15} />
+          <Icon color="#CCFBF1" size={15} />
           <Text style={styles.eyebrow}>{eyebrow}</Text>
         </View>
         {accessory}
@@ -68,14 +68,14 @@ export function PremiumButton({ label, onPress, icon: Icon, trailingIcon: Traili
 
   if (variant === 'primary') {
     return (
-      <Pressable accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, style, focused && styles.buttonFocused, (pressed || inactive) && styles.buttonPressed]}>
+      <Pressable accessibilityLabel={label} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, style, focused && styles.buttonFocused, (pressed || inactive) && styles.buttonPressed]}>
         <LinearGradient colors={actionGradient} style={styles.buttonGradient}>{content}</LinearGradient>
       </Pressable>
     );
   }
 
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, styles.secondaryButton, { backgroundColor: variant === 'danger' ? `${colors.error}12` : palette.surface, borderColor: variant === 'danger' ? `${colors.error}35` : palette.border }, style, focused && styles.buttonFocused, (pressed || inactive) && styles.buttonPressed]}>
+    <Pressable accessibilityLabel={label} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, styles.secondaryButton, { backgroundColor: variant === 'danger' ? `${colors.error}12` : palette.surface, borderColor: variant === 'danger' ? `${colors.error}35` : palette.border }, style, focused && styles.buttonFocused, (pressed || inactive) && styles.buttonPressed]}>
       {content}
     </Pressable>
   );
@@ -93,8 +93,8 @@ type EmptyStateProps = {
 export function PremiumEmptyState({ icon: Icon, title, description, actionLabel, onAction, loading = false }: EmptyStateProps) {
   const { palette } = useAppTheme();
   return (
-    <View style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <LinearGradient colors={['rgba(37,99,235,0.16)', 'rgba(59,130,246,0.05)']} style={styles.emptyIcon}>
+    <View accessibilityLiveRegion={loading ? 'polite' : 'none'} style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <LinearGradient accessibilityLabel={loading ? title : undefined} accessibilityRole={loading ? 'progressbar' : undefined} colors={['rgba(15,118,110,0.16)', 'rgba(3,105,161,0.05)']} style={styles.emptyIcon}>
         {loading ? <ActivityIndicator color={colors.brand} /> : <Icon color={colors.brand} size={32} />}
       </LinearGradient>
       <Text style={[styles.emptyTitle, { color: palette.text }]}>{title}</Text>
@@ -151,17 +151,17 @@ export function SurfaceCard({ children, style }: { children: ReactNode; style?: 
 }
 
 const styles = StyleSheet.create({
-  hero: { minHeight: 198, borderRadius: radius.hero, borderCurve: 'continuous', padding: 22, justifyContent: 'space-between', overflow: 'hidden', boxShadow: '0 18px 36px rgba(29,78,216,0.22)' },
+  hero: { minHeight: 198, borderRadius: radius.hero, borderCurve: 'continuous', padding: 22, justifyContent: 'space-between', overflow: 'hidden', boxShadow: '0 16px 34px rgba(15,76,92,0.20)' },
   heroCompact: { minHeight: 164, padding: 19 },
-  heroOrbLarge: { position: 'absolute', width: 190, height: 190, borderRadius: 95, right: -65, top: -80, backgroundColor: 'rgba(255,255,255,0.10)' },
-  heroOrbSmall: { position: 'absolute', width: 80, height: 80, borderRadius: 40, right: 72, bottom: -35, backgroundColor: 'rgba(96,165,250,0.20)' },
+  heroOrbLarge: { position: 'absolute', width: 190, height: 190, borderRadius: 95, right: -65, top: -80, backgroundColor: 'rgba(255,255,255,0.08)' },
+  heroOrbSmall: { position: 'absolute', width: 80, height: 80, borderRadius: 40, right: 72, bottom: -35, backgroundColor: 'rgba(45,212,191,0.16)' },
   heroTopRow: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   eyebrowPill: { minHeight: 30, borderRadius: radius.pill, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
-  eyebrow: { color: '#DBEAFE', fontSize: 11, fontWeight: '900', letterSpacing: 1.1 },
+  eyebrow: { color: '#CCFBF1', fontSize: 11, fontWeight: '900', letterSpacing: 1.1 },
   heroCopy: { maxWidth: 540, gap: 8 },
   heroTitle: { color: 'white', fontSize: 30, lineHeight: 35, fontWeight: '900', letterSpacing: -0.8 },
   heroTitleCompact: { fontSize: 25, lineHeight: 30 },
-  heroDescription: { color: '#DBEAFE', fontSize: 15, lineHeight: 22, fontWeight: '500' },
+  heroDescription: { color: '#CCFBF1', fontSize: 15, lineHeight: 22, fontWeight: '500' },
   buttonShell: { minHeight: 54, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden', boxShadow: '0 8px 18px rgba(37,99,235,0.18)' },
   buttonGradient: { minHeight: 54, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   secondaryButton: { minHeight: 54, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: 'none' },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 20, lineHeight: 26, fontWeight: '900', textAlign: 'center' },
   emptyDescription: { maxWidth: 380, fontSize: 14, lineHeight: 21, textAlign: 'center' },
   emptyAction: { width: '100%', maxWidth: 280, marginTop: 10 },
-  sectionHeading: { minHeight: 44, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 },
+  sectionHeading: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 },
   sectionCopy: { flex: 1, gap: 3 },
   sectionTitle: { fontSize: 20, lineHeight: 26, fontWeight: '900', letterSpacing: -0.3 },
   sectionDetail: { fontSize: 13, lineHeight: 18 },

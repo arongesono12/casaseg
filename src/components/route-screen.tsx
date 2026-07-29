@@ -5,7 +5,7 @@ import type { ReactNode, RefObject } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { radius } from '@/constants/theme';
+import { radius, touchTarget } from '@/constants/theme';
 import { useAppTheme } from '@/providers/theme-context';
 
 type RouteScreenProps = {
@@ -38,6 +38,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { flexGrow: 1, width: '100%', alignSelf: 'center', padding: 20, gap: 24 },
   contentCompact: { paddingHorizontal: 16, gap: 18 },
-  back: { alignSelf: 'flex-start', minHeight: 44, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 6px 16px rgba(15,23,42,0.05)' },
+  back: { alignSelf: 'flex-start', minHeight: touchTarget, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 6px 16px rgba(15,23,42,0.05)' },
   backLabel: { fontSize: 13, fontWeight: '800' },
 });

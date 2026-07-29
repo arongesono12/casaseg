@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   emailHint: { fontSize: 12, lineHeight: 18 },
   feedback: { minHeight: 46, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   feedbackText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  saveButton: { alignSelf: 'flex-end', width: 240 },
+  saveButton: { alignSelf: 'flex-end', width: '100%', maxWidth: 240 },
   trustStrip: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   roleWarning: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   trustCopy: { flex: 1, gap: 3 },

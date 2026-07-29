@@ -158,7 +158,7 @@ export default function LoginScreen() {
               </View>
               <Text style={[styles.optionText, { color: palette.text }]}>{t('rememberMe')}</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/(auth)/forgot-password')}><Text style={[styles.forgotLink, { color: colors.brandDark }]}>{t('forgotPassword')}</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/(auth)/forgot-password')} style={styles.inlineTarget}><Text style={[styles.forgotLink, { color: colors.brandDark }]}>{t('forgotPassword')}</Text></Pressable>
           </View>
 
           {submitError && <Text accessibilityRole="alert" style={styles.error}>{submitError}</Text>}
@@ -191,13 +191,13 @@ export default function LoginScreen() {
             ) : null}
           </View>
 
-          {!isSupabaseConfigured && <View style={styles.demo}><Text style={[styles.demoTitle, { color: palette.textSecondary }]}>{t('devMode')}</Text><Pressable onPress={() => void auth.signInDemo('client')}><Text style={styles.link}>{t('clientDemo')}</Text></Pressable><Pressable onPress={() => void auth.signInDemo('owner')}><Text style={styles.link}>{t('ownerDemo')}</Text></Pressable><Pressable onPress={() => void auth.signInDemo('admin')}><Text style={styles.link}>{t('adminDemo')}</Text></Pressable></View>}
+          {!isSupabaseConfigured && <View style={styles.demo}><Text style={[styles.demoTitle, { color: palette.textSecondary }]}>{t('devMode')}</Text><Pressable accessibilityRole="button" onPress={() => void auth.signInDemo('client')}><Text style={styles.link}>{t('clientDemo')}</Text></Pressable><Pressable accessibilityRole="button" onPress={() => void auth.signInDemo('owner')}><Text style={styles.link}>{t('ownerDemo')}</Text></Pressable><Pressable accessibilityRole="button" onPress={() => void auth.signInDemo('admin')}><Text style={styles.link}>{t('adminDemo')}</Text></Pressable></View>}
 
-          <Pressable onPress={() => router.push('/(auth)/register')}><Text style={styles.link}>{t('createAccount')}</Text></Pressable>
+          <Pressable accessibilityRole="link" onPress={() => router.push('/(auth)/register')}><Text style={styles.link}>{t('createAccount')}</Text></Pressable>
           <View style={styles.legalLinks}>
-            <Pressable onPress={() => router.push('/legal/terms')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('termsAndConditions')}</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/legal/terms')} style={styles.inlineTarget}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('termsAndConditions')}</Text></Pressable>
             <Text style={{ color: palette.muted }}>·</Text>
-            <Pressable onPress={() => router.push('/legal/privacy')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('privacy')}</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/legal/privacy')} style={styles.inlineTarget}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('privacy')}</Text></Pressable>
           </View>
         </ScrollView>
       </AdaptiveKeyboardView>
@@ -214,16 +214,17 @@ const styles = StyleSheet.create({
   titleCompact: { fontSize: 26, lineHeight: 31 },
   subtitle: { fontSize: 16, lineHeight: 24 },
   eyeButton: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
-  optionsRow: { minHeight: 32, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  rememberControl: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  optionsRow: { minHeight: touchTarget, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  rememberControl: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 9 },
   checkbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   optionText: { fontSize: 14, fontWeight: '700' },
-  forgotLink: { fontSize: 14, fontWeight: '700', paddingVertical: 6 },
+  forgotLink: { fontSize: 14, fontWeight: '700' },
+  inlineTarget: { minHeight: touchTarget, justifyContent: 'center' },
   oauthButtons: { gap: 10 },
   demo: { alignItems: 'center', gap: 2, paddingVertical: 8 },
   demoTitle: { fontSize: 12, fontWeight: '800' },
-  link: { color: colors.brandDark, textAlign: 'center', fontSize: 15, fontWeight: '800', padding: 9 },
+  link: { minHeight: touchTarget, color: colors.brandDark, textAlign: 'center', textAlignVertical: 'center', fontSize: 15, lineHeight: 20, fontWeight: '800', paddingHorizontal: 9, paddingVertical: 14 },
   legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
-  legalLink: { fontSize: 13, fontWeight: '600', paddingVertical: 4 },
+  legalLink: { fontSize: 13, fontWeight: '600' },
   error: { color: colors.error, fontSize: 13 },
 });

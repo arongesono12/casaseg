@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent, type ListRenderItem } from 'react-native';
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
+import Animated, { Extrapolation, interpolate, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExploreMenu } from '@/components/explore-menu';
@@ -147,7 +148,7 @@ export default function ExploreScreen() {
     () => heroCollapseProgress.value >= 0.995,
     (hidden, wasHidden) => {
       if (hidden !== wasHidden) {
-        runOnJS(setIsHeroHidden)(hidden);
+        scheduleOnRN(setIsHeroHidden, hidden);
       }
     },
     [],
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
   viewToggle: { borderRadius: 25, height: 50, overflow: 'hidden', width: 50 },
   viewToggleGradient: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   categories: { gap: 8, paddingRight: 14 },
-  category: { minHeight: 40, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  category: { minHeight: 44, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 7 },
   categoryText: { fontSize: 12, fontWeight: '700' },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: -12 },
   sectionHeading: { gap: 6 },
