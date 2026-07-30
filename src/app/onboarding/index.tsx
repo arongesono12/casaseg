@@ -1,86 +1,1115 @@
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { ArrowRight, Home, KeyRound, Layers3, ShieldCheck, UsersRound } from '@/components/ui/icons';
-import { useCallback, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ListRenderItem } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type ListRenderItem,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { UserAvatar } from '@/components/user-avatar';
 import { CasasegLogo } from '@/components/ui/casaseg-logo';
-import { PremiumButton } from '@/components/ui/premium';
+import { ArrowRight, Home, Layers3, UsersRound } from '@/components/ui/icons';
 import { colors, radius } from '@/constants/theme';
+import {
+  fetchOnboardingCommunity,
+  fetchOnboardingProperty,
+  onboardingKeys,
+  type OnboardingCommunity,
+} from '@/features/onboarding/onboarding.queries';
 import { appStorage } from '@/lib/local-storage';
+import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
+import type { Property } from '@/types';
+
+const getStartedArtwork = require('../../../assets/images/onboarding/onboarding-get-started.png');
+
+const onboardingThemes = {
+  light: {
+    backgroundGradient: ['#EEFCFC', '#FFFCFA', '#FFE9EC'] as const,
+    splashGradient: ['#F3FEFD', '#FFF9F8', '#FFEDEF'] as const,
+    finalGradient: ['#EFC4BF', '#F9D8D7', '#FFE9EC'] as const,
+    artworkOverlay: ['transparent', 'transparent'] as const,
+    text: '#05090D',
+    body: '#15191D',
+    secondary: '#425466',
+    brand: colors.brandDark,
+    coral: '#E55E45',
+    surface: 'rgba(255,255,255,0.72)',
+    mediaSurface: '#E8F2F3',
+    border: 'rgba(12,31,43,0.22)',
+    divider: 'rgba(17,24,39,0.18)',
+    icon: '#111827',
+    inactiveDot: '#AFC3CC',
+    spinnerTrack: 'rgba(45,145,204,0.24)',
+    spinner: '#2D91CC',
+    avatarBorder: '#FFFFFF',
+    signIn: '#222936',
+    retry: '#247EC7',
+  },
+  dark: {
+    backgroundGradient: ['#06111E', '#0B1724', '#21131C'] as const,
+    splashGradient: ['#06111E', '#0B1724', '#21131C'] as const,
+    finalGradient: ['#251722', '#1B1420', '#0B1724'] as const,
+    artworkOverlay: ['rgba(4,12,24,0.28)', 'rgba(8,15,27,0.72)'] as const,
+    text: '#F8FAFC',
+    body: '#D6E0EA',
+    secondary: '#AFC0CF',
+    brand: '#67C7F3',
+    coral: '#FF826C',
+    surface: 'rgba(15,27,40,0.88)',
+    mediaSurface: '#102233',
+    border: 'rgba(255,255,255,0.16)',
+    divider: 'rgba(255,255,255,0.18)',
+    icon: '#F8FAFC',
+    inactiveDot: '#64748B',
+    spinnerTrack: 'rgba(103,199,243,0.22)',
+    spinner: '#67C7F3',
+    avatarBorder: '#132333',
+    signIn: '#E2E8F0',
+    retry: '#7DD3FC',
+  },
+} as const;
+
+function useOnboardingTheme() {
+  const { resolvedMode } = useAppTheme();
+  return {
+    dark: resolvedMode === 'dark',
+    theme: onboardingThemes[resolvedMode],
+  };
+}
 
 const slides = [
-  { id: 'start', eyebrow: 'Un hogar para cada historia', title: 'Empieza a buscar\ntu nuevo hogar', body: 'Encuentra alquileres verificados en Guinea Ecuatorial, de forma sencilla y segura.' },
-  { id: 'discover', eyebrow: 'Explora sin límites', title: 'Encuentra el lugar\nque encaja contigo', body: 'Compara viviendas, guarda tus favoritas y solicita una visita desde un solo lugar.' },
-  { id: 'trust', eyebrow: 'Una comunidad segura', title: 'Confianza en cada\npaso del camino', body: 'Conectamos a inquilinos y propietarios verificados para que decidas con tranquilidad.' },
+  { id: 'discover' },
+  { id: 'community' },
+  { id: 'get-started' },
 ] as const;
 
 type Slide = (typeof slides)[number];
 
-const trustStats = [
-  { Icon: Home, value: '16', label: 'Propiedades' },
-  { Icon: UsersRound, value: '+10', label: 'Usuarios' },
-  { Icon: Layers3, value: '3', label: 'Planes' },
-];
+type MotionBlockProps = PropsWithChildren<{
+  active: boolean;
+  delay?: number;
+  distance?: number;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type CommonSlideProps = {
+  active: boolean;
+  bottomInset: number;
+  height: number;
+  onNext: () => void;
+  topInset: number;
+  width: number;
+};
+
+function MotionBlock({ active, children, delay = 0, distance = 18, style }: MotionBlockProps) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    cancelAnimation(progress);
+    if (!active) {
+      progress.value = 0;
+      return;
+    }
+    if (reduceMotion) {
+      progress.value = 1;
+      return;
+    }
+    progress.value = withDelay(
+      delay,
+      withSpring(1, { damping: 20, stiffness: 145, mass: 0.78 }),
+    );
+  }, [active, delay, progress, reduceMotion]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [
+      { translateY: interpolate(progress.value, [0, 1], [distance, 0]) },
+      { scale: interpolate(progress.value, [0, 1], [0.975, 1]) },
+    ],
+  }), [distance]);
+
+  return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
+}
+
+function Brand({
+  centered = false,
+  color = colors.brandDark,
+  large = false,
+}: {
+  centered?: boolean;
+  color?: string;
+  large?: boolean;
+}) {
+  const logoWidth = large ? 48 : 22;
+
+  return (
+    <View style={[styles.brand, centered && styles.brandCentered]}>
+      <CasasegLogo width={logoWidth} height={large ? 39 : 18} />
+      <Text style={[large ? styles.brandNameLarge : styles.brandName, { color }]}>CASASEG</Text>
+    </View>
+  );
+}
+
+function SplashSpinner() {
+  const { theme } = useOnboardingTheme();
+  const reduceMotion = useReducedMotion();
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    rotation.value = withRepeat(
+      withTiming(1, { duration: 950, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(rotation);
+  }, [reduceMotion, rotation]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value * 360}deg` }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.splashSpinner,
+        { borderColor: theme.spinnerTrack, borderTopColor: theme.spinner },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function SplashScreenView() {
+  const { t } = useI18n();
+  const { dark, theme } = useOnboardingTheme();
+
+  return (
+    <LinearGradient
+      colors={theme.splashGradient}
+      end={{ x: 1, y: 1 }}
+      start={{ x: 0, y: 0 }}
+      style={styles.splash}
+    >
+      <StatusBar style={dark ? 'light' : 'dark'} />
+      <MotionBlock active delay={80} distance={10} style={styles.splashCenter}>
+        <Brand color={theme.text} large />
+        <SplashSpinner />
+      </MotionBlock>
+      <View accessibilityLabel={t('onboardingLoadingLabel')} style={styles.splashDots}>
+        <View style={[styles.splashDot, { backgroundColor: theme.spinner }, styles.splashDotActive]} />
+        <View style={[styles.splashDot, { backgroundColor: theme.inactiveDot }]} />
+        <View style={[styles.splashDot, { backgroundColor: theme.inactiveDot }]} />
+      </View>
+    </LinearGradient>
+  );
+}
+
+function PageDot({ active }: { active: boolean }) {
+  const { theme } = useOnboardingTheme();
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    progress.value = reduceMotion
+      ? Number(active)
+      : withSpring(Number(active), { damping: 19, stiffness: 185 });
+  }, [active, progress, reduceMotion]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [0.68, 1]),
+    transform: [{ scale: interpolate(progress.value, [0, 1], [0.84, 1.18]) }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.pageDot,
+        { backgroundColor: active ? theme.spinner : theme.inactiveDot },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function Pagination({ current }: { current: number }) {
+  const { t } = useI18n();
+
+  return (
+    <View
+      accessibilityLabel={t('onboardingPageStatus', {
+        current: String(current + 1),
+        total: String(slides.length),
+      })}
+      style={styles.pagination}
+    >
+      {slides.map((slide, index) => (
+        <PageDot active={index === current} key={slide.id} />
+      ))}
+    </View>
+  );
+}
+
+function PrimaryButton({
+  label,
+  onPress,
+  showArrow = false,
+}: {
+  label: string;
+  onPress: () => void;
+  showArrow?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.primaryButtonHitbox, pressed && styles.pressed]}
+    >
+      <LinearGradient
+        colors={['#2D72DE', '#2698C7']}
+        end={{ x: 1, y: 0.5 }}
+        start={{ x: 0, y: 0.5 }}
+        style={styles.primaryButton}
+      >
+        <Text style={styles.primaryButtonLabel}>{label}</Text>
+        {showArrow ? <ArrowRight color="white" size={18} /> : null}
+      </LinearGradient>
+    </Pressable>
+  );
+}
 
 function finishOnboarding() {
   appStorage.setItem('casaseg.onboarding.seen', 'true');
   router.replace('/(tabs)/explore');
 }
 
-function Brand({ textColor }: { textColor: string }) {
-  return <View style={styles.brand}><CasasegLogo width={38} height={32} /><Text style={[styles.brandName, { color: textColor }]}>CASASEG</Text></View>;
+function AnimatedPropertyImage({ active, property }: { active: boolean; property: Property }) {
+  const { t } = useI18n();
+  const reduceMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    cancelAnimation(scale);
+    scale.value = 1;
+    if (!active || reduceMotion) return;
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.035, { duration: 3200, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 3200, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(scale);
+  }, [active, reduceMotion, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.propertyImageMotion, animatedStyle]}>
+      <Image
+        accessibilityLabel={t('onboardingPropertyAccessibility', {
+          location: property.location,
+          title: property.title,
+        })}
+        cachePolicy="disk"
+        contentFit="cover"
+        source={{ uri: property.imageUrls[0] }}
+        style={styles.propertyImage}
+        transition={250}
+      />
+    </Animated.View>
+  );
 }
 
-function StartArtwork({ dark }: { dark: boolean }) {
-  return <View style={[styles.artwork, dark && { backgroundColor: '#122338' }]}><View style={styles.sun} /><View style={[styles.cloud, { left: 20, top: 54 }]} /><View style={[styles.cloud, { right: 16, top: 86 }]} />
-    <View style={styles.house}><View style={styles.roof} /><View style={styles.houseBody}><View style={styles.windowRow}><View style={styles.window} /><View style={styles.window} /></View><View style={styles.door}><KeyRound size={16} color="white" /></View></View></View>
-    <View style={styles.people}><View style={[styles.person, { backgroundColor: '#EF6B72' }]} /><View style={[styles.person, { backgroundColor: colors.primary }]} /></View>
-  </View>;
+function PropertyVisual({
+  active,
+  error,
+  loading,
+  onRetry,
+  property,
+}: {
+  active: boolean;
+  error: boolean;
+  loading: boolean;
+  onRetry: () => void;
+  property: Property | null;
+}) {
+  const { t } = useI18n();
+  const { theme } = useOnboardingTheme();
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.propertyState,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        <ActivityIndicator color={theme.spinner} size="large" />
+        <Text style={[styles.stateText, { color: theme.secondary }]}>
+          {t('onboardingPropertyLoading')}
+        </Text>
+      </View>
+    );
+  }
+
+  if (error || !property?.imageUrls[0]) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={({ pressed }) => [
+          styles.propertyState,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Home color={theme.spinner} size={42} />
+        <Text style={[styles.stateTitle, { color: theme.text }]}>
+          {t('onboardingPropertyLoadError')}
+        </Text>
+        <Text style={[styles.retryText, { color: theme.retry }]}>
+          {t('onboardingTapToRetry')}
+        </Text>
+      </Pressable>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.propertyFrame,
+        { backgroundColor: theme.mediaSurface, borderColor: theme.border },
+      ]}
+    >
+      <AnimatedPropertyImage active={active} property={property} />
+    </View>
+  );
 }
 
-function DiscoverArtwork({ dark }: { dark: boolean }) {
-  return <View style={[styles.propertyCard, dark && { backgroundColor: '#171717' }]}><LinearGradient colors={dark ? ['#19324A', '#111827'] : ['#BFE8F2', '#EEF7F8']} style={styles.propertySky}><View style={styles.miniSun} /><View style={styles.modernHouse}><View style={styles.modernTop} /><View style={styles.modernBody}><View style={styles.glass} /><View style={styles.modernDoor} /><View style={styles.glass} /></View></View><View style={styles.lawn} /></LinearGradient><View style={styles.propertyMeta}><View><Text style={[styles.propertyTitle, dark && { color: '#F8FAFC' }]}>Villa luminosa</Text><Text style={[styles.propertyPlace, dark && { color: '#CBD5E1' }]}>Malabo · 3 habitaciones</Text></View><View style={[styles.pricePill, dark && { backgroundColor: '#172554' }]}><Text style={styles.price}>450.000 XAF</Text></View></View></View>;
+function DiscoverSlide({
+  active,
+  bottomInset,
+  height,
+  onNext,
+  onRetry,
+  property,
+  propertyError,
+  propertyLoading,
+  topInset,
+  width,
+}: CommonSlideProps & {
+  onRetry: () => void;
+  property: Property | null;
+  propertyError: boolean;
+  propertyLoading: boolean;
+}) {
+  const { t } = useI18n();
+  const { theme } = useOnboardingTheme();
+
+  return (
+    <ScrollView
+      bounces={false}
+      contentContainerStyle={[
+        styles.discoverPage,
+        {
+          minHeight: height,
+          paddingBottom: Math.max(bottomInset, 12),
+          paddingTop: topInset + 14,
+        },
+      ]}
+      showsVerticalScrollIndicator={false}
+      style={{ width }}
+    >
+      <MotionBlock active={active} delay={20} distance={-8}>
+        <Brand color={theme.brand} />
+      </MotionBlock>
+
+      <MotionBlock active={active} delay={90} distance={18} style={styles.discoverTitleBlock}>
+        <Text style={[styles.discoverTitle, { color: theme.text }]}>
+          {t('onboardingDiscoverTitlePrimary')}{'\n'}
+          <Text style={[styles.coralText, { color: theme.coral }]}>
+            {t('onboardingDiscoverTitleAccent')}
+          </Text>
+        </Text>
+      </MotionBlock>
+
+      <MotionBlock active={active} delay={170} distance={28} style={styles.discoverVisual}>
+        <PropertyVisual
+          active={active}
+          error={propertyError}
+          loading={propertyLoading}
+          onRetry={onRetry}
+          property={property}
+        />
+      </MotionBlock>
+
+      <MotionBlock active={active} delay={260} distance={18}>
+        <Text style={[styles.discoverBody, { color: theme.body }]}>
+          {t('onboardingDiscoverBody')}
+        </Text>
+      </MotionBlock>
+
+      <MotionBlock active={active} delay={340} distance={16} style={styles.discoverActions}>
+        <PrimaryButton label={t('onboardingNext')} onPress={onNext} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={finishOnboarding}
+          style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
+        >
+          <Text style={[styles.skipLabel, { color: theme.coral }]}>
+            {t('onboardingSkip')}
+          </Text>
+        </Pressable>
+      </MotionBlock>
+    </ScrollView>
+  );
 }
 
-function TrustArtwork({ dark }: { dark: boolean }) {
-  return <View style={[styles.trustCard, dark && { backgroundColor: '#171717' }]}><View style={[styles.shield, dark && { backgroundColor: '#172554' }]}><ShieldCheck size={34} color={colors.brand} /></View><Text style={[styles.trustTitle, dark && { color: '#F8FAFC' }]}>Comunidad CasaSeg</Text><View style={styles.stats}>{trustStats.map(({ Icon, value, label }, i) => <View key={label} style={[styles.stat, i > 0 && styles.statBorder]}><Icon size={23} color={colors.primary} /><Text style={[styles.statValue, dark && { color: '#F8FAFC' }]}>{value}</Text><Text style={[styles.statLabel, dark && { color: '#CBD5E1' }]}>{label}</Text></View>)}</View><View style={[styles.verified, dark && { backgroundColor: '#222222' }]}><View style={styles.avatarStack}>{['#1D4ED8', '#2563EB', '#E76F51'].map((color, i) => <View key={color} style={[styles.avatar, { backgroundColor: color, marginLeft: i ? -9 : 0 }]}><Text style={styles.avatarText}>{['A','M','J'][i]}</Text></View>)}</View><Text style={[styles.verifiedText, dark && { color: '#CBD5E1' }]}>Perfiles verificados</Text></View></View>;
+function CommunityContent({
+  active,
+  community,
+  error,
+  loading,
+  onRetry,
+}: {
+  active: boolean;
+  community?: OnboardingCommunity;
+  error: boolean;
+  loading: boolean;
+  onRetry: () => void;
+}) {
+  const { t } = useI18n();
+  const { theme } = useOnboardingTheme();
+
+  if (loading) {
+    return (
+      <View style={styles.communityState}>
+        <ActivityIndicator color={theme.spinner} size="large" />
+        <Text style={[styles.stateText, { color: theme.secondary }]}>
+          {t('onboardingCommunityLoading')}
+        </Text>
+      </View>
+    );
+  }
+
+  if (error || !community) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={({ pressed }) => [styles.communityState, pressed && styles.pressed]}
+      >
+        <UsersRound color={theme.spinner} size={40} />
+        <Text style={[styles.stateTitle, { color: theme.text }]}>
+          {t('onboardingCommunityLoadError')}
+        </Text>
+        <Text style={[styles.retryText, { color: theme.retry }]}>
+          {t('onboardingTapToRetry')}
+        </Text>
+      </Pressable>
+    );
+  }
+
+  const stats = [
+    { Icon: Home, value: community.propertyCount, label: t('onboardingActiveProperties') },
+    { Icon: Layers3, value: community.ownerCount, label: t('onboardingPublishingOwners') },
+    { Icon: UsersRound, value: community.memberCount, label: t('onboardingVerifiedMembers') },
+  ];
+
+  return (
+    <>
+      <View style={styles.statsRow}>
+        {stats.map(({ Icon, label, value }, index) => (
+          <MotionBlock
+            active={active}
+            delay={210 + index * 90}
+            distance={18}
+            key={label}
+            style={[
+              styles.stat,
+              index > 0 && styles.statDivider,
+              index > 0 && { borderLeftColor: theme.divider },
+            ]}
+          >
+            <Icon color={theme.icon} size={25} />
+            <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
+            <Text style={[styles.statLabel, { color: theme.body }]}>{label}</Text>
+          </MotionBlock>
+        ))}
+      </View>
+
+      <MotionBlock active={active} delay={520} distance={16} style={styles.communityMembers}>
+        <View style={styles.avatarRow}>
+          {community.members.map((member, index) => (
+            <MotionBlock
+              active={active}
+              delay={580 + index * 80}
+              distance={12}
+              key={member.id}
+              style={[
+                styles.avatarBorder,
+                {
+                  backgroundColor: theme.mediaSurface,
+                  borderColor: theme.avatarBorder,
+                  marginLeft: index === 0 ? 0 : -9,
+                  zIndex: community.members.length - index,
+                },
+              ]}
+            >
+              <UserAvatar name={member.name} size={42} uri={member.avatar} />
+            </MotionBlock>
+          ))}
+        </View>
+        <Text style={[styles.activeUsers, { color: theme.text }]}>
+          {t('onboardingActiveUsers', { count: String(community.memberCount) })}
+        </Text>
+      </MotionBlock>
+    </>
+  );
 }
 
-function SlideView({ item, width, dark }: { item: Slide; width: number; dark: boolean }) {
-  const textColor = dark ? '#F8FAFC' : colors.text;
-  return <ScrollView bounces={false} contentContainerStyle={styles.slide} nestedScrollEnabled showsVerticalScrollIndicator={false} style={{ width }}><Brand textColor={textColor} /><View style={styles.copy}><Text style={[styles.eyebrow, dark && { color: '#60A5FA' }]}>{item.eyebrow}</Text><Text style={[styles.title, { color: textColor }]}>{item.title}</Text><Text style={[styles.body, dark && { color: '#CBD5E1' }]}>{item.body}</Text></View><View style={styles.visual}>{item.id === 'start' ? <StartArtwork dark={dark} /> : item.id === 'discover' ? <DiscoverArtwork dark={dark} /> : <TrustArtwork dark={dark} />}</View></ScrollView>;
+function CommunitySlide({
+  active,
+  bottomInset,
+  community,
+  communityError,
+  communityLoading,
+  height,
+  onNext,
+  onRetry,
+  topInset,
+  width,
+}: CommonSlideProps & {
+  community?: OnboardingCommunity;
+  communityError: boolean;
+  communityLoading: boolean;
+  onRetry: () => void;
+}) {
+  const { t } = useI18n();
+  const { theme } = useOnboardingTheme();
+
+  return (
+    <ScrollView
+      bounces={false}
+      contentContainerStyle={[
+        styles.communityPage,
+        {
+          minHeight: height,
+          paddingBottom: Math.max(bottomInset, 18),
+          paddingTop: topInset + 20,
+        },
+      ]}
+      showsVerticalScrollIndicator={false}
+      style={{ width }}
+    >
+      <MotionBlock active={active} delay={20} distance={-8}>
+        <Brand centered color={theme.text} />
+      </MotionBlock>
+      <MotionBlock active={active} delay={90} distance={18} style={styles.communityHeading}>
+        <Text style={[styles.communityTitle, { color: theme.text }]}>
+          {t('onboardingCommunityTitle')}
+        </Text>
+        <Text style={[styles.communitySubtitle, { color: theme.body }]}>
+          {t('onboardingCommunitySubtitle')}
+        </Text>
+      </MotionBlock>
+
+      <View style={styles.communityData}>
+        <CommunityContent
+          active={active}
+          community={community}
+          error={communityError}
+          loading={communityLoading}
+          onRetry={onRetry}
+        />
+      </View>
+
+      <MotionBlock active={active} delay={690} distance={12} style={styles.communityFooter}>
+        <Pagination current={1} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={onNext}
+          style={({ pressed }) => [styles.nextTextButton, pressed && styles.pressed]}
+        >
+          <Text style={[styles.nextTextLabel, { color: theme.text }]}>
+            {t('onboardingNext')}
+          </Text>
+        </Pressable>
+      </MotionBlock>
+    </ScrollView>
+  );
+}
+
+function GetStartedSlide({
+  active,
+  bottomInset,
+  height,
+  topInset,
+  width,
+}: Omit<CommonSlideProps, 'onNext'>) {
+  const { t } = useI18n();
+  const { theme } = useOnboardingTheme();
+  const artworkHeight = width * 1.01;
+  const fullArtworkHeight = width * (1376 / 768);
+  const compactHeight = height < 720;
+  const copyTopGap = compactHeight
+    ? 28
+    : Math.max(60, Math.min(105, height - artworkHeight - 345));
+  const actionsTopGap = compactHeight ? 16 : 34;
+
+  return (
+    <ScrollView
+      bounces={false}
+      contentContainerStyle={[
+        styles.getStartedPage,
+        {
+          minHeight: height,
+          paddingBottom: Math.max(bottomInset, 14),
+          paddingTop: topInset,
+        },
+      ]}
+      showsVerticalScrollIndicator={false}
+      style={{ width }}
+    >
+      <MotionBlock active={active} delay={30} distance={-10}>
+        <View style={[styles.finalArtworkCrop, { height: artworkHeight, width }]}>
+          <Image
+            accessibilityLabel={t('onboardingIllustrationAccessibility')}
+            contentFit="contain"
+            source={getStartedArtwork}
+            style={{ height: fullArtworkHeight, width }}
+          />
+          <LinearGradient
+            colors={theme.artworkOverlay}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </View>
+      </MotionBlock>
+
+      <LinearGradient
+        colors={theme.finalGradient}
+        locations={[0, 0.46, 1]}
+        style={[
+          styles.getStartedCopy,
+          {
+            minHeight: Math.max(0, height - artworkHeight - topInset),
+            paddingTop: copyTopGap,
+          },
+        ]}
+      >
+        <MotionBlock active={active} delay={150} distance={20}>
+          <Text style={styles.getStartedTitle}>{t('onboardingGetStartedTitle')}</Text>
+        </MotionBlock>
+        <MotionBlock active={active} delay={230} distance={18}>
+          <Text style={styles.getStartedBody}>{t('onboardingGetStartedBody')}</Text>
+        </MotionBlock>
+        <MotionBlock
+          active={active}
+          delay={310}
+          distance={18}
+          style={[styles.getStartedActions, { marginTop: actionsTopGap }]}
+        >
+          <PrimaryButton label={t('onboardingGetStartedCta')} onPress={finishOnboarding} showArrow />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/(auth)/login')}
+            style={({ pressed }) => [styles.signInButton, pressed && styles.pressed]}
+          >
+            <Text style={[styles.signInLabel, { color: theme.signIn }]}>
+              {t('onboardingHaveAccount')}{' '}
+              <Text style={styles.signInStrong}>{t('signIn')}.</Text>
+            </Text>
+          </Pressable>
+        </MotionBlock>
+      </LinearGradient>
+    </ScrollView>
+  );
+}
+
+type SlideViewProps = CommonSlideProps & {
+  community?: OnboardingCommunity;
+  communityError: boolean;
+  communityLoading: boolean;
+  item: Slide;
+  onRetryCommunity: () => void;
+  onRetryProperty: () => void;
+  property: Property | null;
+  propertyError: boolean;
+  propertyLoading: boolean;
+};
+
+function SlideView(props: SlideViewProps) {
+  if (props.item.id === 'discover') {
+    return (
+      <DiscoverSlide
+        active={props.active}
+        bottomInset={props.bottomInset}
+        height={props.height}
+        onNext={props.onNext}
+        onRetry={props.onRetryProperty}
+        property={props.property}
+        propertyError={props.propertyError}
+        propertyLoading={props.propertyLoading}
+        topInset={props.topInset}
+        width={props.width}
+      />
+    );
+  }
+
+  if (props.item.id === 'community') {
+    return (
+      <CommunitySlide
+        active={props.active}
+        bottomInset={props.bottomInset}
+        community={props.community}
+        communityError={props.communityError}
+        communityLoading={props.communityLoading}
+        height={props.height}
+        onNext={props.onNext}
+        onRetry={props.onRetryCommunity}
+        topInset={props.topInset}
+        width={props.width}
+      />
+    );
+  }
+
+  return (
+    <GetStartedSlide
+      active={props.active}
+      bottomInset={props.bottomInset}
+      height={props.height}
+      topInset={props.topInset}
+      width={props.width}
+    />
+  );
 }
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { resolvedMode, palette } = useAppTheme();
-  const dark = resolvedMode === 'dark';
-  const { width } = useWindowDimensions();
+  const { dark, theme } = useOnboardingTheme();
+  const reduceMotion = useReducedMotion();
+  const { height, width } = useWindowDimensions();
   const pageWidth = Math.min(width, 520);
   const [current, setCurrent] = useState(0);
+  const [showSplash, setShowSplash] = useState(true);
   const list = useRef<FlatList<Slide>>(null);
-  const renderSlide = useCallback<ListRenderItem<Slide>>(({ item }) => <SlideView item={item} width={pageWidth} dark={dark} />, [dark, pageWidth]);
-  const next = () => {
-    if (current === slides.length - 1) return finishOnboarding();
 
-    const nextIndex = current + 1;
+  const propertyQuery = useQuery({
+    queryKey: onboardingKeys.property,
+    queryFn: ({ signal }) => fetchOnboardingProperty(signal),
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+  const communityQuery = useQuery({
+    queryKey: onboardingKeys.community,
+    queryFn: ({ signal }) => fetchOnboardingCommunity(signal),
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setShowSplash(false), reduceMotion ? 450 : 1350);
+    return () => clearTimeout(timeout);
+  }, [reduceMotion]);
+
+  const retryProperty = useCallback(() => {
+    void propertyQuery.refetch();
+  }, [propertyQuery]);
+  const retryCommunity = useCallback(() => {
+    void communityQuery.refetch();
+  }, [communityQuery]);
+
+  const next = useCallback(() => {
+    const nextIndex = Math.min(current + 1, slides.length - 1);
     setCurrent(nextIndex);
-    list.current?.scrollToIndex({ index: nextIndex, animated: true });
-  };
+    list.current?.scrollToIndex({ animated: true, index: nextIndex });
+  }, [current]);
 
-  return <LinearGradient colors={dark ? ['#07111F', palette.background, '#160E16'] : ['#F2FCFC', '#FFFFFF', '#FFF2F3']} locations={[0, .55, 1]} style={styles.container}>
-    <FlatList ref={list} data={slides} horizontal pagingEnabled bounces={false} getItemLayout={(_, index) => ({ index, length: pageWidth, offset: pageWidth * index })} showsHorizontalScrollIndicator={false} style={[styles.slides, { width: pageWidth, marginTop: insets.top + 18 }]} renderItem={renderSlide} keyExtractor={item => item.id} onMomentumScrollEnd={e => setCurrent(Math.round(e.nativeEvent.contentOffset.x / pageWidth))} />
-    <View style={[styles.footer, { width: pageWidth, paddingBottom: Math.max(insets.bottom, 16) }]}><View style={styles.dots}>{slides.map((slide, i) => <View key={slide.id} style={[styles.dot, dark && { backgroundColor: '#475569' }, i === current && styles.dotActive]} />)}</View><PremiumButton label={current === slides.length - 1 ? 'Explorar propiedades' : current === 0 ? 'Comenzar' : 'Siguiente'} trailingIcon={ArrowRight} onPress={next} style={styles.button} />{current === 0 ? <Pressable onPress={() => router.push('/(auth)/login')} style={styles.textButton}><Text style={[styles.textButtonLabel, dark && { color: '#CBD5E1' }]}>¿Ya tienes cuenta? <Text style={styles.signIn}>Inicia sesión</Text></Text></Pressable> : <Pressable onPress={finishOnboarding} style={styles.textButton}><Text style={[styles.skip, dark && { color: '#60A5FA' }]}>Saltar</Text></Pressable>}</View>
-  </LinearGradient>;
+  const renderSlide = useCallback<ListRenderItem<Slide>>(({ item, index }) => (
+    <SlideView
+      active={current === index}
+      bottomInset={insets.bottom}
+      community={communityQuery.data}
+      communityError={communityQuery.isError}
+      communityLoading={communityQuery.isLoading}
+      height={height}
+      item={item}
+      onNext={next}
+      onRetryCommunity={retryCommunity}
+      onRetryProperty={retryProperty}
+      property={propertyQuery.data ?? null}
+      propertyError={propertyQuery.isError}
+      propertyLoading={propertyQuery.isLoading}
+      topInset={insets.top}
+      width={pageWidth}
+    />
+  ), [
+    communityQuery.data,
+    communityQuery.isError,
+    communityQuery.isLoading,
+    current,
+    height,
+    insets.bottom,
+    insets.top,
+    next,
+    pageWidth,
+    propertyQuery.data,
+    propertyQuery.isError,
+    propertyQuery.isLoading,
+    retryCommunity,
+    retryProperty,
+  ]);
+
+  if (showSplash) return <SplashScreenView />;
+
+  return (
+    <LinearGradient
+      colors={theme.backgroundGradient}
+      end={{ x: 1, y: 1 }}
+      locations={[0, 0.48, 1]}
+      start={{ x: 0, y: 0 }}
+      style={styles.container}
+    >
+      <StatusBar style={dark ? 'light' : 'dark'} />
+      <FlatList
+        bounces={false}
+        data={slides}
+        decelerationRate="fast"
+        getItemLayout={(_, index) => ({ index, length: pageWidth, offset: pageWidth * index })}
+        horizontal
+        keyExtractor={(item) => item.id}
+        onMomentumScrollEnd={(event) => {
+          setCurrent(Math.round(event.nativeEvent.contentOffset.x / pageWidth));
+        }}
+        pagingEnabled
+        ref={list}
+        renderItem={renderSlide}
+        showsHorizontalScrollIndicator={false}
+        style={{ width: pageWidth }}
+      />
+    </LinearGradient>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center' }, slides: { flex: 1 }, slide: { flexGrow: 1, paddingHorizontal: 28 }, brand: { flexDirection: 'row', alignItems: 'center', gap: 9 }, brandName: { fontSize: 20, fontWeight: '900', letterSpacing: .5, color: colors.text }, copy: { marginTop: 32 }, eyebrow: { color: colors.brandDark, fontSize: 14, fontWeight: '800', letterSpacing: .7, textTransform: 'uppercase', marginBottom: 10 }, title: { color: colors.text, fontSize: 36, lineHeight: 41, fontWeight: '900', letterSpacing: -1.3 }, body: { marginTop: 14, maxWidth: 420, color: colors.textSecondary, fontSize: 16, lineHeight: 24 }, visual: { flex: 1, minHeight: 250, justifyContent: 'center', paddingVertical: 22 },
-  artwork: { height: 270, borderRadius: radius.hero, backgroundColor: '#E9F7F7', overflow: 'hidden', justifyContent: 'flex-end', alignItems: 'center' }, sun: { position: 'absolute', width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFD9C9', right: 20, top: 20 }, cloud: { position: 'absolute', width: 58, height: 15, borderRadius: 20, backgroundColor: 'rgba(255,255,255,.85)' }, house: { width: 210, alignItems: 'center' }, roof: { width: 160, height: 90, backgroundColor: '#D8E8F0', transform: [{ rotate: '45deg' }], position: 'absolute', top: -52, borderRadius: 8, borderWidth: 2, borderColor: '#31536B' }, houseBody: { width: 205, height: 145, backgroundColor: '#FAFDFD', borderWidth: 2, borderColor: '#31536B', paddingTop: 30, alignItems: 'center' }, windowRow: { flexDirection: 'row', gap: 52 }, window: { width: 31, height: 39, backgroundColor: '#BDE4EE', borderWidth: 2, borderColor: '#31536B' }, door: { width: 42, height: 62, backgroundColor: '#31536B', marginTop: 14, alignItems: 'center', justifyContent: 'center' }, people: { position: 'absolute', right: 32, bottom: 16, flexDirection: 'row', gap: 5 }, person: { width: 25, height: 65, borderRadius: 18 },
-  propertyCard: { borderRadius: radius.xl, backgroundColor: 'white', overflow: 'hidden', boxShadow: '0 10px 20px rgba(16,42,67,0.13)' }, propertySky: { height: 205, justifyContent: 'flex-end', alignItems: 'center' }, miniSun: { position: 'absolute', width: 50, height: 50, borderRadius: 25, backgroundColor: '#FFE2A8', top: 22, right: 28 }, modernHouse: { width: '84%' }, modernTop: { width: '100%', height: 24, backgroundColor: '#F7FAFC', borderWidth: 2, borderColor: '#34495E' }, modernBody: { height: 104, backgroundColor: '#F5EEE7', borderWidth: 2, borderTopWidth: 0, borderColor: '#34495E', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', paddingHorizontal: 14 }, glass: { width: '28%', height: 67, backgroundColor: '#9FD7E5', borderWidth: 2, borderColor: '#34495E' }, modernDoor: { width: '24%', height: 82, backgroundColor: '#263747' }, lawn: { height: 25, width: '100%', backgroundColor: '#83B96A' }, propertyMeta: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, propertyTitle: { color: colors.text, fontSize: 17, fontWeight: '800' }, propertyPlace: { color: colors.textSecondary, fontSize: 12, marginTop: 4 }, pricePill: { backgroundColor: '#E8F7F5', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 7 }, price: { color: colors.brandDark, fontWeight: '800', fontSize: 11 },
-  trustCard: { backgroundColor: 'white', borderRadius: radius.hero, padding: 20, alignItems: 'center', boxShadow: '0 8px 24px rgba(196,88,101,0.10)' }, shield: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#E8F7F5', alignItems: 'center', justifyContent: 'center' }, trustTitle: { fontSize: 19, fontWeight: '900', color: colors.text, marginTop: 10 }, stats: { flexDirection: 'row', marginTop: 20, width: '100%' }, stat: { flex: 1, alignItems: 'center', gap: 3 }, statBorder: { borderLeftWidth: 1, borderLeftColor: colors.border }, statValue: { fontSize: 23, fontWeight: '900', color: colors.text }, statLabel: { color: colors.textSecondary, fontSize: 11 }, verified: { flexDirection: 'row', alignItems: 'center', marginTop: 21, backgroundColor: colors.background, borderRadius: radius.pill, padding: 8, paddingRight: 14 }, avatarStack: { flexDirection: 'row' }, avatar: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: 'white', alignItems: 'center', justifyContent: 'center' }, avatarText: { color: 'white', fontWeight: '800', fontSize: 11 }, verifiedText: { marginLeft: 9, fontWeight: '700', color: colors.textSecondary, fontSize: 12 },
-  footer: { paddingHorizontal: 28, alignItems: 'center' }, dots: { flexDirection: 'row', gap: 7, marginBottom: 16 }, dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#CBD5E1' }, dotActive: { width: 24, backgroundColor: colors.brand }, button: { width: '100%', borderRadius: radius.pill }, textButton: { height: 46, justifyContent: 'center', paddingHorizontal: 12 }, textButtonLabel: { color: colors.textSecondary, fontSize: 14 }, signIn: { color: colors.primary, fontWeight: '800' }, skip: { color: colors.brandDark, fontWeight: '800', fontSize: 14 },
+  container: { flex: 1, alignItems: 'center' },
+  pressed: { opacity: 0.72 },
+
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  brandCentered: { alignSelf: 'center' },
+  brandName: { fontSize: 13, lineHeight: 16, fontWeight: '900', letterSpacing: 0.15 },
+  brandNameLarge: { fontSize: 28, lineHeight: 34, fontWeight: '900', letterSpacing: 0.25 },
+
+  splash: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  splashCenter: { alignItems: 'center', gap: 23 },
+  splashSpinner: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    borderWidth: 4,
+    borderColor: 'rgba(45,145,204,0.24)',
+    borderTopColor: '#2D91CC',
+  },
+  splashDots: {
+    position: 'absolute',
+    bottom: '19%',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  splashDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#BFC9D1' },
+  splashDotActive: { backgroundColor: '#2D91CC', transform: [{ scale: 1.15 }] },
+
+  pageDot: { width: 7, height: 7, borderRadius: 4 },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+
+  primaryButtonHitbox: { width: '100%', borderRadius: radius.pill },
+  primaryButton: {
+    minHeight: 50,
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    boxShadow: '0 12px 24px rgba(38, 126, 202, 0.24)',
+  },
+  primaryButtonLabel: { color: 'white', fontSize: 15, fontWeight: '800' },
+
+  discoverPage: { flexGrow: 1, paddingHorizontal: 16 },
+  discoverTitleBlock: { marginTop: 29 },
+  discoverTitle: {
+    color: '#05090D',
+    fontSize: 29,
+    lineHeight: 35,
+    fontWeight: '900',
+    letterSpacing: -0.9,
+  },
+  coralText: { color: '#E55E45' },
+  discoverVisual: { marginTop: 25 },
+  propertyFrame: {
+    width: '100%',
+    aspectRatio: 1.42,
+    overflow: 'hidden',
+    borderRadius: 12,
+    backgroundColor: '#E8F2F3',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(12, 31, 43, 0.22)',
+    boxShadow: '0 8px 20px rgba(19, 52, 72, 0.12)',
+  },
+  propertyImageMotion: { width: '100%', height: '100%' },
+  propertyImage: { width: '100%', height: '100%' },
+  propertyState: {
+    width: '100%',
+    aspectRatio: 1.42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    padding: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(12, 31, 43, 0.14)',
+  },
+  stateTitle: { color: '#111827', fontSize: 15, fontWeight: '800', textAlign: 'center' },
+  stateText: { color: '#425466', fontSize: 13, textAlign: 'center' },
+  retryText: { color: '#247EC7', fontSize: 13, fontWeight: '800', textAlign: 'center' },
+  discoverBody: {
+    marginTop: 20,
+    color: '#15191D',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  discoverActions: { marginTop: 'auto', paddingTop: 20, alignItems: 'center' },
+  secondaryAction: {
+    minHeight: 45,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  skipLabel: { color: '#E55E45', fontSize: 14, fontWeight: '700' },
+
+  communityPage: { flexGrow: 1, paddingHorizontal: 22, alignItems: 'stretch' },
+  communityHeading: { alignItems: 'center', marginTop: 23 },
+  communityTitle: {
+    color: '#05090D',
+    fontSize: 29,
+    lineHeight: 34,
+    fontWeight: '900',
+    letterSpacing: -0.7,
+    textAlign: 'center',
+  },
+  communitySubtitle: {
+    marginTop: 10,
+    maxWidth: 390,
+    color: '#1F2933',
+    fontSize: 14,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  communityData: { flex: 1, justifyContent: 'center', minHeight: 305 },
+  communityState: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 20,
+  },
+  statsRow: { width: '100%', flexDirection: 'row', alignItems: 'stretch' },
+  stat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 106 },
+  statDivider: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: 'rgba(17,24,39,0.18)' },
+  statValue: {
+    color: '#05090D',
+    fontSize: 25,
+    lineHeight: 28,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
+  statLabel: {
+    color: '#101820',
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  communityMembers: { alignItems: 'center', marginTop: 30 },
+  avatarRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  avatarBorder: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    backgroundColor: '#E6EFF2',
+  },
+  activeUsers: { marginTop: 8, color: '#111827', fontSize: 13, fontWeight: '800' },
+  communityFooter: { alignItems: 'center', gap: 19 },
+  nextTextButton: { minWidth: 96, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  nextTextLabel: { color: '#111827', fontSize: 15, fontWeight: '600' },
+
+  getStartedPage: { flexGrow: 1 },
+  finalArtworkCrop: { overflow: 'hidden' },
+  getStartedCopy: { paddingHorizontal: 16 },
+  getStartedTitle: {
+    color: '#FFFFFF',
+    fontSize: 31,
+    lineHeight: 36,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+    textShadowColor: 'rgba(33, 43, 53, 0.25)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+  },
+  getStartedBody: {
+    marginTop: 8,
+    maxWidth: 310,
+    color: '#FFFFFF',
+    fontSize: 15,
+    lineHeight: 21,
+    textShadowColor: 'rgba(33, 43, 53, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  getStartedActions: {},
+  signInButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  signInLabel: { color: '#222936', fontSize: 12, textAlign: 'center' },
+  signInStrong: { fontWeight: '800' },
 });

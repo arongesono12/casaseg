@@ -1,0 +1,24 @@
+{
+  "project": {
+    "id": "13004628213775289820",
+    "title": "Casaseg Splash Screen"
+  },
+  "screen": {
+    "id": "a4d4a7af17464f83b81bc063b0957c7c",
+    "title": "Casaseg Project Brief",
+    "deviceType": "DESKTOP",
+    "width": 0,
+    "height": 0
+  },
+  "files": {
+    "code": {
+      "path": "casaseg-project-brief.md",
+      "mimeType": "text/markdown"
+    },
+    "screenshot": null
+  },
+  "notes": [
+    "Stitch returned this screen as a Markdown project brief rather than a rendered visual screen.",
+    "The screenshot resource was empty, so there was no hosted image to download."
+  ]
+}

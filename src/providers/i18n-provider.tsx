@@ -1,3 +1,4 @@
+import { useLocales } from 'expo-localization';
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { appStorage } from '@/lib/local-storage';
 import { I18nContext, type I18nContextValue, type Locale } from '@/providers/i18n-context';
@@ -11,6 +12,11 @@ const copy = {
     exploreEyebrow: 'EXPLORAR VIVIENDAS', featuredProperties: 'Propiedades destacadas', featuredDescription: 'Opciones verificadas con fotos, ubicación y detalles listos para comparar rápido.', recommended: 'Recomendadas', sortRating: 'Mejor valoradas', sortPriceAsc: 'Precio menor', sortPriceDesc: 'Precio mayor', sortNewest: 'Más recientes',
     properties: 'propiedades', sort: 'Ordenar', all: 'Todas', apartments: 'Apartamentos', houses: 'Casas', studios: 'Estudios',
     back: 'Volver', cancel: 'Cancelar', continue: 'Continuar', confirm: 'Confirmar', retry: 'Reintentar', loading: 'Cargando…',
+    onboardingLoadingLabel: 'Cargando CasaSeg', onboardingPageStatus: 'Página {current} de {total}', onboardingNext: 'Siguiente', onboardingSkip: 'Saltar',
+    onboardingDiscoverTitlePrimary: 'Encuentra tu hogar ideal', onboardingDiscoverTitleAccent: 'en Guinea Ecuatorial', onboardingDiscoverBody: 'Descubre las mejores propiedades en alquiler y venta. Apartamentos, villas y habitaciones en las mejores ubicaciones.',
+    onboardingPropertyLoading: 'Buscando una vivienda disponible…', onboardingPropertyLoadError: 'No pudimos cargar la vivienda', onboardingTapToRetry: 'Toca para intentarlo de nuevo', onboardingPropertyAccessibility: '{title}, vivienda disponible en {location}',
+    onboardingCommunityTitle: 'La confianza de\nnuestra comunidad', onboardingCommunitySubtitle: 'Únete a una red creciente de personas que buscan y publican viviendas en Guinea Ecuatorial.', onboardingActiveProperties: 'PROPIEDADES\nACTIVAS', onboardingPublishingOwners: 'PROPIETARIOS\nPUBLICANDO', onboardingVerifiedMembers: 'MIEMBROS\nVERIFICADOS', onboardingActiveUsers: '+{count} usuarios activos', onboardingCommunityLoading: 'Consultando la comunidad…', onboardingCommunityLoadError: 'No pudimos cargar la comunidad',
+    onboardingGetStartedTitle: '¿Listo para empezar\na buscar?', onboardingGetStartedBody: 'Encuentra hoy tu vivienda ideal en Guinea Ecuatorial.', onboardingGetStartedCta: 'Empezar', onboardingHaveAccount: '¿Ya tienes una cuenta?', onboardingIllustrationAccessibility: 'Personas buscando vivienda frente a una casa',
     filtersTitle: 'Filtros', filtersSubtitle: 'Ajusta tu búsqueda antes de aplicarla.', reset: 'Restablecer', showResults: 'Mostrar {count} resultados', location: 'Ubicación', propertyName: 'Nombre', maxPrice: 'Precio máximo', availability: 'Disponibilidad', category: 'Categoría',
     loginTitle: 'Bienvenido a CasaSeg', loginSubtitle: 'Inicia sesión para guardar viviendas, conversar y gestionar contratos.', email: 'Correo', password: 'Contraseña', signIn: 'Iniciar sesión', signingIn: 'Entrando…', createAccount: 'Crear una cuenta', forgotPassword: 'He olvidado mi contraseña', rememberMe: 'Recordarme', showPassword: 'Mostrar contraseña', hidePassword: 'Ocultar contraseña', signInWithGoogle: 'Iniciar sesión con Google', signInWithApple: 'Iniciar sesión con Apple', termsAndConditions: 'Términos y condiciones', privacy: 'Privacidad', devMode: 'Modo de desarrollo', clientDemo: 'Entrar como cliente demo', ownerDemo: 'Entrar como propietario demo', adminDemo: 'Entrar como administrador demo',
     savedSubtitle: 'Tus viviendas favoritas, sincronizadas con tu cuenta.', noSaved: 'No tienes propiedades guardadas', saveHint: 'Usa el corazón en Explorer para guardar una vivienda.',
@@ -37,6 +43,11 @@ const copy = {
     exploreEyebrow: 'EXPLORER LES LOGEMENTS', featuredProperties: 'Biens en vedette', featuredDescription: 'Des options vérifiées avec photos, emplacement et détails pour comparer rapidement.', recommended: 'Recommandées', sortRating: 'Mieux notées', sortPriceAsc: 'Prix croissant', sortPriceDesc: 'Prix décroissant', sortNewest: 'Plus récentes',
     properties: 'propriétés', sort: 'Trier', all: 'Tous', apartments: 'Appartements', houses: 'Maisons', studios: 'Studios',
     back: 'Retour', cancel: 'Annuler', continue: 'Continuer', confirm: 'Confirmer', retry: 'Réessayer', loading: 'Chargement…',
+    onboardingLoadingLabel: 'Chargement de CasaSeg', onboardingPageStatus: 'Page {current} sur {total}', onboardingNext: 'Suivant', onboardingSkip: 'Passer',
+    onboardingDiscoverTitlePrimary: 'Trouvez le logement idéal', onboardingDiscoverTitleAccent: 'en Guinée équatoriale', onboardingDiscoverBody: 'Découvrez les meilleurs biens à louer et à vendre : appartements, villas et chambres dans les meilleurs quartiers.',
+    onboardingPropertyLoading: 'Recherche d’un logement disponible…', onboardingPropertyLoadError: 'Impossible de charger le logement', onboardingTapToRetry: 'Touchez pour réessayer', onboardingPropertyAccessibility: '{title}, logement disponible à {location}',
+    onboardingCommunityTitle: 'La confiance de\nnotre communauté', onboardingCommunitySubtitle: 'Rejoignez un réseau grandissant de personnes qui cherchent et publient des logements en Guinée équatoriale.', onboardingActiveProperties: 'BIENS\nACTIFS', onboardingPublishingOwners: 'PROPRIÉTAIRES\nACTIFS', onboardingVerifiedMembers: 'MEMBRES\nVÉRIFIÉS', onboardingActiveUsers: '+{count} utilisateurs actifs', onboardingCommunityLoading: 'Consultation de la communauté…', onboardingCommunityLoadError: 'Impossible de charger la communauté',
+    onboardingGetStartedTitle: 'Prêt à commencer\nvotre recherche ?', onboardingGetStartedBody: 'Trouvez dès aujourd’hui votre logement idéal en Guinée équatoriale.', onboardingGetStartedCta: 'Commencer', onboardingHaveAccount: 'Vous avez déjà un compte ?', onboardingIllustrationAccessibility: 'Des personnes cherchent un logement devant une maison',
     filtersTitle: 'Filtres', filtersSubtitle: 'Ajustez votre recherche avant de l’appliquer.', reset: 'Réinitialiser', showResults: 'Afficher {count} résultats', location: 'Lieu', propertyName: 'Nom', maxPrice: 'Prix maximum', availability: 'Disponibilité', category: 'Catégorie',
     loginTitle: 'Bienvenue sur CasaSeg', loginSubtitle: 'Connectez-vous pour enregistrer des logements, discuter et gérer vos contrats.', email: 'E-mail', password: 'Mot de passe', signIn: 'Se connecter', signingIn: 'Connexion…', createAccount: 'Créer un compte', forgotPassword: 'Mot de passe oublié', rememberMe: 'Se souvenir de moi', showPassword: 'Afficher le mot de passe', hidePassword: 'Masquer le mot de passe', signInWithGoogle: 'Se connecter avec Google', signInWithApple: 'Se connecter avec Apple', termsAndConditions: 'Conditions générales', privacy: 'Confidentialité', devMode: 'Mode développement', clientDemo: 'Entrer comme client démo', ownerDemo: 'Entrer comme propriétaire démo', adminDemo: 'Entrer comme administrateur démo',
     savedSubtitle: 'Vos logements favoris, synchronisés avec votre compte.', noSaved: 'Aucun logement enregistré', saveHint: 'Utilisez le cœur dans Explorer pour enregistrer un logement.',
@@ -63,6 +74,11 @@ const copy = {
     exploreEyebrow: 'EXPLORE HOMES', featuredProperties: 'Featured properties', featuredDescription: 'Verified options with photos, locations, and details ready for quick comparison.', recommended: 'Recommended', sortRating: 'Top rated', sortPriceAsc: 'Lowest price', sortPriceDesc: 'Highest price', sortNewest: 'Newest',
     properties: 'properties', sort: 'Sort', all: 'All', apartments: 'Apartments', houses: 'Houses', studios: 'Studios',
     back: 'Back', cancel: 'Cancel', continue: 'Continue', confirm: 'Confirm', retry: 'Retry', loading: 'Loading…',
+    onboardingLoadingLabel: 'Loading CasaSeg', onboardingPageStatus: 'Page {current} of {total}', onboardingNext: 'Next', onboardingSkip: 'Skip',
+    onboardingDiscoverTitlePrimary: 'Find your perfect home', onboardingDiscoverTitleAccent: 'in Equatorial Guinea', onboardingDiscoverBody: 'Discover the best properties for rent and sale. Apartments, villas, and rooms in the best locations.',
+    onboardingPropertyLoading: 'Finding an available home…', onboardingPropertyLoadError: 'We could not load the property', onboardingTapToRetry: 'Tap to try again', onboardingPropertyAccessibility: '{title}, home available in {location}',
+    onboardingCommunityTitle: 'Trusted by the\nCommunity', onboardingCommunitySubtitle: 'Join a growing network of property seekers and owners in Equatorial Guinea.', onboardingActiveProperties: 'ACTIVE\nPROPERTIES', onboardingPublishingOwners: 'OWNERS\nPUBLISHING', onboardingVerifiedMembers: 'VERIFIED\nMEMBERS', onboardingActiveUsers: '+{count} active users', onboardingCommunityLoading: 'Checking the community…', onboardingCommunityLoadError: 'We could not load the community',
+    onboardingGetStartedTitle: 'Ready to start\nsearching?', onboardingGetStartedBody: 'Find your perfect rental property in Equatorial Guinea today.', onboardingGetStartedCta: 'Get Started', onboardingHaveAccount: 'Already have an account?', onboardingIllustrationAccessibility: 'People searching for a home in front of a house',
     filtersTitle: 'Filters', filtersSubtitle: 'Adjust your search before applying it.', reset: 'Reset', showResults: 'Show {count} results', location: 'Location', propertyName: 'Name', maxPrice: 'Maximum price', availability: 'Availability', category: 'Category',
     loginTitle: 'Welcome to CasaSeg', loginSubtitle: 'Sign in to save homes, chat, and manage contracts.', email: 'Email', password: 'Password', signIn: 'Sign in', signingIn: 'Signing in…', createAccount: 'Create an account', forgotPassword: 'I forgot my password', rememberMe: 'Remember me', showPassword: 'Show password', hidePassword: 'Hide password', signInWithGoogle: 'Sign in with Google', signInWithApple: 'Sign in with Apple', termsAndConditions: 'Terms and conditions', privacy: 'Privacy', devMode: 'Development mode', clientDemo: 'Enter as demo client', ownerDemo: 'Enter as demo owner', adminDemo: 'Enter as demo administrator',
     savedSubtitle: 'Your favorite homes, synced with your account.', noSaved: 'No saved properties', saveHint: 'Use the heart in Explore to save a home.',
@@ -85,9 +101,26 @@ const copy = {
 
 export type TranslationKey = keyof (typeof copy)['es'];
 
+const supportedLocales = new Set<Locale>(['es', 'fr', 'en']);
+
+function isSupportedLocale(value: string | null): value is Locale {
+  return Boolean(value && supportedLocales.has(value as Locale));
+}
+
 export function I18nProvider({ children }: PropsWithChildren) {
-  const [locale, setLocaleState] = useState<Locale>(() => (appStorage.getItem('casaseg.locale') as Locale | null) ?? 'es');
-  const setLocale = useCallback((value: Locale) => { setLocaleState(value); appStorage.setItem('casaseg.locale', value); }, []);
+  const deviceLocales = useLocales();
+  const deviceLocale = deviceLocales
+    .map(({ languageCode }) => languageCode?.toLowerCase() ?? null)
+    .find(isSupportedLocale) ?? 'es';
+  const [localeOverride, setLocaleOverride] = useState<Locale | null>(() => {
+    const savedLocale = appStorage.getItem('casaseg.locale');
+    return isSupportedLocale(savedLocale) ? savedLocale : null;
+  });
+  const locale = localeOverride ?? deviceLocale;
+  const setLocale = useCallback((value: Locale) => {
+    setLocaleOverride(value);
+    appStorage.setItem('casaseg.locale', value);
+  }, []);
   const value = useMemo<I18nContextValue>(
     () => ({
       locale,

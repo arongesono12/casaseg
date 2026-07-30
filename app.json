@@ -52,26 +52,28 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F0EFEF",
-          "image": "./assets/images/icon.png",
-          "imageWidth": 76,
+          "backgroundColor": "#FFF8F7",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 72,
           "dark": {
-            "backgroundColor": "#0A0A0A",
-            "image": "./assets/images/icon.png"
+            "backgroundColor": "#07111F",
+            "image": "./assets/images/splash-icon.png"
           }
         }
       ],
       "expo-secure-store",
       "expo-web-browser",
       "expo-apple-authentication",
-      "expo-sqlite",
       [
-        "@stripe/stripe-react-native",
+        "expo-localization",
         {
-          "merchantIdentifier": "merchant.com.casaseg.mobile",
-          "enableGooglePay": true
+          "supportedLocales": {
+            "ios": ["es", "fr", "en"],
+            "android": ["es", "fr", "en"]
+          }
         }
       ],
+      "expo-sqlite",
       [
         "expo-notifications",
         {
