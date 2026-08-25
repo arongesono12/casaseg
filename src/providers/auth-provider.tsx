@@ -159,15 +159,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (provider === 'google' && googleStrategy === 'native') {
       const nativeResult = await getNativeGoogleAuthResult();
       if (nativeResult.type === 'cancelled') return false;
-      if (nativeResult.type === 'success') {
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: nativeResult.idToken,
-        });
-        if (error) throw error;
-        return true;
+      if (nativeResult.type === 'unsupported') {
+        throw new Error('Este cliente no incluye Google nativo. Recompila la aplicación e instala el nuevo development build.');
       }
-      throw new Error('Este cliente no incluye Google nativo. Recompila la aplicación e instala el nuevo development build.');
+      // The nonce is mandatory: Google embeds its SHA-256 hash in the ID token,
+      // and GoTrue rejects a token whose nonce claim has no counterpart here.
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: nativeResult.idToken,
+        nonce: nativeResult.nonce,
+      });
+      if (error) throw error;
+      return true;
     }
 
     if (provider === 'apple') {
@@ -255,7 +258,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const isLoading = isSessionLoading;
 
   const signOut = useCallback(async () => {
-    if (user) await revokePushDevices();
+    // Revoking push devices is best effort: a network failure or a denied RLS
+    // policy must never leave the user with a live session they asked to end.
+    if (user) await revokePushDevices().catch(() => undefined);
     if (isSupabaseConfigured) await supabase.auth.signOut();
     setDemoUser(null);
     appStorage.removeItem(DEMO_KEY);

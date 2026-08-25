@@ -1,10 +1,10 @@
 import { isExpoGo } from '@/lib/execution-environment';
-import { configureGoogleSignIn } from '@/features/auth/google-native-auth-config';
+import { configureGoogleSignIn, createGoogleSignInNonce } from '@/features/auth/google-native-auth-config';
 
 export type NativeGoogleAuthResult =
   | { type: 'unsupported' }
   | { type: 'cancelled' }
-  | { type: 'success'; idToken: string };
+  | { type: 'success'; idToken: string; nonce: string };
 
 type GoogleSignInModule = typeof import('react-native-nitro-google-signin');
 
@@ -24,7 +24,8 @@ export async function getNativeGoogleAuthResult(): Promise<NativeGoogleAuthResul
   }
 
   const { GoogleOneTapSignIn, isCancelledResponse, isSuccessResponse } = googleSignIn;
-  configureGoogleSignIn(googleSignIn);
+  const nonce = await createGoogleSignInNonce();
+  configureGoogleSignIn(googleSignIn, nonce);
   await GoogleOneTapSignIn.checkPlayServices(true);
 
   // The explicit button flow always presents Google's account chooser instead
@@ -36,5 +37,5 @@ export async function getNativeGoogleAuthResult(): Promise<NativeGoogleAuthResul
     throw new Error('Google no devolvió una credencial válida para este dispositivo Android.');
   }
 
-  return { type: 'success', idToken: response.data.idToken };
+  return { type: 'success', idToken: response.data.idToken, nonce: nonce.raw };
 }

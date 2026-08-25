@@ -65,6 +65,9 @@ function RootNavigator() {
         <Stack.Screen name="legal/privacy" />
         <Stack.Screen name="legal/help" />
         <Stack.Screen name="auth/callback" />
+        {/* Recovery links create a session, so this screen must stay reachable
+            from both sides of the authentication guard. */}
+        <Stack.Screen name="reset-password" />
 
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />

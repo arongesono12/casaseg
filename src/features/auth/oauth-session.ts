@@ -27,6 +27,12 @@ export function getOAuthCode(callbackUrl: string) {
   return code;
 }
 
+/**
+ * A single authorization code can reach the app twice: `openAuthSessionAsync`
+ * resolves with the callback URL while Android also delivers it as a deep link
+ * to `auth/callback`. PKCE codes are single-use, so concurrent callers share one
+ * in-flight exchange instead of racing for it.
+ */
 export function exchangeOAuthCode(code: string) {
   const existingExchange = codeExchanges.get(code);
   if (existingExchange) return existingExchange;
@@ -36,6 +42,9 @@ export function exchangeOAuthCode(code: string) {
   });
 
   codeExchanges.set(code, exchange);
-  void exchange.catch(() => codeExchanges.delete(code));
+  // Dropping the entry once settled keeps the map from retaining spent codes for
+  // the lifetime of the JS context. A replayed code then fails at Supabase,
+  // which is the correct authority for single-use enforcement.
+  void exchange.finally(() => codeExchanges.delete(code)).catch(() => undefined);
   return exchange;
 }

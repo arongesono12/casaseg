@@ -1,0 +1,6 @@
+# expo.web.output is "single", so the export is a client-routed SPA with one
+# index.html. Without this rewrite a cold load of /auth/callback or
+# /reset-password returns 404 and OAuth on web never completes.
+# Netlify and Cloudflare Pages read this file; on Vercel use a rewrite in
+# vercel.json, and on Firebase Hosting a "rewrites" entry, both to /index.html.
+/*    /index.html   200

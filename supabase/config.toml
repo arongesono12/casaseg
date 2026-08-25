@@ -2,12 +2,17 @@ project_id = "casaseg"
 
 [auth]
 site_url = "https://casaseg.com"
+# Keep this list in sync with Supabase Dashboard > Authentication > URL Configuration.
+# This file only configures the local stack; the hosted project is not read from here.
 additional_redirect_urls = [
-  "http://localhost:3000/auth/callback",
-  "https://casaseg.com/reset-password",
+  # Expo web dev server (Metro serves web on 8081, not 3000).
+  "http://localhost:8081/auth/callback",
+  "http://localhost:8081/reset-password",
   "https://casaseg.com/auth/callback",
+  "https://casaseg.com/reset-password",
+  # Native custom scheme, used by development, preview and store builds alike.
   "casaseg://auth/callback",
-  "exp://10.100.132.58:8081/--/auth/callback",
+  "casaseg://reset-password",
 ]
 
 [auth.mfa.totp]

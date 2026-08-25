@@ -3,9 +3,44 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 // EAS project IDs are public identifiers and must be available before EAS can
 // load environment variables or attempt to update this dynamic config.
 const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '7f3eebdd-5f27-4702-8fcc-10cce996380b';
-const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim();
+
+// Local runs keep working with a partial .env so the offline demo mode stays
+// usable. Remote builds must fail loudly instead: a missing EXPO_PUBLIC_* value
+// is inlined as `undefined` and produces an installable app whose Supabase and
+// Google clients are silently dead.
+const isRemoteBuild = process.env.EAS_BUILD === 'true';
+const buildPlatform = process.env.EAS_BUILD_PLATFORM;
+
+function requireBuildEnv(name: string, hint: string) {
+  const value = process.env[name]?.trim();
+  if (value) return value;
+  throw new Error(
+    `[casaseg] Falta ${name} en el build de EAS. ${hint}\n` +
+      `Créala con: eas env:create --name ${name} --environment <development|preview|production> --visibility plaintext`,
+  );
+}
+
+if (isRemoteBuild) {
+  requireBuildEnv('EXPO_PUBLIC_SUPABASE_URL', 'Sin ella el cliente apunta a un host inexistente.');
+  requireBuildEnv('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'Sin ella no hay sesión posible.');
+  requireBuildEnv('EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID', 'Debe ser el client ID de tipo "Web application".');
+  requireBuildEnv('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY', 'Sin ella el mapa nativo se renderiza en blanco.');
+}
+
 const googleIosClientSuffix = '.apps.googleusercontent.com';
-const googleIosUrlScheme = googleIosClientId?.endsWith(googleIosClientSuffix)
+const googleIosClientId =
+  isRemoteBuild && buildPlatform === 'ios'
+    ? requireBuildEnv('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID', 'Sin ella el plugin nativo de Google no registra el URL scheme y el login iOS no puede volver a la app.')
+    : process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim();
+
+if (googleIosClientId && !googleIosClientId.endsWith(googleIosClientSuffix)) {
+  throw new Error(
+    `[casaseg] EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID debe terminar en "${googleIosClientSuffix}". ` +
+      'Copia el client ID del cliente OAuth de tipo iOS en Google Cloud Console.',
+  );
+}
+
+const googleIosUrlScheme = googleIosClientId
   ? `com.googleusercontent.apps.${googleIosClientId.slice(0, -googleIosClientSuffix.length)}`
   : undefined;
 
