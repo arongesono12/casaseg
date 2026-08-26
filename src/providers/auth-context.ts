@@ -1,9 +1,11 @@
-import type { Session as SupabaseSession } from '@supabase/supabase-js';
+import type { SessionResource } from '@clerk/expo/types';
 import { createContext, useContext } from 'react';
 import type { AppUser, UserRole } from '@/types';
 
 export type AuthContextValue = {
-  session: SupabaseSession | null;
+  /** Sesión de Clerk. Ningún consumidor la usa directamente; queda expuesta
+   *  para depuración y para quien necesite el token sin llamar a Clerk. */
+  session: SessionResource | null;
   user: AppUser | null;
   role?: UserRole;
   isAuthenticated: boolean;

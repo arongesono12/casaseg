@@ -53,6 +53,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   plugins: [
     ...(config.plugins ?? []),
+    // Registra las vistas nativas de Clerk (AuthView / UserProfileView).
+    // Sube el deployment target de iOS a 17.0 y ajusta el gradle de Android,
+    // así que exige regenerar el nativo: npx expo prebuild --clean
+    '@clerk/expo',
     ...(googleIosUrlScheme
       ? [['react-native-nitro-google-signin', { iosUrlScheme: googleIosUrlScheme }] as [string, { iosUrlScheme: string }]]
       : []),

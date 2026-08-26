@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@capacitor/core": "^8.4.1",
+    "@clerk/expo": "^4.5.4",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/ui": "~0.2.0-beta.9",
     "@expo/vector-icons": "^15.0.3",
@@ -93,7 +94,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "migrate:clerk": "node scripts/migrate-users-to-clerk.mjs"
   },
   "expo": {
     "doctor": {

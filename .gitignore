@@ -45,3 +45,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Informe de migración a Clerk (contiene correos)
+scripts/.clerk-migration-report*.jsonl

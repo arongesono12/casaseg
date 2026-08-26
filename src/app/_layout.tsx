@@ -1,3 +1,5 @@
+import { ClerkProvider } from '@clerk/expo';
+import { tokenCache } from '@clerk/expo/token-cache';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-url-polyfill/auto';
 import 'expo-sqlite/localStorage/install';
@@ -24,6 +26,12 @@ import { I18nProvider } from '@/providers/i18n-provider';
 import { NotificationProvider } from '@/providers/notification-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { useAppTheme } from '@/providers/theme-context';
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+
+if (!publishableKey) {
+  throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Add your key to .env.\nRun: 1) clerk auth login  2) clerk link  3) clerk env pull — then restart the dev server.");
+}
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -68,6 +76,8 @@ function RootNavigator() {
         {/* Recovery links create a session, so this screen must stay reachable
             from both sides of the authentication guard. */}
         <Stack.Screen name="reset-password" />
+        {/* Verificación de la integración con Clerk: independiente del guard de Supabase. */}
+        <Stack.Screen name="clerk-demo" />
 
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />
@@ -103,23 +113,25 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider>
-        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: 1000 * 60 * 60 * 24 }}>
-          <ThemeProvider>
-            <I18nProvider>
-              <AuthProvider>
-                <NotificationProvider>
-                  <BottomSheetModalProvider>
-                    <RootNavigator />
-                  </BottomSheetModalProvider>
-                </NotificationProvider>
-              </AuthProvider>
-            </I18nProvider>
-          </ThemeProvider>
-        </PersistQueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      <GestureHandlerRootView style={styles.root}>
+        <SafeAreaProvider>
+          <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: 1000 * 60 * 60 * 24 }}>
+            <ThemeProvider>
+              <I18nProvider>
+                <AuthProvider>
+                  <NotificationProvider>
+                    <BottomSheetModalProvider>
+                      <RootNavigator />
+                    </BottomSheetModalProvider>
+                  </NotificationProvider>
+                </AuthProvider>
+              </I18nProvider>
+            </ThemeProvider>
+          </PersistQueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ClerkProvider>
   );
 }
 

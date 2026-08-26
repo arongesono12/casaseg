@@ -1,15 +1,7 @@
-import type { Session as SupabaseSession } from '@supabase/supabase-js';
-import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
-import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform } from 'react-native';
-import { getNativeAppleAuthResult } from '@/features/auth/apple-native-auth';
-import { getGoogleAuthStrategy } from '@/features/auth/google-auth-strategy';
-import { getNativeGoogleAuthResult } from '@/features/auth/google-native-auth';
-import { createOAuthRedirectUrl, exchangeOAuthCode, getOAuthCode } from '@/features/auth/oauth-session';
+import { useAuth as useClerkAuth, useSession, useUser } from '@clerk/expo';
+import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { parseUserRole } from '@/lib/access-control';
-import { isExpoGo } from '@/lib/execution-environment';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { revokePushDevices } from '@/features/notifications/push-notifications';
 import { appStorage } from '@/lib/local-storage';
 import type { AppUser, UserRole } from '@/types';
@@ -17,259 +9,141 @@ import { AuthContext, type AuthContextValue } from '@/providers/auth-context';
 
 const DEMO_KEY = 'casaseg.demo-session';
 
-function metadataAvatar(metadata: Record<string, unknown>) {
-  const value = metadata.avatar_url ?? metadata.picture ?? metadata.avatar;
-  return typeof value === 'string' && value.trim() ? value : undefined;
+/**
+ * Los flujos de credenciales viven ahora dentro de <AuthView /> (UI nativa de
+ * Clerk) en la pantalla de login. Estos métodos permanecen en el contrato para
+ * no romper a los consumidores, pero fallan de forma explícita si alguien los
+ * invoca desde una pantalla heredada.
+ */
+function gestionadoPorClerk(accion: string): never {
+  throw new Error(
+    `${accion} se gestiona dentro de la pantalla de Clerk. ` +
+    'Redirige al usuario a /(auth)/login en lugar de llamar a este método.',
+  );
 }
 
-function mapUser(session: SupabaseSession | null, role?: UserRole): AppUser | null {
-  if (!session?.user) return null;
-  const metadata = session.user.user_metadata;
+/**
+ * El rol nunca puede venir del cliente. `publicMetadata` solo se escribe desde
+ * el backend de Clerk (la migración lo rellenó desde public.users), así que es
+ * la única fuente aceptable aquí.
+ */
+function rolDesdeMetadata(metadata: unknown): { role: UserRole; error: string | null } {
+  const bruto = (metadata as Record<string, unknown> | undefined)?.role;
+  if (bruto === undefined || bruto === null || bruto === '') {
+    // Cuenta recién creada desde AuthView: aún sin rol asignado en el backend.
+    return { role: 'client', error: null };
+  }
+
+  const role = parseUserRole(bruto);
+  if (!role) {
+    return { role: 'client', error: 'El perfil contiene un rol no reconocido.' };
+  }
+
+  return { role, error: null };
+}
+
+function mapearUsuario(clerkUser: NonNullable<ReturnType<typeof useUser>['user']>, role: UserRole): AppUser {
+  const email = clerkUser.primaryEmailAddress?.emailAddress ?? '';
+  const metadata = clerkUser.publicMetadata as Record<string, unknown> | undefined;
+  const avatarMigrado = typeof metadata?.avatar === 'string' && metadata.avatar.trim() ? metadata.avatar : undefined;
+
   return {
-    id: session.user.id,
-    email: session.user.email ?? '',
-    name: String(metadata.name ?? metadata.full_name ?? session.user.email?.split('@')[0] ?? 'Usuario'),
-    // user_metadata can be edited by the account owner. Only app_metadata,
-    // public.users or a protected RPC may grant a privileged role.
-    role: role ?? parseUserRole(session.user.app_metadata.role) ?? 'client',
-    avatar: metadataAvatar(metadata),
+    id: clerkUser.id,
+    email,
+    name: clerkUser.fullName?.trim() || clerkUser.firstName?.trim() || email.split('@')[0] || 'Usuario',
+    role,
+    avatar: avatarMigrado ?? (clerkUser.hasImage ? clerkUser.imageUrl : undefined),
   };
 }
 
-async function fetchProtectedRole() {
-  const { data, error } = await supabase.rpc('get_user_role');
-  if (error) throw error;
-  return parseUserRole(data);
-}
-
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [session, setSession] = useState<SupabaseSession | null>(null);
-  const [profileUser, setProfileUser] = useState<AppUser | null>(null);
-  const [demoUser, setDemoUser] = useState<AppUser | null>(() => { const stored = !isSupabaseConfigured ? appStorage.getItem(DEMO_KEY) : null; return stored ? JSON.parse(stored) as AppUser : null; });
-  const [isSessionLoading, setIsSessionLoading] = useState(isSupabaseConfigured);
-  const [isRoleLoading, setIsRoleLoading] = useState(false);
-  const [roleError, setRoleError] = useState<string | null>(null);
+  const { isLoaded: authCargado, isSignedIn, signOut: clerkSignOut } = useClerkAuth();
+  const { session } = useSession();
+  const { user: clerkUser } = useUser();
 
-  useEffect(() => {
-    if (!isSupabaseConfigured) {
-      return;
-    }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    }).finally(() => setIsSessionLoading(false));
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setProfileUser(null);
-      setSession(nextSession);
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
+  const [demoUser, setDemoUser] = useState<AppUser | null>(() => {
+    const stored = !isSupabaseConfigured ? appStorage.getItem(DEMO_KEY) : null;
+    return stored ? JSON.parse(stored) as AppUser : null;
+  });
 
-  useEffect(() => {
-    if (!session?.user || !isSupabaseConfigured) {
-      setProfileUser(null);
-      setIsRoleLoading(false);
-      setRoleError(null);
-      return;
-    }
-    let active = true;
-    setProfileUser(null);
-    setIsRoleLoading(true);
-    setRoleError(null);
-    void (async () => {
-      try {
-        const { data, error } = await supabase.from('users').select('id,name,email,role,avatar').eq('id', session.user.id).maybeSingle();
-        if (!active) return;
+  const { role: rolClerk, error: roleError } = useMemo(
+    () => (clerkUser ? rolDesdeMetadata(clerkUser.publicMetadata) : { role: 'client' as UserRole, error: null }),
+    [clerkUser],
+  );
 
-        if (error || !data) {
-          const protectedRole = await fetchProtectedRole();
-          if (!active) return;
-          if (!protectedRole) {
-            throw error ?? new Error('La cuenta autenticada no tiene un rol asignado.');
-          }
-          setProfileUser(mapUser(session, protectedRole));
-          return;
-        }
+  const user = useMemo(
+    () => demoUser ?? (clerkUser ? mapearUsuario(clerkUser, rolClerk) : null),
+    [clerkUser, demoUser, rolClerk],
+  );
 
-        const protectedRole = parseUserRole(data.role);
-        if (!protectedRole) throw new Error('El perfil contiene un rol no reconocido.');
-        const oauthAvatar = metadataAvatar(session.user.user_metadata);
-        const avatar = data.avatar ? String(data.avatar) : oauthAvatar;
-        setProfileUser({ id: String(data.id), name: String(data.name ?? session.user.user_metadata.name ?? 'Usuario'), email: String(data.email ?? session.user.email ?? ''), role: protectedRole, avatar });
-        if (!data.avatar && oauthAvatar) {
-          void supabase.from('users').update({ avatar: oauthAvatar }).eq('id', session.user.id);
-        }
-      } catch (error) {
-        if (!active) return;
-        setProfileUser(null);
-        setRoleError(error instanceof Error ? error.message : 'No se pudo verificar el rol de esta cuenta.');
-      } finally {
-        if (active) setIsRoleLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [session]);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-  }, []);
-
-  const signUp = useCallback(async ({ email, password, name, role }: { email: string; password: string; name: string; role: 'client' | 'owner' }) => {
-    if (!isSupabaseConfigured) throw new Error('El registro requiere una conexión válida con CasaSeg.');
-    const normalizedEmail = email.trim().toLowerCase();
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: { data: { name: name.trim(), role } },
-    });
-    if (error) throw error;
-    if (!data.user) throw new Error('No se pudo crear la cuenta. Inténtalo de nuevo.');
-    if (data.user.identities && data.user.identities.length === 0) {
-      throw new Error('No se pudo completar el registro. Si ya tienes una cuenta, inicia sesión o recupera tu contraseña.');
-    }
-  }, []);
-
-  const verifyOtp = useCallback(async (email: string, token: string) => {
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'email',
-    });
-    if (error) throw error;
-    if (!data.user || !data.session) {
-      throw new Error('El código no pudo crear una sesión verificada. Solicita uno nuevo.');
-    }
-  }, []);
-
-  const resendSignupOtp = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email.trim().toLowerCase(),
-    });
-    if (error) throw error;
-  }, []);
-
-  const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
-    const googleStrategy = getGoogleAuthStrategy(Platform.OS, isExpoGo);
-
-    if (provider === 'google' && googleStrategy === 'unavailable') {
-      throw new Error('Google nativo no está disponible dentro de Expo Go. Abre CasaSeg con el development build para iniciar sesión sin salir de la app.');
-    }
-
-    if (provider === 'google' && googleStrategy === 'native') {
-      const nativeResult = await getNativeGoogleAuthResult();
-      if (nativeResult.type === 'cancelled') return false;
-      if (nativeResult.type === 'unsupported') {
-        throw new Error('Este cliente no incluye Google nativo. Recompila la aplicación e instala el nuevo development build.');
-      }
-      // The nonce is mandatory: Google embeds its SHA-256 hash in the ID token,
-      // and GoTrue rejects a token whose nonce claim has no counterpart here.
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: nativeResult.idToken,
-        nonce: nativeResult.nonce,
-      });
-      if (error) throw error;
-      return true;
-    }
-
-    if (provider === 'apple') {
-      const nativeResult = await getNativeAppleAuthResult();
-      if (nativeResult.type === 'cancelled') return false;
-      if (nativeResult.type === 'success') {
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'apple',
-          token: nativeResult.identityToken,
-        });
-        if (error) throw error;
-        return true;
-      }
-    }
-
-    const redirectTo = createOAuthRedirectUrl();
-    const queryParams = provider === 'google' ? { prompt: 'select_account' } : undefined;
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo, skipBrowserRedirect: true, queryParams },
-    });
-    if (error) throw error;
-    if (!data.url) throw new Error('No se pudo iniciar OAuth');
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, {
-      preferEphemeralSession: true,
-      showInRecents: false,
-    });
-    if (result.type !== 'success') return false;
-    await WebBrowser.dismissBrowser().catch(() => undefined);
-    const code = getOAuthCode(result.url);
-    await exchangeOAuthCode(code);
-    return true;
-  }, []);
-
-  const requestPasswordReset = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: Linking.createURL('reset-password') });
-    if (error) throw error;
-  }, []);
+  const role = demoUser?.role ?? (clerkUser ? rolClerk : undefined);
 
   const updateProfileName = useCallback(async (name: string) => {
     const nextName = name.trim();
     if (nextName.length < 2) throw new Error('Introduce un nombre válido.');
 
-    if (!isSupabaseConfigured) {
-      if (!demoUser) throw new Error('No hay una sesión activa.');
+    if (demoUser) {
       const nextDemoUser = { ...demoUser, name: nextName };
       setDemoUser(nextDemoUser);
       appStorage.setItem(DEMO_KEY, JSON.stringify(nextDemoUser));
       return;
     }
 
-    if (!session?.user) throw new Error('No hay una sesión activa.');
+    if (!clerkUser) throw new Error('No hay una sesión activa.');
 
-    const { error: profileError } = await supabase
-      .from('users')
-      .update({ name: nextName })
-      .eq('id', session.user.id);
-    if (profileError) throw profileError;
-
-    const { error: authError } = await supabase.auth.updateUser({
-      data: { ...session.user.user_metadata, name: nextName, full_name: nextName },
-    });
-    if (authError) throw authError;
-
-    setProfileUser((current) => current ? { ...current, name: nextName } : current);
-  }, [demoUser, session]);
+    const [firstName, ...resto] = nextName.split(' ');
+    await clerkUser.update({ firstName, lastName: resto.join(' ') || undefined });
+  }, [clerkUser, demoUser]);
 
   const updatePassword = useCallback(async (password: string) => {
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) throw error;
-  }, []);
+    if (!clerkUser) throw new Error('No hay una sesión activa.');
+    await clerkUser.updatePassword({ newPassword: password });
+  }, [clerkUser]);
 
   const signInDemo = useCallback(async (role: UserRole = 'client') => {
-    const next: AppUser = { id: role === 'owner' ? 'owner-elena' : `demo-${role}`, name: role === 'owner' ? 'Elena' : 'Aron', email: `${role}@casaseg.app`, role };
+    const next: AppUser = {
+      id: role === 'owner' ? 'owner-elena' : `demo-${role}`,
+      name: role === 'owner' ? 'Elena' : 'Aron',
+      email: `${role}@casaseg.app`,
+      role,
+    };
     setDemoUser(next);
     appStorage.setItem(DEMO_KEY, JSON.stringify(next));
   }, []);
 
-  // Keep a secure session identity available while the richer database profile
-  // resolves. This lets protected-route guards update without unmounting the
-  // root navigator during post-login navigation.
-  const sessionRole = parseUserRole(session?.user.app_metadata.role);
-  const role = demoUser?.role ?? profileUser?.role ?? sessionRole;
-  const user = demoUser ?? (session ? profileUser ?? mapUser(session, role) : null);
-  const isLoading = isSessionLoading;
-
   const signOut = useCallback(async () => {
-    // Revoking push devices is best effort: a network failure or a denied RLS
-    // policy must never leave the user with a live session they asked to end.
+    // Revocar los dispositivos push es best effort: un fallo de red o una
+    // política RLS denegada nunca debe dejar viva una sesión que se quiso cerrar.
     if (user) await revokePushDevices().catch(() => undefined);
-    if (isSupabaseConfigured) await supabase.auth.signOut();
+    if (isSignedIn) await clerkSignOut();
     setDemoUser(null);
     appStorage.removeItem(DEMO_KEY);
-  }, [user]);
+  }, [clerkSignOut, isSignedIn, user]);
+
+  const signIn = useCallback(async (_email: string, _password: string) => gestionadoPorClerk('El inicio de sesión'), []);
+  const signUp = useCallback(async (_input: { email: string; password: string; name: string; role: 'client' | 'owner' }) => gestionadoPorClerk('El registro'), []);
+  const verifyOtp = useCallback(async (_email: string, _token: string) => gestionadoPorClerk('La verificación por código'), []);
+  const resendSignupOtp = useCallback(async (_email: string) => gestionadoPorClerk('El reenvío del código'), []);
+  const signInWithOAuth = useCallback(async (_provider: 'google' | 'apple'): Promise<boolean> => gestionadoPorClerk('El acceso con Google o Apple'), []);
+  const requestPasswordReset = useCallback(async (_email: string) => gestionadoPorClerk('La recuperación de contraseña'), []);
 
   const value = useMemo<AuthContextValue>(() => ({
-    session, user, role, isAuthenticated: Boolean(demoUser || session), isLoading, isRoleLoading, roleError,
-    signIn, signUp, verifyOtp, resendSignupOtp, signInWithOAuth, requestPasswordReset, updateProfileName, updatePassword, signInDemo, signOut,
-  }), [demoUser, isLoading, isRoleLoading, requestPasswordReset, resendSignupOtp, role, roleError, session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword, updateProfileName, user, verifyOtp]);
+    session: session ?? null,
+    user,
+    role,
+    isAuthenticated: Boolean(demoUser || isSignedIn),
+    isLoading: !authCargado,
+    // El rol viaja dentro del usuario de Clerk, así que no hay una segunda
+    // carga que esperar como ocurría con el RPC de Supabase.
+    isRoleLoading: false,
+    roleError,
+    signIn, signUp, verifyOtp, resendSignupOtp, signInWithOAuth, requestPasswordReset,
+    updateProfileName, updatePassword, signInDemo, signOut,
+  }), [
+    authCargado, demoUser, isSignedIn, requestPasswordReset, resendSignupOtp, role, roleError,
+    session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword,
+    updateProfileName, user, verifyOtp,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
