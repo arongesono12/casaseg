@@ -18,7 +18,8 @@ export const isSupabaseConfigured = Boolean(url && publishableKey);
  *
  * Al declarar `accessToken`, supabase-js deshabilita por completo el espacio
  * `supabase.auth`: cualquier llamada a `supabase.auth.*` lanza. Todo el flujo
- * de credenciales vive en <AuthView /> (Clerk), así que no queda ninguna.
+ * de credenciales vive en las pantallas de (auth), que hablan con Clerk vía
+ * sus hooks de JavaScript, así que no queda ninguna llamada a supabase.auth.
  */
 async function tokenDeClerk() {
   try {

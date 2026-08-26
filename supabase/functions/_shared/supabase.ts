@@ -16,20 +16,26 @@ export function createUserClient(request: Request) {
 
 export async function requireOwner(request: Request) {
   const supabase = createUserClient(request);
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) throw new Error('AUTH_REQUIRED');
 
-  const { data: profile, error: roleError } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', authData.user.id)
-    .maybeSingle();
+  // Clerk emite el token, así que GoTrue no lo reconoce y auth.getUser() ya no
+  // sirve para identificar al llamante. current_profile() resuelve la identidad
+  // desde el mismo claim que usan las políticas RLS.
+  const { data, error: profileError } = await supabase.rpc('current_profile');
+  if (profileError) throw profileError;
 
-  if (roleError) throw roleError;
-  const role = String(profile?.role ?? '');
-  if (!['owner', 'admin', 'superadmin'].includes(role)) {
+  // `returns table(...)` entrega un array; cero filas significa que el token no
+  // resolvió ninguna identidad.
+  const profile = (Array.isArray(data) ? data[0] : data) as
+    | { id: string; role: string; status: string }
+    | undefined;
+
+  if (!profile) throw new Error('AUTH_REQUIRED');
+  if (profile.status !== 'active') throw new Error('AUTH_REQUIRED');
+
+  if (!['owner', 'admin', 'superadmin'].includes(profile.role)) {
     throw new Error('OWNER_REQUIRED');
   }
 
-  return { supabase, user: authData.user, role };
+  // Se conserva la forma `user.id` para no tocar a quienes ya consumen esto.
+  return { supabase, user: { id: profile.id }, role: profile.role };
 }

@@ -19,6 +19,9 @@ export default function ForgotPasswordScreen() {
     try {
       await requestPasswordReset(email);
       setMessage(t('checkEmail'));
+      // Clerk envía un código, no un enlace: hay que llevar al usuario a la
+      // pantalla donde lo introduce junto con la contraseña nueva.
+      router.push('/reset-password');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t('connectionError'));
     }

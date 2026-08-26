@@ -53,9 +53,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   plugins: [
     ...(config.plugins ?? []),
-    // Registra las vistas nativas de Clerk (AuthView / UserProfileView).
-    // Sube el deployment target de iOS a 17.0 y ajusta el gradle de Android,
-    // así que exige regenerar el nativo: npx expo prebuild --clean
+    // Obligatorio aunque solo usemos Clerk desde JavaScript: el autolinking de
+    // Expo compila igualmente su módulo nativo (@clerk/expo trae
+    // expo-module.config.json), y sin este plugin falta la exclusión de
+    // 'META-INF/versions/9/OSGI-INF/MANIFEST.MF' que okhttp y jspecify duplican,
+    // lo que rompe :app:mergeDebugJavaResource.
     '@clerk/expo',
     ...(googleIosUrlScheme
       ? [['react-native-nitro-google-signin', { iosUrlScheme: googleIosUrlScheme }] as [string, { iosUrlScheme: string }]]

@@ -1,4 +1,5 @@
-import { useAuth as useClerkAuth, useSession, useUser } from '@clerk/expo';
+import { useAuth as useClerkAuth, useSession, useSignIn, useSignUp, useSSO, useUser } from '@clerk/expo';
+import * as Linking from 'expo-linking';
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { parseUserRole } from '@/lib/access-control';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -10,16 +11,19 @@ import { AuthContext, type AuthContextValue } from '@/providers/auth-context';
 const DEMO_KEY = 'casaseg.demo-session';
 
 /**
- * Los flujos de credenciales viven ahora dentro de <AuthView /> (UI nativa de
- * Clerk) en la pantalla de login. Estos métodos permanecen en el contrato para
- * no romper a los consumidores, pero fallan de forma explícita si alguien los
- * invoca desde una pantalla heredada.
+ * Los métodos del API `Future` de Clerk devuelven `{ error }` en vez de lanzar.
+ * Las pantallas esperan excepciones, así que traducimos aquí.
  */
-function gestionadoPorClerk(accion: string): never {
-  throw new Error(
-    `${accion} se gestiona dentro de la pantalla de Clerk. ` +
-    'Redirige al usuario a /(auth)/login en lugar de llamar a este método.',
-  );
+function lanzarSiFalla(resultado: { error: unknown }, respaldo: string) {
+  const error = resultado.error;
+  if (!error) return;
+
+  if (error instanceof Error) {
+    const largo = (error as { longMessage?: string }).longMessage;
+    throw new Error(largo ?? error.message ?? respaldo);
+  }
+
+  throw new Error(respaldo);
 }
 
 /**
@@ -30,7 +34,7 @@ function gestionadoPorClerk(accion: string): never {
 function rolDesdeMetadata(metadata: unknown): { role: UserRole; error: string | null } {
   const bruto = (metadata as Record<string, unknown> | undefined)?.role;
   if (bruto === undefined || bruto === null || bruto === '') {
-    // Cuenta recién creada desde AuthView: aún sin rol asignado en el backend.
+    // Cuenta recién registrada: el webhook aún no le ha asignado rol.
     return { role: 'client', error: null };
   }
 
@@ -60,6 +64,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const { isLoaded: authCargado, isSignedIn, signOut: clerkSignOut } = useClerkAuth();
   const { session } = useSession();
   const { user: clerkUser } = useUser();
+  const { signIn: clerkSignIn } = useSignIn();
+  const { signUp: clerkSignUp } = useSignUp();
+  const { startSSOFlow } = useSSO();
 
   const [demoUser, setDemoUser] = useState<AppUser | null>(() => {
     const stored = !isSupabaseConfigured ? appStorage.getItem(DEMO_KEY) : null;
@@ -120,12 +127,95 @@ export function AuthProvider({ children }: PropsWithChildren) {
     appStorage.removeItem(DEMO_KEY);
   }, [clerkSignOut, isSignedIn, user]);
 
-  const signIn = useCallback(async (_email: string, _password: string) => gestionadoPorClerk('El inicio de sesión'), []);
-  const signUp = useCallback(async (_input: { email: string; password: string; name: string; role: 'client' | 'owner' }) => gestionadoPorClerk('El registro'), []);
-  const verifyOtp = useCallback(async (_email: string, _token: string) => gestionadoPorClerk('La verificación por código'), []);
-  const resendSignupOtp = useCallback(async (_email: string) => gestionadoPorClerk('El reenvío del código'), []);
-  const signInWithOAuth = useCallback(async (_provider: 'google' | 'apple'): Promise<boolean> => gestionadoPorClerk('El acceso con Google o Apple'), []);
-  const requestPasswordReset = useCallback(async (_email: string) => gestionadoPorClerk('La recuperación de contraseña'), []);
+  const signIn = useCallback(async (email: string, password: string) => {
+    if (!clerkSignIn) throw new Error('El servicio de acceso todavía se está iniciando.');
+
+    lanzarSiFalla(
+      await clerkSignIn.password({ identifier: email.trim().toLowerCase(), password }),
+      'No se pudo iniciar sesión.',
+    );
+
+    if (clerkSignIn.status !== 'complete') {
+      throw new Error('Se requieren pasos adicionales para completar el acceso.');
+    }
+
+    lanzarSiFalla(await clerkSignIn.finalize(), 'No se pudo abrir la sesión.');
+  }, [clerkSignIn]);
+
+  const signUp = useCallback(async ({ email, password, name, role }: { email: string; password: string; name: string; role: 'client' | 'owner' }) => {
+    if (!clerkSignUp) throw new Error('El servicio de registro todavía se está iniciando.');
+
+    const nombre = name.trim();
+    const [firstName, ...resto] = nombre.split(' ');
+
+    lanzarSiFalla(await clerkSignUp.password({
+      emailAddress: email.trim().toLowerCase(),
+      password,
+      firstName,
+      lastName: resto.join(' ') || undefined,
+      // unsafeMetadata lo escribe el cliente, así que NUNCA puede otorgar un
+      // rol. Solo deja constancia de lo que la persona pidió; el webhook crea
+      // la cuenta como `client` y, si pidió `owner`, abre la solicitud.
+      unsafeMetadata: { name: nombre, requestedRole: role },
+    }), 'No se pudo crear la cuenta.');
+
+    // Si la instancia no exige verificar el correo, la cuenta ya está lista.
+    if (clerkSignUp.status === 'complete') {
+      lanzarSiFalla(await clerkSignUp.finalize(), 'No se pudo abrir la sesión.');
+      return;
+    }
+
+    lanzarSiFalla(await clerkSignUp.verifications.sendEmailCode(), 'No se pudo enviar el código.');
+  }, [clerkSignUp]);
+
+  const verifyOtp = useCallback(async (_email: string, token: string) => {
+    if (!clerkSignUp) throw new Error('El registro expiró. Vuelve a crear la cuenta.');
+
+    lanzarSiFalla(
+      await clerkSignUp.verifications.verifyEmailCode({ code: token.trim() }),
+      'El código no es válido.',
+    );
+
+    if (clerkSignUp.status !== 'complete') {
+      throw new Error('La verificación no se completó. Solicita un código nuevo.');
+    }
+
+    lanzarSiFalla(await clerkSignUp.finalize(), 'No se pudo abrir la sesión.');
+  }, [clerkSignUp]);
+
+  const resendSignupOtp = useCallback(async (_email: string) => {
+    if (!clerkSignUp) throw new Error('El registro expiró. Vuelve a crear la cuenta.');
+    lanzarSiFalla(await clerkSignUp.verifications.sendEmailCode(), 'No se pudo reenviar el código.');
+  }, [clerkSignUp]);
+
+  const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
+    // startSSOFlow abre el navegador del sistema vía expo-web-browser, así que
+    // funciona igual en Expo Go que en un development build.
+    const { createdSessionId, setActive } = await startSSOFlow({
+      strategy: provider === 'google' ? 'oauth_google' : 'oauth_apple',
+      redirectUrl: Linking.createURL('/'),
+    });
+
+    // Sin sesión creada el usuario canceló: no es un error que mostrar.
+    if (!createdSessionId) return false;
+
+    await setActive?.({ session: createdSessionId });
+    return true;
+  }, [startSSOFlow]);
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    if (!clerkSignIn) throw new Error('El servicio de acceso todavía se está iniciando.');
+
+    lanzarSiFalla(
+      await clerkSignIn.create({ identifier: email.trim().toLowerCase() }),
+      'No se pudo encontrar esa cuenta.',
+    );
+
+    lanzarSiFalla(
+      await clerkSignIn.resetPasswordEmailCode.sendCode(),
+      'No se pudo enviar el código de recuperación.',
+    );
+  }, [clerkSignIn]);
 
   const value = useMemo<AuthContextValue>(() => ({
     session: session ?? null,
