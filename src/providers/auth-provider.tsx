@@ -27,6 +27,62 @@ function lanzarSiFalla(resultado: { error: unknown }, respaldo: string) {
 }
 
 /**
+ * Clerk no devuelve `complete` cuando el acceso necesita otro paso. Antes todos
+ * esos casos caian en un mismo mensaje sin salida ("Se requieren pasos
+ * adicionales"), que no dice ni que pasa ni que hacer. Cada estado tiene una
+ * causa concreta y una accion distinta.
+ */
+export class AccesoPendienteError extends Error {
+  constructor(readonly estado: string, mensaje: string, readonly accion: 'restablecer' | 'oauth' | 'codigo' | 'ninguna') {
+    super(mensaje);
+    this.name = 'AccesoPendienteError';
+  }
+}
+
+function accesoPendiente(estado: string | null | undefined): AccesoPendienteError {
+  switch (estado) {
+    case 'needs_new_password':
+      // Tipico de las cuentas migradas desde Supabase: el hash no viaja, asi
+      // que Clerk exige establecer contrasena nueva antes del primer acceso.
+      return new AccesoPendienteError(
+        'needs_new_password',
+        'Esta cuenta necesita una contraseña nueva antes de entrar. Te enviamos un código para crearla.',
+        'restablecer',
+      );
+
+    case 'needs_first_factor':
+      // La contraseña no es un metodo valido para esta cuenta: casi siempre
+      // porque se creo con Apple o Google y nunca tuvo contrasena.
+      return new AccesoPendienteError(
+        'needs_first_factor',
+        'Esta cuenta no tiene contraseña. Entra con Apple o Google, o usa "¿Olvidaste tu contraseña?" para crear una.',
+        'oauth',
+      );
+
+    case 'needs_second_factor':
+      return new AccesoPendienteError(
+        'needs_second_factor',
+        'Esta cuenta tiene verificación en dos pasos activada. Introduce el código de tu app de autenticación.',
+        'codigo',
+      );
+
+    case 'needs_identifier':
+      return new AccesoPendienteError(
+        'needs_identifier',
+        'No reconocimos ese correo. Comprueba que esté bien escrito.',
+        'ninguna',
+      );
+
+    default:
+      return new AccesoPendienteError(
+        estado ?? 'desconocido',
+        `El acceso quedó a medias (estado: ${estado ?? 'desconocido'}). Vuelve a intentarlo o restablece la contraseña.`,
+        'ninguna',
+      );
+  }
+}
+
+/**
  * El rol nunca puede venir del cliente. `publicMetadata` solo se escribe desde
  * el backend de Clerk (la migración lo rellenó desde public.users), así que es
  * la única fuente aceptable aquí.
@@ -136,7 +192,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     );
 
     if (clerkSignIn.status !== 'complete') {
-      throw new Error('Se requieren pasos adicionales para completar el acceso.');
+      throw accesoPendiente(clerkSignIn.status);
     }
 
     lanzarSiFalla(await clerkSignIn.finalize(), 'No se pudo abrir la sesión.');

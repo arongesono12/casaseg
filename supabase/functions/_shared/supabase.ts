@@ -14,7 +14,13 @@ export function createUserClient(request: Request) {
   });
 }
 
-export async function requireOwner(request: Request) {
+/**
+ * Resuelve la identidad del llamante sin exigir un rol concreto. Toda función
+ * que actúe en nombre de un inquilino (solicitar una visita, pagar, firmar)
+ * entra por aquí; `requireOwner` se reserva para lo que solo puede hacer quien
+ * publica vivienda.
+ */
+export async function requireUser(request: Request) {
   const supabase = createUserClient(request);
 
   // Clerk emite el token, así que GoTrue no lo reconoce y auth.getUser() ya no
@@ -32,10 +38,16 @@ export async function requireOwner(request: Request) {
   if (!profile) throw new Error('AUTH_REQUIRED');
   if (profile.status !== 'active') throw new Error('AUTH_REQUIRED');
 
-  if (!['owner', 'admin', 'superadmin'].includes(profile.role)) {
+  // Se conserva la forma `user.id` para no tocar a quienes ya consumen esto.
+  return { supabase, user: { id: profile.id }, role: profile.role };
+}
+
+export async function requireOwner(request: Request) {
+  const session = await requireUser(request);
+
+  if (!['owner', 'admin', 'superadmin'].includes(session.role)) {
     throw new Error('OWNER_REQUIRED');
   }
 
-  // Se conserva la forma `user.id` para no tocar a quienes ya consumen esto.
-  return { supabase, user: { id: profile.id }, role: profile.role };
+  return session;
 }

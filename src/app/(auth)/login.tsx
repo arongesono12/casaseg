@@ -16,11 +16,20 @@ import { ArrowLeft, Check, Eye, EyeOff } from '@/components/ui/icons';
 import { colors, touchTarget } from '@/constants/theme';
 import { loginSchema } from '@/features/auth/auth.schemas';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { AccesoPendienteError } from '@/providers/auth-provider';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 type LoginValues = z.infer<typeof loginSchema>;
+
+// Se puede llegar aquí desde una pantalla pública o por enlace directo. Sin
+// historial no hay a dónde volver, así que caemos a la pestaña de exploración.
+// `router` es el singleton de expo-router, así que esto no depende del render.
+function volver() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/(tabs)/explore');
+}
 
 export default function LoginScreen() {
   const auth = useAuth();
@@ -28,6 +37,7 @@ export default function LoginScreen() {
   const { t } = useI18n();
   const [oauthProvider, setOauthProvider] = useState<'google' | 'apple' | null>(null);
   const [submitError, setSubmitError] = useState('');
+  const [submitAccion, setSubmitAccion] = useState<'restablecer' | 'oauth' | 'codigo' | 'ninguna'>('ninguna');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const passwordRef = useRef<TextInput>(null);
@@ -42,12 +52,15 @@ export default function LoginScreen() {
     try {
       Keyboard.dismiss();
       setSubmitError('');
+      setSubmitAccion('ninguna');
       await auth.signIn(values.email, values.password);
       if (Platform.OS !== 'web') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       router.replace('/(tabs)/explore');
     } catch (error) {
+      // Un acceso a medias no es un fallo: trae el paso que falta y como darlo.
+      if (error instanceof AccesoPendienteError) setSubmitAccion(error.accion);
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
     }
   });
@@ -69,13 +82,6 @@ export default function LoginScreen() {
   };
 
   const oauthDisabled = isSubmitting || oauthProvider !== null;
-
-  // Se puede llegar aquí desde una pantalla pública o por enlace directo. Sin
-  // historial no hay a dónde volver, así que caemos a la pestaña de exploración.
-  const volver = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/explore');
-  };
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.safe, { backgroundColor: palette.background }]}>
@@ -179,7 +185,22 @@ export default function LoginScreen() {
             <Pressable accessibilityRole="link" onPress={() => router.push('/(auth)/forgot-password')} style={styles.inlineTarget}><Text style={[styles.forgotLink, { color: colors.brandDark }]}>{t('forgotPassword')}</Text></Pressable>
           </View>
 
-          {submitError && <Text accessibilityRole="alert" style={styles.error}>{submitError}</Text>}
+          {submitError ? (
+            <View style={styles.errorBlock}>
+              <Text accessibilityRole="alert" style={styles.error}>{submitError}</Text>
+              {submitAccion === 'restablecer' || submitAccion === 'oauth' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push('/(auth)/forgot-password')}
+                  style={styles.inlineTarget}
+                >
+                  <Text style={[styles.forgotLink, { color: colors.brandDark }]}>
+                    {submitAccion === 'restablecer' ? 'Crear contraseña nueva' : 'Crear una contraseña para esta cuenta'}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
           <NativeActionButton
             disabled={isSubmitting}
             label={isSubmitting ? t('signingIn') : t('signIn')}
@@ -247,5 +268,6 @@ const styles = StyleSheet.create({
   link: { minHeight: touchTarget, color: colors.brandDark, textAlign: 'center', textAlignVertical: 'center', fontSize: 15, lineHeight: 20, fontWeight: '800', paddingHorizontal: 9, paddingVertical: 14 },
   legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
   legalLink: { fontSize: 13, fontWeight: '600' },
-  error: { color: colors.error, fontSize: 13 },
+  errorBlock: { gap: 2 },
+  error: { color: colors.error, fontSize: 13, lineHeight: 19 },
 });

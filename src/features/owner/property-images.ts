@@ -1,5 +1,6 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { readLocalFile } from '@/lib/read-local-file';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { DraftImage } from '@/features/owner/property-draft.store';
 
@@ -16,7 +17,7 @@ export async function uploadPropertyImages(userId: string, propertyId: string, i
   const paths: string[] = [];
   for (let index = 0; index < images.length; index += 3) {
     const batch = images.slice(index, index + 3);
-    const uploaded = await Promise.all(batch.map(async (image, batchIndex) => { const path = `${userId}/${propertyId}/${Date.now()}-${index + batchIndex}.jpg`; const body = await (await fetch(image.uri)).arrayBuffer(); const { error } = await supabase.storage.from('property-images').upload(path, body, { contentType: image.mimeType, upsert: false }); if (error) throw error; return path; }));
+    const uploaded = await Promise.all(batch.map(async (image, batchIndex) => { const path = `${userId}/${propertyId}/${Date.now()}-${index + batchIndex}.jpg`; const body = await readLocalFile(image.uri); const { error } = await supabase.storage.from('property-images').upload(path, body, { contentType: image.mimeType, upsert: false }); if (error) throw error; return path; }));
     paths.push(...uploaded); onProgress(paths.length / images.length);
   }
   return paths;

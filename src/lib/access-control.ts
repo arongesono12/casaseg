@@ -11,9 +11,6 @@ export const isOwnerRole = (role?: UserRole) => role === 'owner';
 
 export const isAdminRole = (role?: UserRole) => role === 'admin' || role === 'superadmin';
 
-// Compatibility alias for callers that still use the previous helper name.
-export const isWebAdminRole = isAdminRole;
-
 export const canAccessOwnerPanel = (role?: UserRole) => isOwnerRole(role);
 
 export const canAccessAdminPanel = (role?: UserRole) => isAdminRole(role);

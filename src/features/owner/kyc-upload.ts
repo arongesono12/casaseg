@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { readLocalFile } from '@/lib/read-local-file';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export async function uploadKycDocument() {
@@ -9,7 +10,7 @@ export async function uploadKycDocument() {
   if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) throw new Error('El documento supera 10 MB.');
   const { data, error } = await supabase.functions.invoke('create-kyc-upload-url', { body: { content_type: asset.mimeType ?? 'image/jpeg', size: asset.fileSize } });
   if (error) throw error;
-  const body = await (await fetch(asset.uri)).arrayBuffer();
+  const body = await readLocalFile(asset.uri);
   const result = await supabase.storage.from('kyc-private').uploadToSignedUrl(String(data.path), String(data.token), body, { contentType: asset.mimeType ?? 'image/jpeg' });
   if (result.error) throw result.error;
   return true;

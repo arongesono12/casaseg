@@ -17,6 +17,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/theme';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { NetworkStatusBanner } from '@/components/network-status-banner';
 import { canAccessAdminPanel, canAccessOwnerPanel } from '@/lib/access-control';
 import { appStorage } from '@/lib/local-storage';
@@ -68,7 +69,6 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="property/[id]" />
         <Stack.Screen name="map" />
-        <Stack.Screen name="filters" options={{ presentation: 'modal' }} />
         <Stack.Screen name="legal/terms" />
         <Stack.Screen name="legal/privacy" />
         <Stack.Screen name="legal/help" />
@@ -76,9 +76,6 @@ function RootNavigator() {
         {/* Recovery links create a session, so this screen must stay reachable
             from both sides of the authentication guard. */}
         <Stack.Screen name="reset-password" />
-        {/* Verificación de la integración con Clerk: independiente del guard de Supabase. */}
-        <Stack.Screen name="clerk-demo" />
-
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
@@ -122,7 +119,9 @@ export default function RootLayout() {
                 <AuthProvider>
                   <NotificationProvider>
                     <BottomSheetModalProvider>
-                      <RootNavigator />
+                      <ErrorBoundary>
+                        <RootNavigator />
+                      </ErrorBoundary>
                     </BottomSheetModalProvider>
                   </NotificationProvider>
                 </AuthProvider>
