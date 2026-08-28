@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
@@ -12,7 +12,10 @@ import { useI18n } from '@/providers/i18n-context';
 export default function ForgotPasswordScreen() {
   const { requestPasswordReset } = useAuth();
   const { t } = useI18n();
-  const [email, setEmail] = useState('');
+  // El correo llega desde el login cuando el acceso fallo por falta de
+  // contrasena: reescribirlo ahi seria pedir dos veces el mismo dato.
+  const { email: emailInicial } = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(emailInicial ?? '');
   const [message, setMessage] = useState('');
 
   const submit = async () => {

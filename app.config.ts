@@ -59,9 +59,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // 'META-INF/versions/9/OSGI-INF/MANIFEST.MF' que okhttp y jspecify duplican,
     // lo que rompe :app:mergeDebugJavaResource.
     '@clerk/expo',
-    ...(googleIosUrlScheme
-      ? [['react-native-nitro-google-signin', { iosUrlScheme: googleIosUrlScheme }] as [string, { iosUrlScheme: string }]]
-      : []),
+    // Modulo nativo de Google para Clerk. Registra el URL scheme en Info.plist
+    // leyendo EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME, que se rellena mas abajo
+    // en `extra` a partir del client ID de iOS.
+    '@clerk/expo-google-signin',
   ],
   runtimeVersion: { policy: 'appVersion' },
   updates: {
@@ -103,5 +104,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     ...config.extra,
     eas: { projectId: easProjectId },
+    // useSignInWithGoogle busca EXACTAMENTE estos tres nombres en `extra` o en
+    // process.env. Se derivan de las variables que el proyecto ya define para
+    // no mantener dos juegos del mismo valor: el client ID web es el mismo que
+    // usa el flujo OAuth, y el scheme sale del client ID de iOS.
+    EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+    EXPO_PUBLIC_CLERK_GOOGLE_IOS_CLIENT_ID: googleIosClientId,
+    EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME: googleIosUrlScheme,
   },
 });

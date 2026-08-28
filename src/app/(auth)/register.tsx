@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -21,6 +21,9 @@ type AccountRole = RegisterValues['role'];
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
+  // Se llega aquí desde el login cuando ese correo no tiene cuenta: volver a
+  // pedirlo sería reclamar dos veces el mismo dato.
+  const { email: emailInicial } = useLocalSearchParams<{ email?: string }>();
   const { palette } = useAppTheme();
   const { t } = useI18n();
   const [submitError, setSubmitError] = useState('');
@@ -30,7 +33,7 @@ export default function RegisterScreen() {
   const narrow = width < 430;
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '', role: 'client' },
+    defaultValues: { name: '', email: emailInicial ?? '', password: '', role: 'client' },
   });
 
   const submit = handleSubmit(async (values) => {

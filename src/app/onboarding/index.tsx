@@ -35,7 +35,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserAvatar } from '@/components/user-avatar';
 import { CasasegLogo } from '@/components/ui/casaseg-logo';
 import { ArrowRight, Home, Layers3, UsersRound } from '@/components/ui/icons';
-import { colors, radius } from '@/constants/theme';
+import { actionGradient, colors, radius } from '@/constants/theme';
 import {
   fetchOnboardingCommunity,
   fetchOnboardingProperty,
@@ -49,17 +49,26 @@ import type { Property } from '@/types';
 
 const getStartedArtwork = require('../../../assets/images/onboarding/onboarding-get-started.png');
 
+/**
+ * La marca la lidera el azul; el teal solo acompaña. El onboarding traía además
+ * una familia coral/rosa que no pertenecía a ninguno de los dos y era la que
+ * rompía la coherencia con el resto de la app.
+ */
 const onboardingThemes = {
   light: {
-    backgroundGradient: ['#EEFCFC', '#FFFCFA', '#FFE9EC'] as const,
-    splashGradient: ['#F3FEFD', '#FFF9F8', '#FFEDEF'] as const,
-    finalGradient: ['#EFC4BF', '#F9D8D7', '#FFE9EC'] as const,
-    artworkOverlay: ['transparent', 'transparent'] as const,
+    backgroundGradient: ['#EFF6FF', '#F6F9FC', '#E1ECFC'] as const,
+    splashGradient: ['#F4F8FF', '#F8FAFC', '#E8F0FD'] as const,
+    finalGradient: ['#DCE9FB', '#E7EFFB', '#F3F7FD'] as const,
+    // La ilustración trae el rosa horneado en el PNG. El velo entra solo en la
+    // franja final (donde el dibujo ya es fondo, no personajes) y la funde con
+    // el panel, que arranca justo en ese mismo tono.
+    artworkOverlay: ['transparent', 'transparent', 'rgba(220,233,251,0.74)'] as const,
+    artworkOverlayStops: [0, 0.88, 1] as const,
     text: '#05090D',
     body: '#15191D',
     secondary: '#425466',
     brand: colors.brandDark,
-    coral: '#E55E45',
+    accent: colors.brandDark,
     surface: 'rgba(255,255,255,0.72)',
     mediaSurface: '#E8F2F3',
     border: 'rgba(12,31,43,0.22)',
@@ -73,15 +82,18 @@ const onboardingThemes = {
     retry: '#247EC7',
   },
   dark: {
-    backgroundGradient: ['#06111E', '#0B1724', '#21131C'] as const,
-    splashGradient: ['#06111E', '#0B1724', '#21131C'] as const,
-    finalGradient: ['#251722', '#1B1420', '#0B1724'] as const,
-    artworkOverlay: ['rgba(4,12,24,0.28)', 'rgba(8,15,27,0.72)'] as const,
+    backgroundGradient: ['#06111E', '#0B1724', '#0B2036'] as const,
+    splashGradient: ['#06111E', '#0B1724', '#0B2036'] as const,
+    finalGradient: ['#0D2740', '#0B1F33', '#0B1724'] as const,
+    // En oscuro el velo sí cubre toda la imagen: además de fundir, es el scrim
+    // que baja la ilustración al nivel de luz del resto de la pantalla.
+    artworkOverlay: ['rgba(4,12,24,0.28)', 'rgba(9,28,45,0.62)', 'rgba(13,39,64,0.94)'] as const,
+    artworkOverlayStops: [0, 0.7, 1] as const,
     text: '#F8FAFC',
     body: '#D6E0EA',
     secondary: '#AFC0CF',
     brand: '#67C7F3',
-    coral: '#FF826C',
+    accent: '#7DD3FC',
     surface: 'rgba(15,27,40,0.88)',
     mediaSurface: '#102233',
     border: 'rgba(255,255,255,0.16)',
@@ -294,7 +306,7 @@ function PrimaryButton({
       style={({ pressed }) => [styles.primaryButtonHitbox, pressed && styles.pressed]}
     >
       <LinearGradient
-        colors={['#2D72DE', '#2698C7']}
+        colors={actionGradient}
         end={{ x: 1, y: 0.5 }}
         start={{ x: 0, y: 0.5 }}
         style={styles.primaryButton}
@@ -459,7 +471,7 @@ function DiscoverSlide({
       <MotionBlock active={active} delay={90} distance={18} style={styles.discoverTitleBlock}>
         <Text style={[styles.discoverTitle, { color: theme.text }]}>
           {t('onboardingDiscoverTitlePrimary')}{'\n'}
-          <Text style={[styles.coralText, { color: theme.coral }]}>
+          <Text style={[styles.accentText, { color: theme.accent }]}>
             {t('onboardingDiscoverTitleAccent')}
           </Text>
         </Text>
@@ -488,7 +500,7 @@ function DiscoverSlide({
           onPress={finishOnboarding}
           style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
         >
-          <Text style={[styles.skipLabel, { color: theme.coral }]}>
+          <Text style={[styles.skipLabel, { color: theme.accent }]}>
             {t('onboardingSkip')}
           </Text>
         </Pressable>
@@ -713,6 +725,7 @@ function GetStartedSlide({
           />
           <LinearGradient
             colors={theme.artworkOverlay}
+            locations={theme.artworkOverlayStops}
             style={StyleSheet.absoluteFillObject}
           />
         </View>
@@ -730,10 +743,10 @@ function GetStartedSlide({
         ]}
       >
         <MotionBlock active={active} delay={150} distance={20}>
-          <Text style={styles.getStartedTitle}>{t('onboardingGetStartedTitle')}</Text>
+          <Text style={[styles.getStartedTitle, { color: theme.text }]}>{t('onboardingGetStartedTitle')}</Text>
         </MotionBlock>
         <MotionBlock active={active} delay={230} distance={18}>
-          <Text style={styles.getStartedBody}>{t('onboardingGetStartedBody')}</Text>
+          <Text style={[styles.getStartedBody, { color: theme.body }]}>{t('onboardingGetStartedBody')}</Text>
         </MotionBlock>
         <MotionBlock
           active={active}
@@ -963,7 +976,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 20,
-    boxShadow: '0 12px 24px rgba(38, 126, 202, 0.24)',
+    boxShadow: '0 12px 24px rgba(15, 118, 110, 0.26)',
   },
   primaryButtonLabel: { color: 'white', fontSize: 15, fontWeight: '800' },
 
@@ -976,7 +989,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.9,
   },
-  coralText: { color: '#E55E45' },
+  accentText: { color: colors.brandDark },
   discoverVisual: { marginTop: 25 },
   propertyFrame: {
     width: '100%',
@@ -1019,7 +1032,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 14,
   },
-  skipLabel: { color: '#E55E45', fontSize: 14, fontWeight: '700' },
+  skipLabel: { color: colors.brandDark, fontSize: 14, fontWeight: '700' },
 
   communityPage: { flexGrow: 1, paddingHorizontal: 22, alignItems: 'stretch' },
   communityHeading: { alignItems: 'center', marginTop: 23 },
@@ -1083,25 +1096,19 @@ const styles = StyleSheet.create({
   getStartedPage: { flexGrow: 1 },
   finalArtworkCrop: { overflow: 'hidden' },
   getStartedCopy: { paddingHorizontal: 16 },
+  // El color lo pone el tema. Sobre el panel claro el texto va oscuro y ya no
+  // necesita sombra para separarse del fondo.
   getStartedTitle: {
-    color: '#FFFFFF',
     fontSize: 31,
     lineHeight: 36,
     fontWeight: '900',
     letterSpacing: -0.8,
-    textShadowColor: 'rgba(33, 43, 53, 0.25)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
   },
   getStartedBody: {
     marginTop: 8,
     maxWidth: 310,
-    color: '#FFFFFF',
     fontSize: 15,
     lineHeight: 21,
-    textShadowColor: 'rgba(33, 43, 53, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   getStartedActions: {},
   signInButton: {

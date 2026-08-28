@@ -37,7 +37,10 @@ export default function LoginScreen() {
   const { t } = useI18n();
   const [oauthProvider, setOauthProvider] = useState<'google' | 'apple' | null>(null);
   const [submitError, setSubmitError] = useState('');
-  const [submitAccion, setSubmitAccion] = useState<'restablecer' | 'oauth' | 'codigo' | 'ninguna'>('ninguna');
+  // El tipo sale de la propia excepción: así añadir una acción nueva allí no
+  // deja esta pantalla sin actualizar en silencio.
+  const [submitAccion, setSubmitAccion] = useState<AccesoPendienteError['accion']>('ninguna');
+  const [correoIntentado, setCorreoIntentado] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const passwordRef = useRef<TextInput>(null);
@@ -60,7 +63,10 @@ export default function LoginScreen() {
       router.replace('/(tabs)/explore');
     } catch (error) {
       // Un acceso a medias no es un fallo: trae el paso que falta y como darlo.
-      if (error instanceof AccesoPendienteError) setSubmitAccion(error.accion);
+      if (error instanceof AccesoPendienteError) {
+        setSubmitAccion(error.accion);
+        setCorreoIntentado(values.email.trim().toLowerCase());
+      }
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
     }
   });
@@ -82,6 +88,16 @@ export default function LoginScreen() {
   };
 
   const oauthDisabled = isSubmitting || oauthProvider !== null;
+
+  // Cada acceso a medias tiene una salida distinta. La pantalla ofrece solo la
+  // que corresponde, con el correo ya escrito, para no pedir dos veces el dato.
+  const salida = {
+    restablecer: { ruta: '/(auth)/forgot-password' as const, etiqueta: 'Enviar código para crear contraseña' },
+    oauth: { ruta: '/(auth)/forgot-password' as const, etiqueta: 'Crear una contraseña para esta cuenta' },
+    registrarse: { ruta: '/(auth)/register' as const, etiqueta: 'Crear una cuenta con este correo' },
+    codigo: null,
+    ninguna: null,
+  }[submitAccion];
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={[styles.safe, { backgroundColor: palette.background }]}>
@@ -188,15 +204,13 @@ export default function LoginScreen() {
           {submitError ? (
             <View style={styles.errorBlock}>
               <Text accessibilityRole="alert" style={styles.error}>{submitError}</Text>
-              {submitAccion === 'restablecer' || submitAccion === 'oauth' ? (
+              {salida ? (
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => router.push('/(auth)/forgot-password')}
+                  onPress={() => router.push({ pathname: salida.ruta, params: { email: correoIntentado } })}
                   style={styles.inlineTarget}
                 >
-                  <Text style={[styles.forgotLink, { color: colors.brandDark }]}>
-                    {submitAccion === 'restablecer' ? 'Crear contraseña nueva' : 'Crear una contraseña para esta cuenta'}
-                  </Text>
+                  <Text style={[styles.forgotLink, { color: colors.brandDark }]}>{salida.etiqueta}</Text>
                 </Pressable>
               ) : null}
             </View>

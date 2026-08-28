@@ -1,0 +1,76 @@
+{
+  "runId": "casaseg-v2-20260827",
+  "fileKey": "ir3ixk7OuBZuSBTTootGrE",
+  "phase": "phase2",
+  "step": "components",
+  "status": "BLOQUEADO — cupo mensual de llamadas MCP de Figma agotado el 2026-08-27",
+  "blockers": {
+    "rateLimit": {
+      "detail": "Plan Starter + asiento View = 20 llamadas MCP/mes. Las ESCRITURAS (use_figma) tambien cuentan; no estan exentas. El cupo se agoto al intentar crear el componente Button.",
+      "resets": "mensual",
+      "workaround": "Asiento Full o Dev en plan Professional sube a 200 llamadas/dia."
+    },
+    "pageLimit": {
+      "detail": "Starter permite un maximo de 3 paginas por archivo. Por eso las pantallas y componentes se organizan con SECCIONES dentro de 3 paginas, no con una pagina por componente."
+    },
+    "variableModes": {
+      "detail": "Starter permite un solo modo por coleccion. Solo existe modo Light; el modo oscuro requeriria una pagina visual aparte."
+    }
+  },
+  "entities": {
+    "collections": {
+      "CasaSeg/Color": { "id": "VariableCollectionId:4:2", "mode": "Light", "variables": 23 },
+      "CasaSeg/Spacing": { "mode": "Base", "variables": 7 },
+      "CasaSeg/Radius": { "mode": "Base", "variables": 5 }
+    },
+    "variables": {
+      "codeSyntaxSet": true,
+      "scopesSet": true,
+      "color": [
+        "surface/canvas", "surface/default", "surface/subtle", "surface/inverse",
+        "text/primary", "text/secondary", "text/muted", "text/on-action",
+        "action/gradient-start", "action/gradient-end", "action/solid", "action/soft",
+        "accent/blue", "accent/blue-strong", "accent/blue-soft", "accent/teal",
+        "status/success", "status/warning", "status/error", "status/favorite",
+        "border/default", "border/strong", "scrim/image"
+      ],
+      "spacing": ["space/xs", "space/sm", "space/md", "space/lg", "space/xl", "space/2xl", "space/3xl"],
+      "radius": ["radius/sm", "radius/md", "radius/lg", "radius/xl", "radius/pill"]
+    },
+    "textStyles": [
+      "CasaSeg/Display", "CasaSeg/H1", "CasaSeg/H2", "CasaSeg/Card Title",
+      "CasaSeg/Body", "CasaSeg/Caption", "CasaSeg/Label"
+    ],
+    "effectStyles": [
+      "CasaSeg/Shadow/Card", "CasaSeg/Shadow/Raised",
+      "CasaSeg/Shadow/Action", "CasaSeg/Shadow/Hero"
+    ],
+    "pages": {
+      "01 Foundations": {
+        "id": "5:2",
+        "rootFrame": "5:3",
+        "size": "1240x3011",
+        "sections": ["Header", "Color", "Typography", "Spacing", "Radius", "Shadows"],
+        "validated": "screenshot 2026-08-27"
+      },
+      "02 Componentes": { "id": "0:1", "content": "vacia — reutilizada desde la Page 1 por defecto" },
+      "03 Pantallas": { "id": "7:3", "content": "vacia" }
+    },
+    "components": {}
+  },
+  "pendingValidations": [],
+  "pendingScripts": [
+    { "id": "P2.b", "file": ".codex/pending/P2.b-button.js", "desc": "Button component set (Primary/Secondary/Danger/Loading). Escrito y listo, no ejecutado." }
+  ],
+  "completedSteps": [
+    "P1.tokens-color", "P1.tokens-spacing", "P1.tokens-radius",
+    "P1.text-styles", "P1.effect-styles", "P1.code-syntax",
+    "P1.foundations-page", "P1.visual-validation", "P2.a-page-skeleton"
+  ],
+  "remainingSteps": [
+    "P2.b Button + Icon button", "P2.c Input", "P2.d Status pill + Filter chip",
+    "P2.e Property card", "P2.f Metric card + Hero + Empty state",
+    "P2.g List row + Chat bubble + Bottom nav",
+    "P3 ~40 mockups de pantalla a 390 px"
+  ]
+}

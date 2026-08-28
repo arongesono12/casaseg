@@ -20,12 +20,12 @@ type HeroProps = {
 
 export function PremiumHero({ title, description, eyebrow = 'CASASEG', icon: Icon = ShieldCheck, accessory, compact = false }: HeroProps) {
   return (
-    <LinearGradient colors={['#0B2F3A', '#0F4C5C', '#0F766E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, compact && styles.heroCompact]}>
+    <LinearGradient colors={['#0B2545', '#0F3F7A', '#1D4ED8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, compact && styles.heroCompact]}>
       <View pointerEvents="none" style={styles.heroOrbLarge} />
       <View pointerEvents="none" style={styles.heroOrbSmall} />
       <View style={styles.heroTopRow}>
         <View style={styles.eyebrowPill}>
-          <Icon color="#CCFBF1" size={15} />
+          <Icon color="#DBEAFE" size={15} />
           <Text style={styles.eyebrow}>{eyebrow}</Text>
         </View>
         {accessory}
@@ -94,7 +94,7 @@ export function PremiumEmptyState({ icon: Icon, title, description, actionLabel,
   const { palette } = useAppTheme();
   return (
     <View accessibilityLiveRegion={loading ? 'polite' : 'none'} style={[styles.emptyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <LinearGradient accessibilityLabel={loading ? title : undefined} accessibilityRole={loading ? 'progressbar' : undefined} colors={['rgba(15,118,110,0.16)', 'rgba(3,105,161,0.05)']} style={styles.emptyIcon}>
+      <LinearGradient accessibilityLabel={loading ? title : undefined} accessibilityRole={loading ? 'progressbar' : undefined} colors={['rgba(37,99,235,0.16)', 'rgba(14,116,144,0.05)']} style={styles.emptyIcon}>
         {loading ? <ActivityIndicator color={colors.brand} /> : <Icon color={colors.brand} size={32} />}
       </LinearGradient>
       <Text style={[styles.emptyTitle, { color: palette.text }]}>{title}</Text>
@@ -151,22 +151,22 @@ export function SurfaceCard({ children, style }: { children: ReactNode; style?: 
 }
 
 const styles = StyleSheet.create({
-  hero: { minHeight: 198, borderRadius: radius.hero, borderCurve: 'continuous', padding: 22, justifyContent: 'space-between', overflow: 'hidden', boxShadow: '0 16px 34px rgba(15,76,92,0.20)' },
+  hero: { minHeight: 198, borderRadius: radius.hero, borderCurve: 'continuous', padding: 22, justifyContent: 'space-between', overflow: 'hidden', boxShadow: '0 16px 34px rgba(15,45,92,0.22)' },
   heroCompact: { minHeight: 164, padding: 19 },
   heroOrbLarge: { position: 'absolute', width: 190, height: 190, borderRadius: 95, right: -65, top: -80, backgroundColor: 'rgba(255,255,255,0.08)' },
-  heroOrbSmall: { position: 'absolute', width: 80, height: 80, borderRadius: 40, right: 72, bottom: -35, backgroundColor: 'rgba(45,212,191,0.16)' },
+  heroOrbSmall: { position: 'absolute', width: 80, height: 80, borderRadius: 40, right: 72, bottom: -35, backgroundColor: 'rgba(96,165,250,0.18)' },
   heroTopRow: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   eyebrowPill: { minHeight: 30, borderRadius: radius.pill, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
-  eyebrow: { color: '#CCFBF1', fontSize: 11, fontWeight: '900', letterSpacing: 1.1 },
+  eyebrow: { color: '#DBEAFE', fontSize: 11, fontWeight: '900', letterSpacing: 1.1 },
   heroCopy: { maxWidth: 540, gap: 8 },
   heroTitle: { color: 'white', fontSize: 30, lineHeight: 35, fontWeight: '900', letterSpacing: -0.8 },
   heroTitleCompact: { fontSize: 25, lineHeight: 30 },
-  heroDescription: { color: '#CCFBF1', fontSize: 15, lineHeight: 22, fontWeight: '500' },
+  heroDescription: { color: '#DBEAFE', fontSize: 15, lineHeight: 22, fontWeight: '500' },
   buttonShell: { minHeight: 54, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden', boxShadow: '0 8px 18px rgba(37,99,235,0.18)' },
   buttonGradient: { minHeight: 54, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   secondaryButton: { minHeight: 54, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: 'none' },
   buttonPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
-  buttonFocused: { boxShadow: '0 0 0 3px rgba(20,184,166,0.38)' },
+  buttonFocused: { boxShadow: '0 0 0 3px rgba(59,130,246,0.38)' },
   buttonLabel: { color: 'white', fontSize: 15, fontWeight: '900' },
   dangerLabel: { color: colors.error },
   emptyCard: { minHeight: 300, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 28, alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 12px 30px rgba(15,23,42,0.06)' },

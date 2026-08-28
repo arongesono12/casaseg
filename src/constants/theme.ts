@@ -4,6 +4,8 @@ export const colors = {
   brand: '#2563EB',
   brandDark: '#1D4ED8',
   primary: '#3B82F6',
+  // Equivalente azul de accentSoft, para los fondos de selección y foco.
+  brandSoft: '#EFF6FF',
   accent: '#14B8A6',
   accentDark: '#0F766E',
   accentSoft: '#ECFDF5',
@@ -26,8 +28,10 @@ export const colors = {
   favorite: '#F43F5E',
 } as const;
 
-// Trust teal leads every branded action; blue remains the supporting accent.
-export const actionGradient = ['#0F766E', '#0369A1'] as const;
+// El azul abre todo gradiente de marca y es el color dominante de la interfaz.
+// El teal queda de apoyo: cierra el degradado y marca la confianza (verificado,
+// disponible, reserva segura), pero ya no lidera nada.
+export const actionGradient = ['#2563EB', '#0E7490'] as const;
 export const brandGradient = actionGradient;
 export const exploreGradient = actionGradient;
 

@@ -5,6 +5,8 @@ declare module 'bun:test' {
     toBe(expected: unknown): void;
     toContain(expected: unknown): void;
     toBeString(): void;
-    not: { toContain(expected: unknown): void };
+    toBeUndefined(): void;
+    toThrow(expected?: string | RegExp): void;
+    not: { toContain(expected: unknown): void; toThrow(expected?: string | RegExp): void };
   };
 }

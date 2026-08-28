@@ -47,7 +47,7 @@ export default function AndroidTabsLayout() {
   const { isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom, 10);
-  const activeLabelColor = resolvedMode === 'dark' ? '#5EEAD4' : colors.accentDark;
+  const activeLabelColor = resolvedMode === 'dark' ? '#93C5FD' : colors.brandDark;
   const barBackground = resolvedMode === 'dark' ? '#171A21' : '#FFFFFF';
   const barBorder = resolvedMode === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.08)';
 

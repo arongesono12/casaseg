@@ -32,7 +32,7 @@ export function FallbackFormField({ label, error, inputRef, rightAccessory, ...i
             rightAccessory ? styles.inputWithAccessory : undefined,
             {
               backgroundColor: inputProps.editable === false ? palette.subtle : palette.surface,
-              borderColor: error ? colors.error : focused ? colors.accent : palette.border,
+              borderColor: error ? colors.error : focused ? colors.brand : palette.border,
               color: inputProps.editable === false ? palette.textSecondary : palette.text,
             },
             focused && styles.focused,

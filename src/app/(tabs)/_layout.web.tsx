@@ -17,7 +17,7 @@ export default function WebTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accent,
+        tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: palette.muted,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
         tabBarHideOnKeyboard: true,
@@ -33,10 +33,10 @@ export default function WebTabsLayout() {
         sceneStyle: { backgroundColor: palette.background },
       }}
     >
-      <Tabs.Screen name="explore" options={{ title: t('homeTab'), tabBarIcon: ({ color, focused }) => <Compass color={color} fill={focused ? colors.accent : 'transparent'} size={23} /> }} />
-      <Tabs.Screen name="saved" options={{ title: t('saved'), tabBarIcon: ({ color, focused }) => <Heart color={color} fill={focused ? colors.accent : 'transparent'} size={23} /> }} />
-      <Tabs.Screen name="messages" options={{ title: t('messages'), tabBarBadge: isAuthenticated && messageUnreadCount > 0 ? messageUnreadCount : undefined, tabBarBadgeStyle: { backgroundColor: colors.error, color: 'white' }, tabBarIcon: ({ color, focused }) => <MessageCircle color={color} fill={focused ? colors.accent : 'transparent'} size={23} /> }} />
-      <Tabs.Screen name="profile" options={{ title: isAuthenticated ? t('profile') : t('accessShort'), tabBarIcon: ({ color, focused }) => <UserRound color={color} fill={focused ? colors.accent : 'transparent'} size={23} /> }} />
+      <Tabs.Screen name="explore" options={{ title: t('homeTab'), tabBarIcon: ({ color, focused }) => <Compass color={color} fill={focused ? colors.brand : 'transparent'} size={23} /> }} />
+      <Tabs.Screen name="saved" options={{ title: t('saved'), tabBarIcon: ({ color, focused }) => <Heart color={color} fill={focused ? colors.brand : 'transparent'} size={23} /> }} />
+      <Tabs.Screen name="messages" options={{ title: t('messages'), tabBarBadge: isAuthenticated && messageUnreadCount > 0 ? messageUnreadCount : undefined, tabBarBadgeStyle: { backgroundColor: colors.error, color: 'white' }, tabBarIcon: ({ color, focused }) => <MessageCircle color={color} fill={focused ? colors.brand : 'transparent'} size={23} /> }} />
+      <Tabs.Screen name="profile" options={{ title: isAuthenticated ? t('profile') : t('accessShort'), tabBarIcon: ({ color, focused }) => <UserRound color={color} fill={focused ? colors.brand : 'transparent'} size={23} /> }} />
     </Tabs>
   );
 }

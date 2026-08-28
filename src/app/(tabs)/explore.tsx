@@ -44,12 +44,12 @@ const CategoryChip = memo(function CategoryChip({ category, label, selected, pal
       style={({ pressed }) => [
         styles.category,
         selected
-          ? { backgroundColor: colors.accentSoft, borderColor: `${colors.accent}55` }
+          ? { backgroundColor: colors.brandSoft, borderColor: `${colors.brand}55` }
           : { backgroundColor: palette.surface, borderColor: 'transparent' },
         pressed && styles.pressed,
       ]}>
-      <Icon color={selected ? colors.accentDark : palette.muted} size={16} />
-      <Text style={[styles.categoryText, { color: selected ? colors.accentDark : palette.textSecondary }]}>{label}</Text>
+      <Icon color={selected ? colors.brandDark : palette.muted} size={16} />
+      <Text style={[styles.categoryText, { color: selected ? colors.brandDark : palette.textSecondary }]}>{label}</Text>
     </Pressable>
   );
 });
@@ -261,7 +261,7 @@ export default function ExploreScreen() {
           : propertyQuery.isError
             ? <PremiumErrorState title="No pudimos cargar las propiedades" description={t('propertyLoadError')} onRetry={() => void propertyQuery.refetch()} />
             : <PremiumEmptyState icon={Home} title="Sin resultados para estos filtros" description={t('noPropertyResults')} actionLabel="Cambiar filtros" onAction={() => sheetRef.current?.present()} />}
-        ListFooterComponent={propertyQuery.isFetchingNextPage ? <View style={styles.pageLoader}><ActivityIndicator color={colors.accent} /><Text style={[styles.pageLoaderText, { color: palette.textSecondary }]}>Cargando más propiedades…</Text></View> : null}
+        ListFooterComponent={propertyQuery.isFetchingNextPage ? <View style={styles.pageLoader}><ActivityIndicator color={colors.brand} /><Text style={[styles.pageLoaderText, { color: palette.textSecondary }]}>Cargando más propiedades…</Text></View> : null}
         contentContainerStyle={[styles.listContent, { backgroundColor: palette.background }]}
         columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
         contentInsetAdjustmentBehavior="automatic"
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: -12 },
   sectionHeading: { gap: 6 },
   eyebrowRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  eyebrow: { color: colors.accentDark, fontSize: 11, lineHeight: 15, fontWeight: '900', letterSpacing: 1 },
+  eyebrow: { color: colors.brandDark, fontSize: 11, lineHeight: 15, fontWeight: '900', letterSpacing: 1 },
   countPill: { minHeight: 24, borderRadius: radius.pill, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center' },
   countText: { fontSize: 11, fontWeight: '800', fontVariant: ['tabular-nums'] },
   featuredTitle: { fontSize: 22, lineHeight: 28, fontWeight: '900' },

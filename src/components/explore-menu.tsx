@@ -59,15 +59,15 @@ function Choice({
       style={({ pressed }) => [
         styles.choice,
         {
-          backgroundColor: selected ? colors.accentSoft : palette.surface,
-          borderColor: selected ? `${colors.accent}66` : palette.border,
+          backgroundColor: selected ? colors.brandSoft : palette.surface,
+          borderColor: selected ? `${colors.brand}66` : palette.border,
         },
         pressed && styles.pressed,
       ]}
     >
-      {Icon ? <Icon color={selected ? colors.accentDark : palette.textSecondary} size={17} /> : null}
-      <Text style={[styles.choiceLabel, { color: selected ? colors.accentDark : palette.textSecondary }]}>{label}</Text>
-      {selected ? <Check color={colors.accentDark} size={16} /> : null}
+      {Icon ? <Icon color={selected ? colors.brandDark : palette.textSecondary} size={17} /> : null}
+      <Text style={[styles.choiceLabel, { color: selected ? colors.brandDark : palette.textSecondary }]}>{label}</Text>
+      {selected ? <Check color={colors.brandDark} size={16} /> : null}
     </Pressable>
   );
 }
@@ -117,7 +117,7 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
         >
           <View style={styles.menuHeader}>
             <View>
-              <Text style={[styles.menuEyebrow, { color: colors.accentDark }]}>CASASEG</Text>
+              <Text style={[styles.menuEyebrow, { color: colors.brandDark }]}>CASASEG</Text>
               <Text accessibilityRole="header" style={[styles.menuTitle, { color: palette.text }]}>{t('menu')}</Text>
             </View>
             <Pressable

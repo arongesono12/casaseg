@@ -23,17 +23,17 @@ export default function TabsLayout() {
       badgeTextColor="white"
       blurEffect={resolvedMode === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
       disableTransparentOnScrollEdge={false}
-      iconColor={{ default: palette.muted, selected: colors.accent }}
-      indicatorColor={colors.accentSoft}
+      iconColor={{ default: palette.muted, selected: colors.brand }}
+      indicatorColor={colors.brandSoft}
       labelStyle={{
         default: { color: palette.muted, fontSize: 11, fontWeight: '600' },
-        selected: { color: colors.accentDark, fontSize: 11, fontWeight: '800' },
+        selected: { color: colors.brandDark, fontSize: 11, fontWeight: '800' },
       }}
       labelVisibilityMode="labeled"
       minimizeBehavior="never"
-      rippleColor={`${colors.accent}20`}
+      rippleColor={`${colors.brand}20`}
       shadowColor={palette.border}
-      tintColor={colors.accent}
+      tintColor={colors.brand}
     >
       <NativeTabs.Trigger name="explore">
         <Icon
