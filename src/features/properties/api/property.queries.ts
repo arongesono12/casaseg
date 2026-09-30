@@ -5,6 +5,9 @@ import type { Property } from '@/types';
 
 type PropertyRow = Record<string, unknown>;
 export const PROPERTY_PAGE_SIZE = 12;
+const MAP_PAGE_SIZE = 200;
+const PROPERTY_LIST_COLUMNS = 'id,owner_id,title,location,city,image_urls,bedrooms,bathrooms,area,price,price_type,rating,review_count,category,is_new,is_occupied,legal_status';
+const PROPERTY_MAP_COLUMNS = 'id,title,location,city,image_urls,price,price_type,coordinates';
 
 export type PropertyPage = {
   items: Property[];
@@ -40,7 +43,7 @@ function mapProperty(row: PropertyRow): Property {
 
 export async function fetchProperties(filters: PropertyFilters, signal?: AbortSignal) {
   if (!isSupabaseConfigured) return filterFallback(filters);
-  let query = supabase.from('properties').select('*').eq('status', 'active').range(0, 19);
+  let query = supabase.from('properties').select(PROPERTY_LIST_COLUMNS).eq('status', 'active').range(0, 19);
   if (filters.location) query = query.ilike('location', `%${filters.location}%`);
   if (filters.name) query = query.ilike('title', `%${filters.name}%`);
   if (filters.category !== 'Todos') query = query.eq('category', filters.category);
@@ -65,7 +68,7 @@ export async function fetchPropertiesPage(filters: PropertyFilters, page: number
     return { items, nextPage: from + items.length < filtered.length ? page + 1 : undefined };
   }
 
-  let query = supabase.from('properties').select('*').eq('status', 'active').range(from, to);
+  let query = supabase.from('properties').select(PROPERTY_LIST_COLUMNS).eq('status', 'active').range(from, to + 1);
   if (filters.location) query = query.ilike('location', `%${filters.location}%`);
   if (filters.name) query = query.ilike('title', `%${filters.name}%`);
   if (filters.category !== 'Todos') query = query.eq('category', filters.category);
@@ -79,8 +82,49 @@ export async function fetchPropertiesPage(filters: PropertyFilters, page: number
 
   const { data, error } = await query.abortSignal(signal ?? new AbortController().signal);
   if (error) throw error;
-  const items = (data as PropertyRow[]).map(mapProperty);
-  return { items, nextPage: items.length === PROPERTY_PAGE_SIZE ? page + 1 : undefined };
+  const items = (data as PropertyRow[]).slice(0, PROPERTY_PAGE_SIZE).map(mapProperty);
+  return { items, nextPage: data.length > PROPERTY_PAGE_SIZE ? page + 1 : undefined };
+}
+
+export async function fetchMapProperties(filters: PropertyFilters, signal?: AbortSignal): Promise<Property[]> {
+  if (!isSupabaseConfigured) return filterFallback(filters);
+
+  const result: Property[] = [];
+  for (let page = 0; ; page += 1) {
+    const from = page * MAP_PAGE_SIZE;
+    let query = supabase.from('properties')
+      .select(PROPERTY_MAP_COLUMNS)
+      .eq('status', 'active')
+      .range(from, from + MAP_PAGE_SIZE - 1);
+    if (filters.location) query = query.ilike('location', `%${filters.location}%`);
+    if (filters.name) query = query.ilike('title', `%${filters.name}%`);
+    if (filters.category !== 'Todos') query = query.eq('category', filters.category);
+    if (filters.maxPrice) query = query.lte('price', Number(filters.maxPrice));
+    if (filters.availability !== 'all') query = query.eq('is_occupied', filters.availability === 'occupied');
+    if (filters.sort === 'rating') query = query.order('rating', { ascending: false });
+    else if (filters.sort === 'price-asc') query = query.order('price', { ascending: true });
+    else if (filters.sort === 'price-desc') query = query.order('price', { ascending: false });
+    else query = query.order('created_at', { ascending: false });
+    query = query.order('id', { ascending: true });
+
+    const { data, error } = await query.abortSignal(signal ?? new AbortController().signal);
+    if (error) throw error;
+    result.push(...(data as PropertyRow[]).map(mapProperty));
+    if (data.length < MAP_PAGE_SIZE) return result;
+  }
+}
+
+export async function fetchPropertyCount(filters: PropertyFilters, signal?: AbortSignal): Promise<number> {
+  if (!isSupabaseConfigured) return filterFallback(filters).length;
+  let query = supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'active');
+  if (filters.location) query = query.ilike('location', `%${filters.location}%`);
+  if (filters.name) query = query.ilike('title', `%${filters.name}%`);
+  if (filters.category !== 'Todos') query = query.eq('category', filters.category);
+  if (filters.maxPrice) query = query.lte('price', Number(filters.maxPrice));
+  if (filters.availability !== 'all') query = query.eq('is_occupied', filters.availability === 'occupied');
+  const { count, error } = await query.abortSignal(signal ?? new AbortController().signal);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function fetchProperty(id: string, signal?: AbortSignal) {

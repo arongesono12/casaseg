@@ -23,6 +23,7 @@ Deno.serve(serveJson(async (request) => {
       description: input.description,
       price: input.price,
       location: input.location,
+      coordinates: input.coordinates,
       city: input.location,
       country_code: 'GQ',
       image_urls: imageUrls,

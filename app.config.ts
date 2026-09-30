@@ -21,6 +21,7 @@ function requireBuildEnv(name: string, hint: string) {
 }
 
 if (isRemoteBuild) {
+  requireBuildEnv('EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY', 'Sin ella no se puede inicializar Clerk.');
   requireBuildEnv('EXPO_PUBLIC_SUPABASE_URL', 'Sin ella el cliente apunta a un host inexistente.');
   requireBuildEnv('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'Sin ella no hay sesión posible.');
   requireBuildEnv('EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID', 'Debe ser el client ID de tipo "Web application".');
@@ -49,8 +50,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: config.name ?? 'CasaSeg',
   slug: config.slug ?? 'casaseg',
   scheme: 'casaseg',
-  jsEngine: 'hermes',
-  newArchEnabled: true,
   plugins: [
     ...(config.plugins ?? []),
     // Obligatorio aunque solo usemos Clerk desde JavaScript: el autolinking de

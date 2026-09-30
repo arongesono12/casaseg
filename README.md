@@ -13,7 +13,7 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 2. Start the app
 
    ```bash
-   npx expo start
+   npm start
    ```
 
 In the output, you'll find options to open the app in a
@@ -28,16 +28,31 @@ In the output, you'll find options to open the app in a
 The shared React code keeps the application state and navigation, while platform files render
 native controls with SwiftUI on iOS and Jetpack Compose/Material 3 on Android.
 
-Expo SDK 54 does not include these platform-specific `@expo/ui` renderers in Expo Go. Expo Go
-therefore uses a safe React Native fallback. Use a development build to see the native SDK UI:
+The project uses Expo SDK 57, which includes the stable platform-specific `@expo/ui`
+renderers in Expo Go. Native development builds are still required for custom modules,
+such as Clerk's native Google sign-in and remote push notifications:
 
 ```bash
 npm run android:native
-npm start
+npm run start:dev
 ```
 
-Once the development build is installed, `npm start` launches Metro for the custom `casaseg`
-runtime. To use the React Native fallback in Expo Go instead, run `npm run start:go`.
+Startup commands use Expo CLI directly. `npm start` explicitly selects Expo Go, so the
+QR code uses an `exp://` link. Install Expo Go compatible with SDK 57 and connect the
+phone and computer to the same network. Use `npm run start:tunnel` if LAN is inaccessible.
+On a physical iPhone, sign in to the same Expo account in Expo Go and Expo CLI
+(`npx expo login`). See [Expo Go sign-in requirements](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required/).
+After installing a native development build, use `npm run start:dev` or
+`npm run android:dev` to connect to that build instead.
+
+Real sign-in requires `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` in `.env.local`, copied from
+the Clerk Dashboard's API keys page. Without it, development opens public screens as a
+guest; login and private routes remain unavailable. Remote builds require this key.
+
+After upgrading the SDK, rebuild previously installed development clients with
+`npm run android:native`, or create a new EAS development build. SDK 54 clients
+cannot load the SDK 57 JavaScript runtime. Native directories generated locally
+must also be regenerated for SDK 57; Expo CLI's `prebuild` does this by default.
 
 On macOS, use `npm run ios:native`. For a physical device or when building iOS from Windows, use
 the existing EAS development profile:
@@ -49,9 +64,9 @@ eas build --profile development --platform ios
 
 ## Google sign-in on Android and iOS
 
-CasaSeg uses Google Credential Manager on Android and Google Sign-In SDK on iOS through
-`react-native-nitro-google-signin`. Google authentication therefore requires a development or
-store build; Expo Go cannot load this native module.
+CasaSeg uses native Google sign-in through Clerk's `@clerk/expo-google-signin` plugin in
+development and store builds. Expo Go uses the browser OAuth flow instead; it cannot
+load this custom native module.
 
 Configure these public OAuth identifiers before rebuilding:
 

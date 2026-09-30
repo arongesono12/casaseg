@@ -726,7 +726,7 @@ function GetStartedSlide({
           <LinearGradient
             colors={theme.artworkOverlay}
             locations={theme.artworkOverlayStops}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
           />
         </View>
       </MotionBlock>

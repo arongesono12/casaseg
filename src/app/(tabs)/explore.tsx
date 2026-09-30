@@ -17,7 +17,7 @@ import { colors, exploreGradient, radius, type AppPalette } from '@/constants/th
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { fetchFavorites } from '@/features/properties/api/property.queries';
 import { useFavoriteMutation } from '@/features/properties/hooks/use-favorite-mutation';
-import { useInfiniteProperties } from '@/features/properties/hooks/use-properties';
+import { useInfiniteProperties, usePropertyCount } from '@/features/properties/hooks/use-properties';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -78,12 +78,13 @@ export default function ExploreScreen() {
   const [heroHeight, setHeroHeight] = useState(0);
   const [isHeroHidden, setIsHeroHidden] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const columns = width >= 1280 ? 4 : width >= 760 ? 3 : width >= 360 ? 2 : 1;
+  const columns = width >= 1280 ? 4 : width >= 900 ? 3 : width >= 600 ? 2 : 1;
   const useCompactCards = columns > 1;
   const filters = useExplorerStore((state) => state.filters);
   const setCategory = useExplorerStore((state) => state.setCategory);
   const setViewMode = useExplorerStore((state) => state.setViewMode);
   const propertyQuery = useInfiniteProperties(filters);
+  const propertyCountQuery = usePropertyCount(filters);
   const favoritesQuery = useQuery({ queryKey: propertyKeys.favorites(user?.id ?? 'guest'), queryFn: () => fetchFavorites(user!.id), enabled: Boolean(user) });
   const favoriteMutation = useFavoriteMutation(user?.id ?? 'guest');
   const filteredProperties = useMemo(
@@ -218,7 +219,7 @@ export default function ExploreScreen() {
         <View style={styles.eyebrowRow}>
           <Text style={styles.eyebrow}>{t('exploreEyebrow')}</Text>
           <View style={[styles.countPill, { backgroundColor: palette.subtle }]}>
-            <Text style={[styles.countText, { color: palette.textSecondary }]}>{filteredProperties.length} {t('properties')}</Text>
+            <Text style={[styles.countText, { color: palette.textSecondary }]}>{propertyCountQuery.data ?? '…'} {t('properties')}</Text>
           </View>
         </View>
         <Text style={[styles.featuredTitle, { color: palette.text }]}>{t('featuredProperties')}</Text>

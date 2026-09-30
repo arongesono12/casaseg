@@ -1,12 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { actionGradient, colors, radius } from '@/constants/theme';
-import { properties } from '@/data/properties';
 import { defaultPropertyFilters, propertyFiltersSchema, type PropertyFilters } from '@/features/properties/schemas/property-filters.schema';
+import { usePropertyCount } from '@/features/properties/hooks/use-properties';
 import { useAppTheme } from '@/providers/theme-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useExplorerStore } from '@/stores/explorer-store';
@@ -25,20 +25,23 @@ export const FilterSheet = forwardRef<FilterSheetHandle>(function FilterSheet(_,
   const snapPoints = useMemo(() => ['90%'], []);
   const { control, handleSubmit, reset, formState: { errors } } = useForm<PropertyFilters>({ resolver: zodResolver(propertyFiltersSchema), defaultValues: appliedFilters });
   const draft = useWatch({ control });
+  const { location, name, category, maxPrice, availability: availabilityValue, sort } = draft;
+  const validDraft = useMemo(() => {
+    const parsed = propertyFiltersSchema.safeParse({ location, name, category, maxPrice, availability: availabilityValue, sort });
+    return parsed.success ? parsed.data : null;
+  }, [location, name, category, maxPrice, availabilityValue, sort]);
+  const [countFilters, setCountFilters] = useState<PropertyFilters | null>(appliedFilters);
+  useEffect(() => {
+    const timer = setTimeout(() => setCountFilters(validDraft), 300);
+    return () => clearTimeout(timer);
+  }, [validDraft]);
+  const countQuery = usePropertyCount(countFilters);
+  const countIsCurrent = validDraft && countFilters && JSON.stringify(validDraft) === JSON.stringify(countFilters);
 
   useImperativeHandle(ref, () => ({
     present: () => { reset(appliedFilters); modalRef.current?.present(); },
     dismiss: () => modalRef.current?.dismiss(),
   }), [appliedFilters, reset]);
-
-  const resultCount = useMemo(() => properties.filter((property) => {
-    const categoryMatches = !draft.category || draft.category === 'Todos' || property.category === draft.category;
-    const locationMatches = !draft.location || property.location.toLowerCase().includes(draft.location.toLowerCase());
-    const nameMatches = !draft.name || property.title.toLowerCase().includes(draft.name.toLowerCase());
-    const priceMatches = !draft.maxPrice || property.price <= Number(draft.maxPrice);
-    const availabilityMatches = !draft.availability || draft.availability === 'all' || property.isOccupied === (draft.availability === 'occupied');
-    return categoryMatches && locationMatches && nameMatches && priceMatches && availabilityMatches;
-  }).length, [draft]);
 
   const renderBackdrop = useCallback((props: React.ComponentProps<typeof BottomSheetBackdrop>) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />, []);
   const onValid = useCallback((values: PropertyFilters) => { applyFilters(values); modalRef.current?.dismiss(); }, [applyFilters]);
@@ -55,7 +58,7 @@ export const FilterSheet = forwardRef<FilterSheetHandle>(function FilterSheet(_,
           <ChoiceField control={control} name="availability" label={t('availability')} options={availability} />
           <ChoiceField control={control} name="sort" label={t('sort')} options={sorting} />
         </BottomSheetScrollView>
-        <View style={[styles.footer, { borderColor: palette.border, backgroundColor: palette.surface }]}><Pressable accessibilityRole="button" onPress={() => void handleSubmit(onValid)()}><LinearGradient colors={actionGradient} style={styles.applyButton}><Text style={styles.applyText}>{t('showResults', { count: String(resultCount) })}</Text></LinearGradient></Pressable></View>
+        <View style={[styles.footer, { borderColor: palette.border, backgroundColor: palette.surface }]}><Pressable accessibilityRole="button" onPress={() => void handleSubmit(onValid)()}><LinearGradient colors={actionGradient} style={styles.applyButton}><Text style={styles.applyText}>{t('showResults', { count: countIsCurrent && countQuery.data !== undefined ? String(countQuery.data) : '…' })}</Text></LinearGradient></Pressable></View>
       </BottomSheetView>
     </BottomSheetModal>
   );

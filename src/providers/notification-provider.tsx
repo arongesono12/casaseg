@@ -1,4 +1,4 @@
-import Constants from 'expo-constants';
+import { isExpoGo } from '@/lib/execution-environment';
 import { router } from 'expo-router';
 import { type PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Platform } from 'react-native';
@@ -10,7 +10,7 @@ import { useAuth } from '@/providers/auth-context';
 import { NotificationContext } from '@/providers/notification-context';
 
 function canLoadNativeNotifications() {
-  return Platform.OS !== 'web' && Constants.appOwnership !== 'expo';
+  return Platform.OS !== 'web' && !isExpoGo;
 }
 
 export function NotificationProvider({ children }: PropsWithChildren) {
