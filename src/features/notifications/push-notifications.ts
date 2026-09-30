@@ -2,10 +2,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-
-function isExpoGo() {
-  return Constants.appOwnership === 'expo';
-}
+import { isExpoGo } from '@/lib/execution-environment';
 
 function isMissingDeviceTokensTable(error: { code?: string } | null) {
   return error?.code === 'PGRST205';
@@ -13,7 +10,7 @@ function isMissingDeviceTokensTable(error: { code?: string } | null) {
 
 export async function registerPushDevice() {
   if (Platform.OS === 'web') throw new Error('Las notificaciones push no están disponibles en web.');
-  if (isExpoGo()) {
+  if (isExpoGo) {
     throw new Error('Expo Go no soporta notificaciones push remotas desde SDK 53. Usa una development build para activar push.');
   }
 

@@ -76,8 +76,10 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
       onPress={() => router.push({ pathname: '/property/[id]', params: { id: property.id } })}
       style={({ pressed }) => [styles.card, compact && styles.cardCompact, { backgroundColor: palette.surface, borderColor: palette.border, opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.994 : 1 }] }]}
     >
-      <View style={[styles.imageFrame, compact && styles.imageFrameCompact]} onLayout={(event) => setImageWidth(event.nativeEvent.layout.width)}>
-        {imageWidth > 0 && (
+      <View style={[styles.imageFrame, compact && styles.imageFrameCompact]} onLayout={compact ? undefined : (event) => setImageWidth(event.nativeEvent.layout.width)}>
+        {compact ? (
+          <Image source={{ uri: normalizeImageUrl(images[0].uri) }} placeholder={{ blurhash }} cachePolicy="disk" contentFit="cover" transition={180} style={styles.compactImage} accessibilityLabel={`${property.title}, imagen de la propiedad`} />
+        ) : imageWidth > 0 && (
           <FlatList
             data={images}
             horizontal
@@ -109,10 +111,10 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
 
         <View style={[styles.counter, compact && styles.counterCompact]}>
           <Camera color="white" size={14} />
-          <Text style={styles.counterText}>{activeImage + 1} / {images.length}</Text>
+          <Text style={styles.counterText}>{compact ? images.length : `${activeImage + 1} / ${images.length}`}</Text>
         </View>
 
-        {images.length > 1 && (
+        {!compact && images.length > 1 && (
           <View style={styles.dots}>
             {images.map((image, index) => <View key={image.id} style={[styles.dot, index === activeImage && styles.dotActive]} />)}
           </View>
@@ -144,6 +146,7 @@ const styles = StyleSheet.create({
   imageFrame: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.subtle },
   imageFrameCompact: { aspectRatio: 1.08, borderRadius: radius.sm },
   carouselImage: { height: '100%' },
+  compactImage: { width: '100%', height: '100%' },
   imageShade: { position: 'absolute', left: 0, right: 0, bottom: 0, top: '55%' },
   statusBadge: { position: 'absolute', left: 12, top: 12, minHeight: 28, borderRadius: radius.pill, paddingHorizontal: 12, justifyContent: 'center' },
   statusText: { color: 'white', fontSize: 12, fontWeight: '800' },

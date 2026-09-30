@@ -1,6 +1,7 @@
 import { useAuth as useClerkAuth, useSession, useSignIn, useSignUp, useSSO, useUser } from '@clerk/expo';
 import { useSignInWithApple } from '@clerk/expo/apple';
 import { useSignInWithGoogle } from '@clerk/expo/google';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
@@ -140,6 +141,7 @@ function mapearUsuario(clerkUser: NonNullable<ReturnType<typeof useUser>['user']
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
   const { isLoaded: authCargado, isSignedIn, signOut: clerkSignOut } = useClerkAuth();
   const { session } = useSession();
   const { user: clerkUser } = useUser();
@@ -206,9 +208,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     // política RLS denegada nunca debe dejar viva una sesión que se quiso cerrar.
     if (user) await revokePushDevices().catch(() => undefined);
     if (isSignedIn) await clerkSignOut();
+    queryClient.clear();
+    appStorage.removeItem('casaseg.query-cache');
     setDemoUser(null);
     appStorage.removeItem(DEMO_KEY);
-  }, [clerkSignOut, isSignedIn, user]);
+  }, [clerkSignOut, isSignedIn, queryClient, user]);
 
   /**
    * Cuando la contraseña no sirve, Clerk no dice con qué SÍ se entra: el error

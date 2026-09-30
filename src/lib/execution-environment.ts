@@ -1,4 +1,4 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 
-/** SDK 54 does not embed the platform-specific Expo UI renderers in Expo Go. */
+/** Detect Expo Go to avoid loading custom native modules such as Clerk push/sign-in integrations. */
 export const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;

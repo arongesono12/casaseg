@@ -7,6 +7,7 @@ const validCreate = {
   title: 'Apartamento con vistas',
   description: 'Una propiedad amplia y luminosa en el centro.',
   location: 'Malabo',
+  coordinates: { latitude: 3.7504, longitude: 8.7371 },
   price: 450000,
   price_type: 'per_month',
   bedrooms: 2,
@@ -20,6 +21,7 @@ describe('property Edge Function validation', () => {
     const result = parseCreatePropertyInput(validCreate);
     expect(result.priceType).toBe('per_month');
     expect(result.amenities.length).toBe(2);
+    expect(result.coordinates.latitude).toBe(3.7504);
   });
 
   test('rejects unsupported price modes', () => {
@@ -30,6 +32,11 @@ describe('property Edge Function validation', () => {
       error = cause;
     }
     expect(error instanceof InputError).toBe(true);
+  });
+
+  test('rejects missing or out-of-range property coordinates', () => {
+    expect(() => parseCreatePropertyInput({ ...validCreate, coordinates: null })).toThrow('Selecciona la ubicación');
+    expect(() => parseCreatePropertyInput({ ...validCreate, coordinates: { latitude: 91, longitude: 8.7371 } })).toThrow('Las coordenadas');
   });
 
   test('rejects invalid update prices', () => {

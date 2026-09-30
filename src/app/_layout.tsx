@@ -12,8 +12,8 @@ import * as Network from 'expo-network';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { type PropsWithChildren, useEffect } from 'react';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/theme';
@@ -21,17 +21,35 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { NetworkStatusBanner } from '@/components/network-status-banner';
 import { canAccessAdminPanel, canAccessOwnerPanel } from '@/lib/access-control';
 import { appStorage } from '@/lib/local-storage';
-import { useAuth } from '@/providers/auth-context';
+import { AuthContext, useAuth } from '@/providers/auth-context';
+import { guestAuth } from '@/features/auth/guest-auth';
 import { AuthProvider } from '@/providers/auth-provider';
 import { I18nProvider } from '@/providers/i18n-provider';
 import { NotificationProvider } from '@/providers/notification-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { useAppTheme } from '@/providers/theme-context';
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() ?? '';
 
-if (!publishableKey) {
-  throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Add your key to .env.\nRun: 1) clerk auth login  2) clerk link  3) clerk env pull — then restart the dev server.");
+if (!publishableKey && !__DEV__) {
+  throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Configure it before building the app.');
+}
+
+function AuthenticationProvider({ children }: PropsWithChildren) {
+  if (!publishableKey) {
+    return <AuthContext.Provider value={guestAuth}>{children}</AuthContext.Provider>;
+  }
+  return (
+    <ClerkProvider
+      publishableKey={publishableKey}
+      tokenCache={tokenCache}
+      // Clerk's browser telemetry coerces idle callback handles to numbers.
+      // React Native 0.86 uses native objects for these handles.
+      telemetry={Platform.OS === 'web' ? undefined : false}
+    >
+      <AuthProvider>{children}</AuthProvider>
+    </ClerkProvider>
+  );
 }
 
 void SplashScreen.preventAutoHideAsync();
@@ -75,7 +93,9 @@ function RootNavigator() {
         <Stack.Screen name="auth/callback" />
         {/* Recovery links create a session, so this screen must stay reachable
             from both sides of the authentication guard. */}
-        <Stack.Screen name="reset-password" />
+        <Stack.Protected guard={Boolean(publishableKey)}>
+          <Stack.Screen name="reset-password" />
+        </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
@@ -104,19 +124,27 @@ function RootNavigator() {
 
 export default function RootLayout() {
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }
   }, []);
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider>
-          <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: 1000 * 60 * 60 * 24 }}>
+          <PersistQueryClientProvider client={queryClient} persistOptions={{
+            persister: queryPersister,
+            maxAge: 1000 * 60 * 60 * 24,
+            buster: 'public-catalog-v2',
+            dehydrateOptions: {
+              shouldDehydrateQuery: (query) => query.state.status === 'success'
+                && query.queryKey[0] === 'properties'
+                && query.queryKey[1] === 'list',
+            },
+          }}>
             <ThemeProvider>
               <I18nProvider>
-                <AuthProvider>
+                <AuthenticationProvider>
                   <NotificationProvider>
                     <BottomSheetModalProvider>
                       <ErrorBoundary>
@@ -124,13 +152,12 @@ export default function RootLayout() {
                       </ErrorBoundary>
                     </BottomSheetModalProvider>
                   </NotificationProvider>
-                </AuthProvider>
+                </AuthenticationProvider>
               </I18nProvider>
             </ThemeProvider>
           </PersistQueryClientProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
-    </ClerkProvider>
   );
 }
 

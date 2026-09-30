@@ -259,7 +259,7 @@ function RoleCard({ compact, description, icon, label, onPress, palette, selecte
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  decor: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  decor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   orbTop: { position: 'absolute', width: 280, height: 280, borderRadius: 140, top: -150, right: -115, backgroundColor: 'rgba(59,130,246,0.10)' },
   orbBottom: { position: 'absolute', width: 220, height: 220, borderRadius: 110, bottom: -130, left: -100, backgroundColor: 'rgba(20,179,170,0.08)' },
   content: { flexGrow: 1, width: '100%', maxWidth: 600, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 32, gap: 18 },

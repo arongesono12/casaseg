@@ -1,5 +1,4 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Badge, Icon, Label, NativeTabs, VectorIcon } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-context';
@@ -18,7 +17,7 @@ export default function TabsLayout() {
 
   return (
     <NativeTabs
-      backgroundColor={process.env.EXPO_OS === 'ios' ? null : palette.surface}
+      backgroundColor={process.env.EXPO_OS === 'ios' ? undefined : palette.surface}
       badgeBackgroundColor={colors.error}
       badgeTextColor="white"
       blurEffect={resolvedMode === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
@@ -36,36 +35,36 @@ export default function TabsLayout() {
       tintColor={colors.brand}
     >
       <NativeTabs.Trigger name="explore">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf={{ default: 'safari', selected: 'safari.fill' }}
-          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="compass-outline" />}
+          md="explore"
         />
-        <Label>{t('homeTab')}</Label>
+        <NativeTabs.Trigger.Label>{t('homeTab')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="saved">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf={{ default: 'heart', selected: 'heart.fill' }}
-          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="heart-outline" />}
+          md="favorite"
         />
-        <Label>{t('saved')}</Label>
+        <NativeTabs.Trigger.Label>{t('saved')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="messages">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf={{ default: 'bubble.left.and.bubble.right', selected: 'bubble.left.and.bubble.right.fill' }}
-          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="message-text-outline" />}
+          md="chat"
         />
-        <Label>{t('messages')}</Label>
-        {messageBadge ? <Badge>{messageBadge}</Badge> : null}
+        <NativeTabs.Trigger.Label>{t('messages')}</NativeTabs.Trigger.Label>
+        {messageBadge ? <NativeTabs.Trigger.Badge>{messageBadge}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
-        <Icon
+        <NativeTabs.Trigger.Icon
           sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
-          androidSrc={<VectorIcon family={MaterialCommunityIcons} name="account-circle-outline" />}
+          md="account_circle"
         />
-        <Label>{isAuthenticated ? t('profile') : t('accessShort')}</Label>
+        <NativeTabs.Trigger.Label>{isAuthenticated ? t('profile') : t('accessShort')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
