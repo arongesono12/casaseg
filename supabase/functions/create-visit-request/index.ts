@@ -20,7 +20,8 @@ Deno.serve(serveJson(async (request) => {
 
   if (propertyError) throw propertyError;
   if (!property) throw new RuleError('La propiedad no existe o no está disponible.', 404);
-  if (property.status !== 'published') {
+  // El catálogo publica con status 'active' (ver property.queries.ts).
+  if (property.status !== 'active') {
     throw new RuleError('Esta vivienda todavía no acepta visitas.', 409);
   }
   if (property.owner_id === user.id) {

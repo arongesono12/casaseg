@@ -10,7 +10,7 @@ import { AuthLogo } from '@/components/auth-logo';
 import { FormField } from '@/components/form-field';
 import { NativeActionButton } from '@/components/native-action-button';
 import { ArrowLeft, Building2, Check, Eye, EyeOff, ShieldCheck, UserRound } from '@/components/ui/icons';
-import { colors, radius, touchTarget } from '@/constants/theme';
+import { brand, colors, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { registerSchema } from '@/features/auth/auth.schemas';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
@@ -189,7 +189,7 @@ export default function RegisterScreen() {
             </View>
           </View>
 
-          {submitError ? <View accessibilityRole="alert" style={styles.errorBanner}><Text style={styles.errorText}>{submitError}</Text></View> : null}
+          {submitError ? <View accessibilityRole="alert" style={styles.errorBanner}><Text style={[styles.errorText, { color: palette.errorText }]}>{submitError}</Text></View> : null}
 
           <NativeActionButton
             disabled={isSubmitting}
@@ -199,13 +199,13 @@ export default function RegisterScreen() {
           />
 
           <View style={[styles.trustNote, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <ShieldCheck color={colors.brand} size={19} />
+            <ShieldCheck color={palette.brandIcon} size={19} />
             <Text style={[styles.trustText, { color: palette.textSecondary }]}>{t('registrationSecurity')}</Text>
           </View>
 
           <View style={styles.signInRow}>
             <Text style={[styles.signInPrompt, { color: palette.textSecondary }]}>{t('alreadyHaveAccount')}</Text>
-            <Pressable onPress={() => router.replace('/(auth)/login')}><Text style={styles.signInLink}>{t('signIn')}</Text></Pressable>
+            <Pressable onPress={() => router.replace('/(auth)/login')}><Text style={[styles.signInLink, { color: palette.brandText }]}>{t('signIn')}</Text></Pressable>
           </View>
 
           <View style={styles.legalLinks}>
@@ -238,7 +238,7 @@ function RoleCard({ compact, description, icon, label, onPress, palette, selecte
       style={({ pressed }) => [
         styles.role,
         compact && styles.roleCompact,
-        { backgroundColor: selected ? 'rgba(37,99,235,0.09)' : palette.surface, borderColor: selected ? colors.brand : palette.border },
+        { backgroundColor: selected ? withAlpha(colors.brand, 0.09) : palette.surface, borderColor: selected ? colors.brand : palette.border },
         selected && styles.roleSelected,
         pressed && styles.pressed,
       ]}
@@ -260,8 +260,8 @@ function RoleCard({ compact, description, icon, label, onPress, palette, selecte
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   decor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
-  orbTop: { position: 'absolute', width: 280, height: 280, borderRadius: 140, top: -150, right: -115, backgroundColor: 'rgba(59,130,246,0.10)' },
-  orbBottom: { position: 'absolute', width: 220, height: 220, borderRadius: 110, bottom: -130, left: -100, backgroundColor: 'rgba(20,179,170,0.08)' },
+  orbTop: { position: 'absolute', width: 280, height: 280, borderRadius: 140, top: -150, right: -115, backgroundColor: withAlpha(colors.primary, 0.10) },
+  orbBottom: { position: 'absolute', width: 220, height: 220, borderRadius: 110, bottom: -130, left: -100, backgroundColor: withAlpha(brand.logo.sky, 0.08) },
   content: { flexGrow: 1, width: '100%', maxWidth: 600, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 32, gap: 18 },
   contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 24, gap: 15 },
   topBar: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
@@ -269,21 +269,21 @@ const styles = StyleSheet.create({
   securePill: { minHeight: 36, maxWidth: '75%', borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7 },
   securePillText: { flexShrink: 1, fontSize: 12, fontWeight: '800' },
   heading: { gap: 8, marginBottom: 2 },
-  title: { fontSize: 30, lineHeight: 36, fontWeight: '900', letterSpacing: -0.6 },
+  title: { fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -0.6 },
   titleCompact: { fontSize: 26, lineHeight: 31 },
   subtitle: { fontSize: 16, lineHeight: 24 },
   roleSection: { gap: 12 },
   sectionHeading: { gap: 3 },
-  sectionTitle: { fontSize: 16, lineHeight: 22, fontWeight: '900' },
+  sectionTitle: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
   sectionHint: { fontSize: 13, lineHeight: 19 },
   roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   role: { flex: 1, minWidth: 150, minHeight: 148, borderWidth: 1.5, borderRadius: radius.lg, padding: 15 },
   roleCompact: { minWidth: '100%' },
-  roleSelected: { boxShadow: '0 6px 14px rgba(37,99,235,0.16)' },
+  roleSelected: { boxShadow: `0 6px 14px ${withAlpha(colors.brand, 0.16)}` },
   roleTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   roleIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   roleCheck: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  roleTitle: { marginTop: 12, fontSize: 16, fontWeight: '900' },
+  roleTitle: { marginTop: 12, fontSize: 16, fontWeight: '700' },
   roleDescription: { marginTop: 5, fontSize: 12.5, lineHeight: 18 },
   formCard: { borderWidth: 1, borderRadius: radius.lg, padding: 18, gap: 15, boxShadow: '0 8px 18px rgba(15,23,42,0.06)' },
   formCardCompact: { padding: 15 },
@@ -291,17 +291,17 @@ const styles = StyleSheet.create({
   passwordHint: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: -3 },
   passwordHintText: { flex: 1, fontSize: 12, lineHeight: 18 },
   errorBanner: { borderWidth: 1, borderColor: 'rgba(239,68,68,0.24)', borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 11, backgroundColor: 'rgba(239,68,68,0.08)' },
-  errorText: { color: colors.error, fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  primaryShadow: { borderRadius: radius.md, boxShadow: '0 8px 16px rgba(37,99,235,0.28)' },
+  errorText: { fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  primaryShadow: { borderRadius: radius.md, boxShadow: `0 8px 16px ${withAlpha(colors.brand, 0.28)}` },
   primary: { minHeight: 56, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  primaryText: { color: 'white', fontSize: 16, fontWeight: '900' },
+  primaryText: { color: 'white', fontSize: 16, fontWeight: '700' },
   primaryPressed: { opacity: 0.9, transform: [{ scale: 0.995 }] },
   disabled: { opacity: 0.68 },
   trustNote: { minHeight: 54, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   trustText: { flex: 1, fontSize: 12.5, lineHeight: 18 },
   signInRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 2 },
   signInPrompt: { fontSize: 14 },
-  signInLink: { color: colors.brandDark, fontSize: 14, fontWeight: '900', paddingVertical: 6 },
+  signInLink: { color: colors.brandDark, fontSize: 14, fontWeight: '700', paddingVertical: 6 },
   legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
   legalLink: { fontSize: 13, fontWeight: '600', paddingVertical: 4 },
   pressed: { opacity: 0.78 },

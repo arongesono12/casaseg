@@ -16,7 +16,7 @@ import { appStorage } from '@/lib/local-storage';
  * Mientras esté en `true`, un usuario real vería el onboarding en cada
  * apertura de la app y nunca llegaría directo al explorador.
  */
-const FORZAR_ONBOARDING_AL_ARRANCAR = true;
+const FORZAR_ONBOARDING_AL_ARRANCAR = false;
 
 if (FORZAR_ONBOARDING_AL_ARRANCAR && __DEV__) {
   console.warn(

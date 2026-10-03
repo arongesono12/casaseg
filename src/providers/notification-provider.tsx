@@ -6,7 +6,9 @@ import { registerPushDevice } from '@/features/notifications/push-notifications'
 import { useQuery } from '@tanstack/react-query';
 import { fetchConversations } from '@/features/messaging/messaging.api';
 import { conversationKeys, useConversationSummaryRealtime } from '@/features/messaging/use-messaging-realtime';
+import { useProfileId } from '@/features/auth/use-profile-id';
 import { useAuth } from '@/providers/auth-context';
+import { useI18n } from '@/providers/i18n-context';
 import { NotificationContext } from '@/providers/notification-context';
 
 function canLoadNativeNotifications() {
@@ -15,6 +17,7 @@ function canLoadNativeNotifications() {
 
 export function NotificationProvider({ children }: PropsWithChildren) {
   const { user, isAuthenticated } = useAuth();
+  const { t } = useI18n();
   const [unreadCount, setUnreadCount] = useState(0);
   const [pushToken, setPushToken] = useState<string>();
   const conversations = useQuery({
@@ -22,17 +25,23 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     queryFn: fetchConversations,
     enabled: isAuthenticated && Boolean(user),
   });
-  useConversationSummaryRealtime(user?.id);
+  const profileId = useProfileId();
+  useConversationSummaryRealtime(user?.id, profileId);
   const messageUnreadCount = isAuthenticated
     ? (conversations.data ?? []).reduce((total, conversation) => total + conversation.unreadCount, 0)
     : 0;
 
-  useEffect(() => {
+  // Al cerrar sesión se descarta el estado de la cuenta anterior. Se ajusta
+  // durante el render (patrón recomendado por React) en lugar de en un efecto,
+  // que pintaba primero el contador viejo y luego forzaba un segundo render.
+  const [wasAuthenticated, setWasAuthenticated] = useState(isAuthenticated);
+  if (wasAuthenticated !== isAuthenticated) {
+    setWasAuthenticated(isAuthenticated);
     if (!isAuthenticated) {
       setUnreadCount(0);
       setPushToken(undefined);
     }
-  }, [isAuthenticated]);
+  }
   useEffect(() => {
     if (!canLoadNativeNotifications()) return;
     let subscription: { remove: () => void } | undefined;
@@ -58,11 +67,11 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       setPushToken(await registerPushDevice());
     } catch (error) {
       Alert.alert(
-        'No se pudieron activar las notificaciones',
-        error instanceof Error ? error.message : 'Inténtalo de nuevo cuando el servicio esté disponible.',
+        t('pushEnableFailed'),
+        error instanceof Error ? error.message : t('pushEnableRetry'),
       );
     }
-  }, []);
+  }, [t]);
   const value = useMemo(() => ({ unreadCount, messageUnreadCount, pushToken, requestPushPermission, markAllRead: () => setUnreadCount(0), incrementUnread: () => { if (isAuthenticated) setUnreadCount((count) => count + 1); } }), [isAuthenticated, messageUnreadCount, pushToken, requestPushPermission, unreadCount]);
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

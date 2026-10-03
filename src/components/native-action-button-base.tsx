@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import type { NativeActionButtonProps } from './native-action-button.types';
-import { actionGradient, radius, touchTarget } from '@/constants/theme';
+import { actionGradient, colors, radius, touchTarget, withAlpha } from '@/constants/theme';
 
 export function FallbackNativeActionButton({ accessibilityLabel, disabled, label, onPress, style }: NativeActionButtonProps) {
   const [focused, setFocused] = useState(false);
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     overflow: 'hidden',
-    boxShadow: '0 8px 18px rgba(37,99,235,0.18)',
+    boxShadow: `0 8px 18px ${withAlpha(colors.brand, 0.18)}`,
   },
   button: {
     minHeight: 56,
@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
   },
   label: { color: 'white', fontSize: 16, fontWeight: '800' },
   pressed: { opacity: 0.86 },
-  focused: { boxShadow: '0 0 0 3px rgba(20,184,166,0.38)' },
+  focused: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.38)}` },
   disabled: { opacity: 0.55 },
 });

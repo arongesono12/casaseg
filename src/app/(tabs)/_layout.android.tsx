@@ -1,28 +1,32 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { PlatformPressable } from 'expo-router/react-navigation';
+import type { ComponentProps } from 'react';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { actionGradient, colors } from '@/constants/theme';
+import { Heart, HomeTab, MessagesSquare, UserRound, type AppIcon } from '@/components/ui/icons';
+import { actionGradient, colors, withAlpha } from '@/constants/theme';
+import { haptics } from '@/lib/haptics';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useNotifications } from '@/providers/notification-context';
 import { useAppTheme } from '@/providers/theme-context';
 
-type MaterialIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
 type PremiumTabIconProps = {
-  activeName: MaterialIconName;
+  Icon: AppIcon;
+  label: string;
+  width: number;
   focused: boolean;
-  inactiveName: MaterialIconName;
   mutedColor: string;
 };
 
-function PremiumTabIcon({ activeName, focused, inactiveName, mutedColor }: PremiumTabIconProps) {
+// Icono y nombre van dentro de la misma cápsula: la selección rellena ambos,
+// como la barra flotante de iPhone, en lugar de resaltar solo el icono.
+function PremiumTabIcon({ Icon, label, width, focused, mutedColor }: PremiumTabIconProps) {
+  const tint = focused ? 'white' : mutedColor;
   return (
-    <View style={[styles.iconContainer, focused && styles.iconContainerSelected]}>
+    <View style={[styles.iconContainer, { width }, focused && styles.iconContainerSelected]}>
       {focused ? (
         <LinearGradient
           colors={actionGradient}
@@ -31,13 +35,24 @@ function PremiumTabIcon({ activeName, focused, inactiveName, mutedColor }: Premi
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      <MaterialCommunityIcons
-        color={focused ? 'white' : mutedColor}
-        name={focused ? activeName : inactiveName}
-        size={22}
-      />
+      <Icon color={tint} size={22} strokeWidth={focused ? 2 : 1.6} />
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        numberOfLines={1}
+        style={[styles.tabLabel, { color: tint }, focused && styles.tabLabelSelected]}
+      >
+        {label}
+      </Text>
     </View>
   );
+}
+
+// El botón de pestaña de React Navigation ocupa todo el alto de la barra pero
+// alinea su contenido arriba (justifyContent: 'flex-start'), pensando en el
+// texto debajo del icono. Sin texto, el icono quedaba por encima del centro.
+function CenteredTabButton({ style, ...props }: ComponentProps<typeof PlatformPressable>) {
+  return <PlatformPressable {...props} style={[style, styles.tabButton]} />;
 }
 
 export default function AndroidTabsLayout() {
@@ -46,8 +61,10 @@ export default function AndroidTabsLayout() {
   const { messageUnreadCount } = useNotifications();
   const { isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  // En pantallas estrechas la cápsula se ajusta al hueco de cada pestaña.
+  const pillWidth = Math.min(TAB_PILL_WIDTH, Math.floor((screenWidth - BAR_INSET * 2 - BAR_PADDING * 2) / TAB_COUNT) - 4);
   const bottomOffset = Math.max(insets.bottom, 10);
-  const activeLabelColor = resolvedMode === 'dark' ? '#93C5FD' : colors.brandDark;
   const barBackground = resolvedMode === 'dark' ? '#171A21' : '#FFFFFF';
   const barBorder = resolvedMode === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.08)';
 
@@ -56,19 +73,20 @@ export default function AndroidTabsLayout() {
       backBehavior="history"
       screenListeners={{
         tabPress: () => {
-          void Haptics.selectionAsync();
+          haptics.selection();
         },
       }}
       screenOptions={{
-        animation: 'shift',
+        animation: 'none',
         headerShown: false,
         sceneStyle: { backgroundColor: palette.background },
-        tabBarActiveTintColor: activeLabelColor,
-        tabBarAllowFontScaling: true,
+        tabBarButton: (props) => <CenteredTabButton {...props} />,
         tabBarHideOnKeyboard: true,
-        tabBarInactiveTintColor: palette.muted,
+        // El contenedor del icono mide lo mismo que la píldora activa.
+        tabBarIconStyle: [styles.tabIcon, { width: pillWidth }],
         tabBarItemStyle: styles.tabItem,
-        tabBarLabelStyle: styles.tabLabel,
+        // El nombre se dibuja dentro de la cápsula (PremiumTabIcon), no con la etiqueta nativa.
+        tabBarShowLabel: false,
         tabBarStyle: [
           styles.tabBar,
           {
@@ -85,9 +103,10 @@ export default function AndroidTabsLayout() {
           title: t('homeTab'),
           tabBarIcon: ({ focused }) => (
             <PremiumTabIcon
-              activeName="compass"
+              Icon={HomeTab}
+              label={t('homeTab')}
+              width={pillWidth}
               focused={focused}
-              inactiveName="compass-outline"
               mutedColor={palette.muted}
             />
           ),
@@ -99,9 +118,10 @@ export default function AndroidTabsLayout() {
           title: t('saved'),
           tabBarIcon: ({ focused }) => (
             <PremiumTabIcon
-              activeName="heart"
+              Icon={Heart}
+              label={t('saved')}
+              width={pillWidth}
               focused={focused}
-              inactiveName="heart-outline"
               mutedColor={palette.muted}
             />
           ),
@@ -120,9 +140,10 @@ export default function AndroidTabsLayout() {
           ],
           tabBarIcon: ({ focused }) => (
             <PremiumTabIcon
-              activeName="message-text"
+              Icon={MessagesSquare}
+              label={t('messages')}
+              width={pillWidth}
               focused={focused}
-              inactiveName="message-text-outline"
               mutedColor={palette.muted}
             />
           ),
@@ -134,9 +155,10 @@ export default function AndroidTabsLayout() {
           title: isAuthenticated ? t('profile') : t('accessShort'),
           tabBarIcon: ({ focused }) => (
             <PremiumTabIcon
-              activeName="account-circle"
+              Icon={UserRound}
+              label={isAuthenticated ? t('profile') : t('accessShort')}
+              width={pillWidth}
               focused={focused}
-              inactiveName="account-circle-outline"
               mutedColor={palette.muted}
             />
           ),
@@ -145,6 +167,14 @@ export default function AndroidTabsLayout() {
     </Tabs>
   );
 }
+
+// La cápsula seleccionada deja 5 px de aire arriba y abajo dentro de la barra.
+const TAB_BAR_HEIGHT = 66;
+const TAB_PILL_HEIGHT = 56;
+const TAB_PILL_WIDTH = 74;
+const TAB_COUNT = 4;
+const BAR_INSET = 16;
+const BAR_PADDING = 10;
 
 const styles = StyleSheet.create({
   badge: {
@@ -159,33 +189,38 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: 'center',
-    borderRadius: 14,
-    height: 34,
+    borderCurve: 'continuous',
+    borderRadius: TAB_PILL_HEIGHT / 2,
+    gap: 2,
+    height: TAB_PILL_HEIGHT,
     justifyContent: 'center',
     overflow: 'hidden',
-    width: 44,
+    paddingHorizontal: 4,
   },
-  iconContainerSelected: { boxShadow: '0 6px 14px rgba(15,118,110,0.28)' },
+  iconContainerSelected: { boxShadow: `0 6px 14px ${withAlpha(colors.brand, 0.28)}` },
+  // Cápsula completa (radio = alto / 2) con curva continua, como la barra flotante de iPhone.
   tabBar: {
-    borderRadius: 26,
+    borderCurve: 'continuous',
+    borderRadius: TAB_BAR_HEIGHT / 2,
     borderTopWidth: 1,
     borderWidth: 1,
     boxShadow: '0 14px 28px rgba(2,6,23,0.20)',
-    height: 76,
-    marginHorizontal: 16,
-    paddingBottom: 8,
-    paddingHorizontal: 8,
-    paddingTop: 7,
+    height: TAB_BAR_HEIGHT,
+    marginHorizontal: BAR_INSET,
+    paddingBottom: 0,
+    paddingHorizontal: BAR_PADDING,
+    paddingTop: 0,
   },
+  tabButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  tabIcon: { height: TAB_PILL_HEIGHT },
+  tabLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.1 },
+  tabLabelSelected: { fontWeight: '700' },
   tabItem: {
-    borderRadius: 20,
-    paddingHorizontal: 2,
-  },
-  tabLabel: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '700',
-    letterSpacing: 0.1,
-    marginTop: 1,
+    borderCurve: 'continuous',
+    borderRadius: 30,
   },
 });

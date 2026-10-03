@@ -17,8 +17,9 @@ function getInitials(name: string) {
 
 function normalizeAvatarUrl(uri?: string) {
   if (!uri?.trim()) return undefined;
-  if (uri.startsWith('//')) return `https:${uri}`;
-  return uri.replace(/^http:/, 'https:');
+  const absolute = uri.startsWith('//') ? `https:${uri}` : uri.replace(/^http:/, 'https:');
+  // Los avatares migrados de ui-avatars traen espacios sin codificar ("?name=Ana B").
+  return /\s/.test(absolute) ? encodeURI(absolute.trim()) : absolute;
 }
 
 export function UserAvatar({ name, uri, size = 52 }: UserAvatarProps) {
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   },
   initials: {
     color: 'white',
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.4,
   },
 });

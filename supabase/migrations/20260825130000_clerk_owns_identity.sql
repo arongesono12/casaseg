@@ -26,7 +26,13 @@ begin
     join pg_attribute att on att.attrelid = con.conrelid and att.attnum = clave.attnum
     join pg_class ref on ref.oid = con.confrelid
     join pg_namespace refns on refns.oid = ref.relnamespace
+    join pg_class src on src.oid = con.conrelid
+    join pg_namespace srcns on srcns.oid = src.relnamespace
     where con.contype = 'f'
+      -- Solo tablas de la aplicación. Las del esquema auth (identities,
+      -- sessions, mfa…) pertenecen a GoTrue y deben seguir apuntando a
+      -- auth.users: repuntarlas rompería el propio servicio de autenticación.
+      and srcns.nspname = 'public'
       and refns.nspname = 'auth'
       and ref.relname = 'users'
       -- Solo claves de una columna: una compuesta hacia auth.users no existe
@@ -43,7 +49,8 @@ begin
 
     execute format('alter table %s drop constraint %I', fk.tabla, fk.conname);
 
-    if fk.tabla = 'public.users' then
+    -- regclass::text omite el esquema cuando public está en search_path.
+    if fk.tabla in ('public.users', 'users') then
       -- public.users.id era un espejo de auth.users.id. Ahora es la raíz: no
       -- puede referenciarse a sí misma.
       raise notice 'public.users.% deja de depender de auth.users', fk.columna;

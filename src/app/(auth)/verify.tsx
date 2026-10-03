@@ -81,7 +81,7 @@ export default function VerifyScreen() {
     <RouteScreen title={t('verifyTitle')} description={t('verifySubtitle')} maxWidth={620}>
       <View style={[styles.notice, { backgroundColor: `${colors.brand}0D`, borderColor: `${colors.brand}24` }]}>
         <View style={[styles.noticeIcon, { backgroundColor: `${colors.brand}14` }]}>
-          <Mail color={colors.brand} size={24} />
+          <Mail color={palette.brandIcon} size={24} />
         </View>
         <View style={styles.noticeCopy}>
           <Text style={[styles.noticeTitle, { color: palette.text }]}>{t('otpEmailSent')}</Text>
@@ -135,7 +135,7 @@ export default function VerifyScreen() {
         </View>
       </View>
 
-      {submitError ? <View accessibilityRole="alert" style={styles.errorBanner}><Text selectable style={styles.errorText}>{submitError}</Text></View> : null}
+      {submitError ? <View accessibilityRole="alert" style={styles.errorBanner}><Text selectable style={[styles.errorText, { color: palette.errorText }]}>{submitError}</Text></View> : null}
       {resendMessage ? (
         <View accessibilityRole="alert" style={[styles.successBanner, { backgroundColor: `${colors.success}10`, borderColor: `${colors.success}30` }]}>
           <CheckCircle2 color={colors.success} size={19} />
@@ -165,14 +165,14 @@ const styles = StyleSheet.create({
   notice: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   noticeIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   noticeCopy: { flex: 1, gap: 3 },
-  noticeTitle: { fontSize: 16, lineHeight: 21, fontWeight: '900' },
+  noticeTitle: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
   noticeText: { fontSize: 13, lineHeight: 19 },
   form: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 18, gap: 16, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
-  otpInput: { fontSize: 24, lineHeight: 30, fontWeight: '900', letterSpacing: 8, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  otpInput: { fontSize: 24, lineHeight: 30, fontWeight: '800', letterSpacing: 8, textAlign: 'center', fontVariant: ['tabular-nums'] },
   security: { borderRadius: radius.sm, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   securityText: { flex: 1, fontSize: 12, lineHeight: 18 },
   errorBanner: { borderWidth: StyleSheet.hairlineWidth, borderColor: `${colors.error}40`, borderRadius: radius.md, padding: 13, backgroundColor: `${colors.error}10` },
-  errorText: { color: colors.error, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  errorText: { fontSize: 13, lineHeight: 19, fontWeight: '700' },
   successBanner: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 9 },
   successText: { flex: 1, fontSize: 13, lineHeight: 19, fontWeight: '700' },
 });

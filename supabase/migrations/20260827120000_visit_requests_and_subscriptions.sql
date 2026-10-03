@@ -39,6 +39,10 @@ begin
     create index visit_requests_owner_recent
       on public.visit_requests (owner_id, proposed_at desc);
 
+    -- Pantalla "Mis visitas": filtra por quien solicita.
+    create index visit_requests_requester_recent
+      on public.visit_requests (requester_id, proposed_at desc);
+
     raise notice 'Creada public.visit_requests.';
   else
     raise notice 'public.visit_requests ya existe: no se toca su definición.';
@@ -124,6 +128,92 @@ begin
       on public.visit_requests for update to authenticated
       using (owner_id = public.app_uid() or requester_id = public.app_uid())
       with check (owner_id = public.app_uid() or requester_id = public.app_uid());
+  end if;
+end;
+$$;
+
+-- Reglas de negocio de visit_requests ---------------------------------------
+--
+-- Las políticas solo dicen quién puede tocar una fila, no qué puede cambiar.
+-- Sin esto, quien solicita podría marcar su propia visita como aceptada, o
+-- insertar directamente por la API REST con otro owner_id y saltarse la edge
+-- function. Mismas transiciones que src/features/visits/visit-schedule.ts.
+
+create or replace function public.visit_requests_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  actor uuid := public.app_uid();
+  propietario uuid;
+begin
+  -- service_role (edge functions administrativas, panel) no lleva app_uid.
+  if actor is null then
+    if tg_op = 'UPDATE' then new.updated_at := now(); end if;
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    select p.owner_id into propietario
+    from public.properties p
+    where p.id = new.property_id and p.status = 'active';
+
+    if propietario is null then
+      raise exception 'La vivienda no existe o no acepta visitas.' using errcode = 'P0001';
+    end if;
+    if propietario = actor then
+      raise exception 'No puedes solicitar una visita a tu propia vivienda.' using errcode = 'P0001';
+    end if;
+    if new.proposed_at <= now() then
+      raise exception 'La fecha de la visita debe ser futura.' using errcode = 'P0001';
+    end if;
+
+    new.requester_id := actor;
+    new.owner_id := propietario;
+    new.status := 'pending';
+    new.created_at := now();
+    new.updated_at := now();
+    return new;
+  end if;
+
+  -- UPDATE: solo cambia el estado; el resto de la solicitud queda fijo.
+  if new.property_id is distinct from old.property_id
+     or new.requester_id is distinct from old.requester_id
+     or new.owner_id is distinct from old.owner_id
+     or new.proposed_at is distinct from old.proposed_at
+     or new.note is distinct from old.note
+     or new.created_at is distinct from old.created_at then
+    raise exception 'Solo se puede cambiar el estado de una solicitud de visita.' using errcode = 'P0001';
+  end if;
+
+  if new.status is distinct from old.status then
+    if not (
+      (actor = old.owner_id and (
+        (old.status = 'pending' and new.status in ('accepted', 'rejected'))
+        or (old.status = 'accepted' and new.status in ('completed', 'cancelled'))
+      ))
+      or (actor = old.requester_id and old.status in ('pending', 'accepted') and new.status = 'cancelled')
+    ) then
+      raise exception 'Cambio de estado no permitido: % → %.', old.status, new.status using errcode = 'P0001';
+    end if;
+  end if;
+
+  new.updated_at := now();
+  return new;
+end;
+$fn$;
+
+revoke all on function public.visit_requests_guard() from public, anon, authenticated;
+
+do $$
+begin
+  if to_regclass('public.visit_requests') is not null then
+    drop trigger if exists visit_requests_guard on public.visit_requests;
+    create trigger visit_requests_guard
+      before insert or update on public.visit_requests
+      for each row execute function public.visit_requests_guard();
   end if;
 end;
 $$;

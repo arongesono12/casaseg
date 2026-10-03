@@ -1,0 +1,4 @@
+[install]
+# Supply-chain protection: only install versions published at least 3 days ago,
+# which gives the registry time to pull compromised releases.
+minimumReleaseAge = 259200

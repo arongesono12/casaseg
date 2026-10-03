@@ -1,4 +1,11 @@
 import { LegalPage } from '@/components/legal-page';
+import { defineCopy, useCopy } from '@/providers/i18n-context';
+
+const termsCopy = defineCopy({
+  es: { title: 'Términos y Condiciones', description: 'Reglas aplicables al acceso y uso de los servicios de CasaSeg.', summary: 'Este documento explica cómo utilizar CasaSeg, qué responsabilidades corresponden a cada rol y qué reglas protegen las operaciones de la plataforma.', contactTitle: '¿Necesitas aclarar una condición?', contactDescription: 'Cuéntanos qué apartado necesitas revisar e incluye la referencia de la operación si tu consulta está relacionada con una propiedad, contrato o pago.', contactLabel: 'Consultar los términos' },
+  fr: { title: 'Conditions générales', description: 'Règles applicables à l’accès et à l’utilisation des services de CasaSeg.', summary: 'Ce document explique comment utiliser CasaSeg, quelles responsabilités incombent à chaque rôle et quelles règles protègent les opérations de la plateforme.', contactTitle: 'Besoin de précisions sur une condition ?', contactDescription: 'Indiquez-nous la section concernée et ajoutez la référence de l’opération si votre question porte sur un logement, un contrat ou un paiement.', contactLabel: 'Poser une question sur les conditions' },
+  en: { title: 'Terms and Conditions', description: 'Rules that apply to accessing and using CasaSeg services.', summary: 'This document explains how to use CasaSeg, which responsibilities belong to each role and which rules protect the platform’s transactions.', contactTitle: 'Need a condition clarified?', contactDescription: 'Tell us which section you need to review and include the transaction reference if your question concerns a property, contract or payment.', contactLabel: 'Ask about the terms' },
+});
 
 const sections = [
   {
@@ -149,16 +156,17 @@ const sections = [
 ] as const;
 
 export default function Terms() {
+  const copy = useCopy(termsCopy);
   return (
     <LegalPage
-      title="Términos y Condiciones"
-      description="Reglas aplicables al acceso y uso de los servicios de CasaSeg."
+      title={copy.title}
+      description={copy.description}
       updated="22 jul 2026"
       documentUrl="https://casaseg.com/es/terms"
-      summary="Este documento explica cómo utilizar CasaSeg, qué responsabilidades corresponden a cada rol y qué reglas protegen las operaciones de la plataforma."
-      contactTitle="¿Necesitas aclarar una condición?"
-      contactDescription="Cuéntanos qué apartado necesitas revisar e incluye la referencia de la operación si tu consulta está relacionada con una propiedad, contrato o pago."
-      contactLabel="Consultar los términos"
+      summary={copy.summary}
+      contactTitle={copy.contactTitle}
+      contactDescription={copy.contactDescription}
+      contactLabel={copy.contactLabel}
       sections={sections}
     />
   );

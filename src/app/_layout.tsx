@@ -16,7 +16,7 @@ import { type PropsWithChildren, useEffect } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { colors } from '@/constants/theme';
+
 import { ErrorBoundary } from '@/components/error-boundary';
 import { NetworkStatusBanner } from '@/components/network-status-banner';
 import { canAccessAdminPanel, canAccessOwnerPanel } from '@/lib/access-control';
@@ -75,7 +75,7 @@ function RootNavigator() {
   }, [isLoading]);
 
   if (isLoading) {
-    return <View style={[styles.loading, { backgroundColor: palette.background }]}><ActivityIndicator color={colors.brand} size="large" /></View>;
+    return <View style={[styles.loading, { backgroundColor: palette.background }]}><ActivityIndicator color={palette.brandIcon} size="large" /></View>;
   }
 
   return (
@@ -105,6 +105,7 @@ function RootNavigator() {
           <Stack.Screen name="settings" />
           <Stack.Screen name="chat/[conversationId]" />
           <Stack.Screen name="visit/[propertyId]" />
+          <Stack.Screen name="visits/index" />
           <Stack.Screen name="payment/success" />
           <Stack.Screen name="payment/failed" />
         </Stack.Protected>

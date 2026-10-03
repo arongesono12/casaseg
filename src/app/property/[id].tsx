@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams, type Href } from "expo-router";
@@ -8,7 +7,6 @@ import {
     ActivityIndicator,
     FlatList,
     Linking,
-    Platform,
     Pressable,
     ScrollView,
     Share,
@@ -20,199 +18,52 @@ import {
     type NativeScrollEvent,
     type NativeSyntheticEvent,
 } from "react-native";
-import {
-    SafeAreaView,
-    useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PropertyGallery } from "@/components/property/property-gallery";
 import {
-    ArrowLeft,
-    CheckCircle2,
-    Clock,
-    Heart,
-    HomeCheck,
-    MapPin,
-    Moon,
-    Send,
-    Share2,
-    ShieldCheck,
-    Sparkles,
-    Star,
-    Sun,
-} from "@/components/ui/icons";
-import { UserAvatar } from "@/components/user-avatar";
+    AmenityChip,
+    Badge,
+    FactTile,
+    HostCard,
+    PrimaryButton,
+    SecondaryButton,
+    Section,
+} from "@/components/property/detail/detail-parts";
+import { detailCopy } from "@/components/property/detail/detail-copy";
+import { ReservationCard } from "@/components/property/detail/reservation-card";
 import {
-    actionGradient,
-    colors,
-    radius,
-    touchTarget,
-    type AppPalette,
-} from "@/constants/theme";
+    ArrowLeft,
+    BedDouble,
+    Bath,
+    Heart,
+    MapPin,
+    Ruler,
+    Share2,
+    Star,
+} from "@/components/ui/icons";
+import { colors, radius, touchTarget, type AppPalette } from "@/constants/theme";
 import { propertyKeys } from "@/features/properties/api/property.keys";
 import { fetchFavorites } from "@/features/properties/api/property.queries";
+import { useProfileId } from "@/features/auth/use-profile-id";
+import { amenityLabel } from "@/features/properties/amenities";
 import { useFavoriteMutation } from "@/features/properties/hooks/use-favorite-mutation";
 import { useProperty } from "@/features/properties/hooks/use-properties";
+import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-context";
 import { useI18n } from "@/providers/i18n-context";
 import { useAppTheme } from "@/providers/theme-context";
 import { formatXaf } from "@/utils/formatters";
 
-// Escala de espaciado de la pantalla. Declararla una vez evita que cada bloque
-// invente su propio margen, que era el origen del desorden visual.
+// Escala de espaciado de la pantalla: un solo margen lateral y un solo ritmo
+// vertical entre bloques evitan que cada sección invente el suyo.
 const gutter = 16;
-const band = 20;
-const bandLarge = 24;
+const blockGap = 28;
+const sheetOverlap = 28;
 
 const blurhash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
 const fallbackImage =
   "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=82";
-
-const detailCopy = {
-  es: {
-    dark: "Cambiar al tema oscuro",
-    light: "Cambiar al tema claro",
-    share: "Compartir propiedad",
-    host: "propietario",
-    excellentLocation: "Ubicación excelente",
-    locationDetail: "Una zona bien valorada por la comunidad.",
-    secureBooking: "Proceso de reserva seguro",
-    secureBookingDetail: "Protección de tus datos durante todo el proceso.",
-    fastCommunication: "Comunicación rápida",
-    fastCommunicationDetail: "Contacta directamente con el propietario.",
-    legalTitle: "Información legal y de reserva",
-    registration: "Registro / licencia",
-    registrationValue: "No requerida / no indicada",
-    verification: "Estado de verificación",
-    category: "Categoría",
-    cancellation: "Cancelación",
-    standard: "Estándar",
-    reviews: "Reseñas verificadas",
-    noReviews:
-      "Aún no hay valoraciones publicadas por inquilinos con reserva completada.",
-    reviewsAvailable: "valoraciones verificadas publicadas.",
-    amenities: "Lo que ofrece este lugar",
-    noAmenities: "El propietario todavía no ha detallado los servicios.",
-    service: "Servicio",
-    cleaning: "Limpieza",
-    taxes: "Impuestos",
-    deposit: "Depósito / fianza",
-    availability: "Disponibilidad",
-    immediate: "Inmediata",
-    housingState: "Estado de la vivienda",
-    ready: "Amueblada y lista",
-    reserveVisit: "Reservar visita",
-    maps: "Cómo llegar con Google Maps",
-    noCharge: "No se te cobrará nada todavía",
-    total: "Total",
-    contactHost: "Contactar al propietario",
-    verified: "Verificada",
-    pending: "En revisión",
-    restricted: "Restringida",
-    longTerm: "Largo plazo",
-    shortTerm: "Corta estancia",
-    sale: "Venta",
-    perMonth: "Por mes",
-    perNight: "Por noche",
-    salePrice: "Precio de venta",
-  },
-  fr: {
-    dark: "Passer au thème sombre",
-    light: "Passer au thème clair",
-    share: "Partager le logement",
-    host: "Hôte",
-    excellentLocation: "Excellent emplacement",
-    locationDetail: "Un quartier apprécié par la communauté.",
-    secureBooking: "Réservation sécurisée",
-    secureBookingDetail: "Protection de vos données pendant tout le processus.",
-    fastCommunication: "Communication rapide",
-    fastCommunicationDetail: "Contactez directement l’hôte.",
-    legalTitle: "Informations légales et réservation",
-    registration: "Enregistrement / licence",
-    registrationValue: "Non requise / non indiquée",
-    verification: "État de vérification",
-    category: "Catégorie",
-    cancellation: "Annulation",
-    standard: "Standard",
-    reviews: "Avis vérifiés",
-    noReviews:
-      "Aucun avis publié par des locataires ayant terminé leur réservation.",
-    reviewsAvailable: "avis vérifiés publiés.",
-    amenities: "Ce que propose ce logement",
-    noAmenities: "L’hôte n’a pas encore détaillé les équipements.",
-    service: "Service",
-    cleaning: "Nettoyage",
-    taxes: "Taxes",
-    deposit: "Dépôt / caution",
-    availability: "Disponibilité",
-    immediate: "Immédiate",
-    housingState: "État du logement",
-    ready: "Meublé et prêt",
-    reserveVisit: "Réserver une visite",
-    maps: "Itinéraire avec Google Maps",
-    noCharge: "Aucun montant ne sera débité pour le moment",
-    total: "Total",
-    contactHost: "Contacter l’hôte",
-    verified: "Vérifié",
-    pending: "En cours",
-    restricted: "Restreint",
-    longTerm: "Longue durée",
-    shortTerm: "Court séjour",
-    sale: "Vente",
-    perMonth: "Par mois",
-    perNight: "Par nuit",
-    salePrice: "Prix de vente",
-  },
-  en: {
-    dark: "Switch to dark theme",
-    light: "Switch to light theme",
-    share: "Share property",
-    host: "Host",
-    excellentLocation: "Excellent location",
-    locationDetail: "A neighborhood highly rated by the community.",
-    secureBooking: "Secure booking process",
-    secureBookingDetail: "Your data is protected throughout the process.",
-    fastCommunication: "Fast communication",
-    fastCommunicationDetail: "Contact the host directly.",
-    legalTitle: "Legal and booking information",
-    registration: "Registration / license",
-    registrationValue: "Not required / not provided",
-    verification: "Verification status",
-    category: "Category",
-    cancellation: "Cancellation",
-    standard: "Standard",
-    reviews: "Verified reviews",
-    noReviews:
-      "There are no published ratings from tenants with a completed booking yet.",
-    reviewsAvailable: "verified ratings published.",
-    amenities: "What this place offers",
-    noAmenities: "The host has not listed the amenities yet.",
-    service: "Service",
-    cleaning: "Cleaning",
-    taxes: "Taxes",
-    deposit: "Security deposit",
-    availability: "Availability",
-    immediate: "Immediate",
-    housingState: "Property condition",
-    ready: "Furnished and ready",
-    reserveVisit: "Book a visit",
-    maps: "Directions with Google Maps",
-    noCharge: "You will not be charged yet",
-    total: "Total",
-    contactHost: "Contact the host",
-    verified: "Verified",
-    pending: "Under review",
-    restricted: "Restricted",
-    longTerm: "Long term",
-    shortTerm: "Short stay",
-    sale: "Sale",
-    perMonth: "Per month",
-    perNight: "Per night",
-    salePrice: "Sale price",
-  },
-} as const;
-
-type Copy = (typeof detailCopy)[keyof typeof detailCopy];
 
 function normalizeImageUrl(value?: string) {
   if (!value?.trim()) return fallbackImage;
@@ -268,17 +119,19 @@ export default function PropertyDetailScreen() {
   }>();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { palette, resolvedMode, setMode } = useAppTheme();
+  const { palette } = useAppTheme();
   const { t, locale } = useI18n();
   const copy = detailCopy[locale];
   const { user, isAuthenticated } = useAuth();
+  // owner_id guarda el uuid de Supabase; user.id es el id de Clerk.
+  const profileId = useProfileId();
   const propertyQuery = useProperty(id);
   const property = propertyQuery.data;
   const wide = width >= 900;
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [heroWidth, setHeroWidth] = useState(() =>
-    Math.max(1, Math.min(width - 32, 760)),
+    Math.max(1, wide ? Math.min(width - 48, 760) : width),
   );
   const [guestFavorite, setGuestFavorite] = useState(false);
   const favorites = useQuery({
@@ -340,7 +193,7 @@ export default function PropertyDetailScreen() {
   const isFavorite = isAuthenticated
     ? (favorites.data?.includes(property.id) ?? false)
     : guestFavorite;
-  const isOwnProperty = user?.id === property.ownerId;
+  const isOwnProperty = Boolean(profileId) && profileId === property.ownerId;
   const numberLocale =
     locale === "fr" ? "fr-FR" : locale === "en" ? "en-US" : "es-GQ";
   const price = formatXaf(property.price, undefined, numberLocale);
@@ -356,12 +209,6 @@ export default function PropertyDetailScreen() {
       : property.priceType === "per_night"
         ? copy.shortTerm
         : copy.sale;
-  const legalStatus =
-    property.legalStatus === "verified"
-      ? copy.verified
-      : property.legalStatus === "pending"
-        ? copy.pending
-        : copy.restricted;
   const actionLabel = isOwnProperty
     ? t("editProperty")
     : property.isOccupied
@@ -409,11 +256,10 @@ export default function PropertyDetailScreen() {
   };
 
   const toggleFavorite = () => {
-    // Misma respuesta tactil que la tarjeta de propiedad: marcar favorito se
-    // sentia distinto segun se hiciera desde el listado o desde el detalle.
-    if (Platform.OS !== "web")
-      void Haptics.selectionAsync().catch(() => undefined);
+    // Misma respuesta táctil que la tarjeta de propiedad: marcar favorito se
+    // sentía distinto según se hiciera desde el listado o desde el detalle.
     const next = !isFavorite;
+    haptics.toggle(next);
     if (!isAuthenticated) setGuestFavorite(next);
     else favoriteMutation.mutate({ propertyId: property.id, favorite: next });
   };
@@ -445,34 +291,32 @@ export default function PropertyDetailScreen() {
     );
   };
 
+  const reservationCard = (
+    <ReservationCard
+      palette={palette}
+      price={price}
+      priceUnit={priceUnit}
+      actionLabel={actionLabel}
+      contactLabel={contactLabel}
+      copy={copy}
+      onAction={requestVisit}
+      onContact={contactHost}
+    />
+  );
+
   return (
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: wide ? 52 : 112 + insets.bottom },
         ]}
       >
-        <View style={[styles.page, wide && styles.pageWide]}>
-          <PropertyNavigation
-            palette={palette}
-            dark={resolvedMode === "dark"}
-            favorite={isFavorite}
-            favoritePending={favoriteMutation.isPending}
-            backLabel={t("back")}
-            themeLabel={resolvedMode === "dark" ? copy.light : copy.dark}
-            shareLabel={copy.share}
-            favoriteLabel={isFavorite ? t("removeFavorite") : t("saveProperty")}
-            onBack={() => router.back()}
-            onTheme={() => setMode(resolvedMode === "dark" ? "light" : "dark")}
-            onShare={shareProperty}
-            onFavorite={toggleFavorite}
-          />
-
+        <View style={[styles.page, wide && styles.pageWide, wide && { paddingTop: insets.top + 12 }]}>
           <View style={[styles.content, wide && styles.contentWide]}>
-            <View style={[styles.mainColumn, wide && styles.mainColumnWide]}>
+            <View style={styles.mainColumn}>
               <View
                 onLayout={(event) =>
                   setHeroWidth(Math.max(1, event.nativeEvent.layout.width))
@@ -498,13 +342,29 @@ export default function PropertyDetailScreen() {
                   })}
                   renderItem={renderHeroImage}
                 />
-                <View pointerEvents="none" style={styles.imageCounter}>
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={["rgba(15,23,42,0.42)", "transparent"]}
+                  style={styles.topShade}
+                />
+                <HeroControls
+                  top={wide ? 14 : insets.top + 8}
+                  favorite={isFavorite}
+                  favoritePending={favoriteMutation.isPending}
+                  backLabel={t("back")}
+                  shareLabel={copy.share}
+                  favoriteLabel={isFavorite ? t("removeFavorite") : t("saveProperty")}
+                  onBack={() => router.back()}
+                  onShare={shareProperty}
+                  onFavorite={toggleFavorite}
+                />
+                <View pointerEvents="none" style={[styles.imageCounter, !wide && styles.imageCounterOverSheet]}>
                   <Text style={styles.imageCounterText}>
                     {galleryIndex + 1} / {images.length}
                   </Text>
                 </View>
                 {images.length > 1 && (
-                  <View pointerEvents="none" style={styles.dots}>
+                  <View pointerEvents="none" style={[styles.dots, !wide && styles.dotsOverSheet]}>
                     {images.map((image, index) => (
                       <View
                         key={image}
@@ -518,265 +378,151 @@ export default function PropertyDetailScreen() {
                 )}
               </View>
 
-              <View style={styles.intro}>
-                <Text
-                  selectable
-                  style={[styles.title, { color: palette.text }]}
-                >
-                  {property.title}
-                </Text>
-                <View style={styles.metaRow}>
-                  <View style={styles.rating}>
-                    <Star
-                      color={colors.warning}
-                      fill={colors.warning}
-                      size={17}
+              <View
+                style={[
+                  styles.sheet,
+                  !wide && styles.sheetOverlap,
+                  !wide && { backgroundColor: palette.background },
+                ]}
+              >
+                <View style={styles.intro}>
+                  <View style={styles.badgeRow}>
+                    <Badge
+                      label={category}
+                      backgroundColor={`${colors.accent}1C`}
+                      textColor={colors.accentDark}
                     />
-                    <Text
-                      selectable
-                      style={[styles.ratingText, { color: palette.text }]}
-                    >
-                      {property.rating.toFixed(1)}
-                    </Text>
-                    <Text
-                      selectable
-                      style={[
-                        styles.reviewCount,
-                        { color: palette.textSecondary },
-                      ]}
-                    >
-                      ({property.reviewCount})
-                    </Text>
+                    {property.isNew && (
+                      <Badge
+                        label={t("newBadge")}
+                        backgroundColor={palette.brand}
+                        textColor="white"
+                      />
+                    )}
+                    {property.legalStatus === "verified" && (
+                      <Badge
+                        label={copy.verified}
+                        backgroundColor={`${colors.accent}1C`}
+                        textColor={colors.accentDark}
+                      />
+                    )}
+                    <Badge
+                      label={property.isOccupied ? t("occupied") : t("available")}
+                      backgroundColor={
+                        property.isOccupied
+                          ? `${colors.warning}20`
+                          : `${colors.success}1C`
+                      }
+                      textColor={
+                        property.isOccupied ? colors.warning : colors.success
+                      }
+                    />
                   </View>
+                  <Text selectable style={[styles.title, { color: palette.text }]}>
+                    {property.title}
+                  </Text>
                   <View style={styles.locationRow}>
-                    <MapPin color={palette.textSecondary} size={18} />
+                    <MapPin color={palette.brandIcon} size={18} />
                     <Text
                       selectable
-                      style={[styles.location, { color: palette.text }]}
+                      numberOfLines={2}
+                      style={[styles.location, { color: palette.textSecondary }]}
                     >
                       {property.location}
                     </Text>
                   </View>
-                </View>
-                <View style={styles.badgeRow}>
-                  {property.isNew && (
-                    <Badge
-                      label={t("newBadge")}
-                      backgroundColor={palette.brand}
-                      textColor="white"
-                    />
-                  )}
-                  <Badge
-                    label={property.isOccupied ? t("occupied") : t("available")}
-                    backgroundColor={
-                      property.isOccupied
-                        ? `${colors.warning}20`
-                        : `${colors.accent}1C`
-                    }
-                    textColor={
-                      property.isOccupied ? colors.warning : colors.accentDark
-                    }
-                  />
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.hostBlock,
-                  { borderBottomColor: palette.border },
-                ]}
-              >
-                <View style={styles.hostCopy}>
-                  <Text
-                    style={[
-                      styles.hostEyebrow,
-                      { color: palette.textSecondary },
-                    ]}
-                  >
-                    {copy.host}
-                  </Text>
-                  <Text
-                    selectable
-                    style={[styles.ownerName, { color: palette.text }]}
-                  >
-                    {property.ownerName}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.propertyFacts,
-                      { color: palette.textSecondary },
-                    ]}
-                  >
-                    {t("beds", { count: String(property.bedrooms) })} ·{" "}
-                    {t("baths", { count: String(property.bathrooms) })} ·{" "}
-                    {property.area || "—"} m²
-                  </Text>
-                </View>
-                <View>
-                  <UserAvatar
-                    name={property.ownerName}
-                    uri={property.ownerAvatar}
-                    size={58}
-                  />
-                  <View
-                    style={[
-                      styles.avatarCheck,
-                      { borderColor: palette.background },
-                    ]}
-                  >
-                    <CheckCircle2
-                      color="white"
-                      fill={colors.accentDark}
-                      size={22}
-                    />
+                  <View style={styles.priceRow}>
+                    <Text
+                      selectable
+                      numberOfLines={1}
+                      style={[styles.price, { color: palette.text }]}
+                    >
+                      {price}
+                    </Text>
+                    <Text style={[styles.priceUnit, { color: palette.textSecondary }]}>
+                      {priceUnit}
+                    </Text>
                   </View>
                 </View>
-              </View>
 
-              <View
-                style={[
-                  styles.trustList,
-                  { borderBottomColor: palette.border },
-                ]}
-              >
-                <TrustRow
-                  icon={<MapPin color={colors.accent} size={23} />}
-                  title={copy.excellentLocation}
-                  detail={copy.locationDetail}
-                  palette={palette}
-                />
-                <TrustRow
-                  icon={<ShieldCheck color={colors.accent} size={23} />}
-                  title={copy.secureBooking}
-                  detail={copy.secureBookingDetail}
-                  palette={palette}
-                />
-                <TrustRow
-                  icon={<Clock color={colors.accent} size={23} />}
-                  title={copy.fastCommunication}
-                  detail={copy.fastCommunicationDetail}
-                  palette={palette}
-                />
-              </View>
-
-              <Section title={t("description")} palette={palette}>
-                <Text
-                  selectable
-                  style={[styles.body, { color: palette.textSecondary }]}
-                >
-                  {property.description || "—"}
-                </Text>
-              </Section>
-
-              <Section title={copy.legalTitle} palette={palette}>
-                <View
-                  style={[styles.infoList, { backgroundColor: palette.subtle }]}
-                >
-                  <InfoRow
-                    label={copy.registration}
-                    value={copy.registrationValue}
+                <View style={styles.facts}>
+                  <FactTile
+                    icon={BedDouble}
+                    value={String(property.bedrooms)}
+                    label={copy.bedroomsLabel}
                     palette={palette}
                   />
-                  <InfoRow
-                    label={copy.verification}
-                    value={legalStatus}
+                  <FactTile
+                    icon={Bath}
+                    value={String(property.bathrooms)}
+                    label={copy.bathroomsLabel}
                     palette={palette}
                   />
-                  <InfoRow
-                    label={copy.category}
-                    value={category}
+                  <FactTile
+                    icon={Ruler}
+                    value={property.area ? `${property.area} m²` : "—"}
+                    label={copy.areaLabel}
                     palette={palette}
                   />
-                  <InfoRow
-                    label={copy.cancellation}
-                    value={copy.standard}
+                  <FactTile
+                    icon={Star}
+                    value={property.rating.toFixed(1)}
+                    label={copy.ratingLabel}
                     palette={palette}
-                    last
                   />
                 </View>
-              </Section>
 
-              <Section title={copy.reviews} palette={palette}>
-                <View
-                  style={[
-                    styles.emptyReview,
-                    { backgroundColor: palette.subtle },
-                  ]}
-                >
-                  <Star
-                    color={colors.warning}
-                    fill={property.reviewCount ? colors.warning : "transparent"}
-                    size={25}
-                  />
+                <HostCard
+                  palette={palette}
+                  name={property.ownerName}
+                  avatar={property.ownerAvatar}
+                  eyebrow={copy.host}
+                  verifiedLabel={copy.hostVerified}
+                  contactLabel={contactLabel}
+                  onContact={contactHost}
+                />
+
+                <Section title={t("description")} palette={palette}>
                   <Text
                     selectable
                     style={[styles.body, { color: palette.textSecondary }]}
                   >
-                    {property.reviewCount
-                      ? `${property.reviewCount} ${copy.reviewsAvailable}`
-                      : copy.noReviews}
+                    {property.description || "—"}
                   </Text>
-                </View>
-              </Section>
+                </Section>
 
-              <Section title={copy.amenities} palette={palette}>
-                {property.amenities.length ? (
-                  <View style={styles.amenitiesGrid}>
-                    {property.amenities.map((amenity) => (
-                      <View key={amenity} style={styles.amenity}>
-                        <Sparkles color={colors.accent} size={22} />
-                        <Text
-                          selectable
-                          style={[styles.amenityText, { color: palette.text }]}
-                        >
-                          {amenity}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={[styles.body, { color: palette.textSecondary }]}>
-                    {copy.noAmenities}
-                  </Text>
-                )}
-              </Section>
+                <Section title={copy.amenities} palette={palette}>
+                  {property.amenities.length ? (
+                    <View style={styles.amenitiesGrid}>
+                      {property.amenities.map((amenity) => (
+                        <AmenityChip
+                          key={amenity}
+                          amenity={amenity}
+                          label={amenityLabel(amenity, locale)}
+                          palette={palette}
+                        />
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={[styles.body, { color: palette.textSecondary }]}>
+                      {copy.noAmenities}
+                    </Text>
+                  )}
+                </Section>
 
-              {!wide && (
-                <ReservationCard
-                  palette={palette}
-                  price={price}
-                  priceUnit={priceUnit}
-                  rating={property.rating}
-                  category={category}
-                  available={!property.isOccupied}
-                  actionLabel={actionLabel}
-                  contactLabel={contactLabel}
-                  copy={copy}
-                  onAction={requestVisit}
-                  onContact={contactHost}
-                  onMaps={openMaps}
-                />
-              )}
+                {/* La dirección ya aparece bajo el título: aquí solo la acción. */}
+                <Section title={copy.locationTitle} palette={palette}>
+                  <SecondaryButton
+                    label={copy.maps}
+                    onPress={openMaps}
+                    palette={palette}
+                    icon={<MapPin color={palette.brandIcon} size={19} />}
+                  />
+                </Section>
+              </View>
             </View>
 
-            {wide && (
-              <View style={styles.aside}>
-                <ReservationCard
-                  palette={palette}
-                  price={price}
-                  priceUnit={priceUnit}
-                  rating={property.rating}
-                  category={category}
-                  available={!property.isOccupied}
-                  actionLabel={actionLabel}
-                  contactLabel={contactLabel}
-                  copy={copy}
-                  onAction={requestVisit}
-                  onContact={contactHost}
-                  onMaps={openMaps}
-                />
-              </View>
-            )}
+            {wide && <View style={styles.aside}>{reservationCard}</View>}
           </View>
         </View>
       </ScrollView>
@@ -800,9 +546,7 @@ export default function PropertyDetailScreen() {
             >
               {price}
             </Text>
-            <Text
-              style={[styles.ctaAvailability, { color: palette.textSecondary }]}
-            >
+            <Text style={[styles.ctaUnit, { color: palette.textSecondary }]}>
               {priceUnit}
             </Text>
           </View>
@@ -853,79 +597,59 @@ function ScreenState({
   );
 }
 
-function PropertyNavigation({
-  palette,
-  dark,
+// Controles flotantes sobre la foto: claros en ambos temas porque se apoyan en
+// la imagen, no en el fondo de la pantalla.
+function HeroControls({
+  top,
   favorite,
   favoritePending,
   backLabel,
-  themeLabel,
   shareLabel,
   favoriteLabel,
   onBack,
-  onTheme,
   onShare,
   onFavorite,
 }: {
-  palette: AppPalette;
-  dark: boolean;
+  top: number;
   favorite: boolean;
   favoritePending: boolean;
   backLabel: string;
-  themeLabel: string;
   shareLabel: string;
   favoriteLabel: string;
   onBack: () => void;
-  onTheme: () => void;
   onShare: () => void;
   onFavorite: () => void;
 }) {
   return (
-    <SafeAreaView edges={["top"]} style={styles.navigation}>
-      <HeaderAction label={backLabel} onPress={onBack} palette={palette} text>
-        <ArrowLeft color={palette.text} size={22} />
-      </HeaderAction>
-      <View style={styles.navigationActions}>
-        <HeaderAction label={themeLabel} onPress={onTheme} palette={palette}>
-          {dark ? (
-            <Sun color={palette.text} size={21} />
-          ) : (
-            <Moon color={palette.text} size={21} />
-          )}
-        </HeaderAction>
-        <HeaderAction label={shareLabel} onPress={onShare} palette={palette}>
-          <Share2 color={palette.text} size={21} />
-        </HeaderAction>
-        <HeaderAction
-          label={favoriteLabel}
-          onPress={onFavorite}
-          disabled={favoritePending}
-          palette={palette}
-        >
+    <View style={[styles.controls, { top }]}>
+      <GlassButton label={backLabel} onPress={onBack}>
+        <ArrowLeft color={colors.text} size={22} />
+      </GlassButton>
+      <View style={styles.controlsEnd}>
+        <GlassButton label={shareLabel} onPress={onShare}>
+          <Share2 color={colors.text} size={21} />
+        </GlassButton>
+        <GlassButton label={favoriteLabel} onPress={onFavorite} disabled={favoritePending}>
           <Heart
-            color={favorite ? colors.favorite : palette.text}
+            color={favorite ? colors.favorite : colors.text}
             fill={favorite ? colors.favorite : "transparent"}
             size={22}
           />
-        </HeaderAction>
+        </GlassButton>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
-function HeaderAction({
+function GlassButton({
   label,
   onPress,
   disabled,
-  palette,
-  text: withText,
   children,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
-  palette: AppPalette;
-  text?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -937,322 +661,11 @@ function HeaderAction({
       hitSlop={4}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.headerAction,
-        withText && styles.headerActionText,
-        {
-          backgroundColor: pressed ? palette.subtle : "transparent",
-          opacity: disabled ? 0.5 : 1,
-        },
+        styles.glassButton,
+        { opacity: disabled ? 0.6 : pressed ? 0.8 : 1 },
       ]}
     >
       {children}
-      {withText && (
-        <Text style={[styles.headerActionLabel, { color: palette.text }]}>
-          {label}
-        </Text>
-      )}
-    </Pressable>
-  );
-}
-
-function Badge({
-  label,
-  backgroundColor,
-  textColor,
-}: {
-  label: string;
-  backgroundColor: string;
-  textColor: string;
-}) {
-  return (
-    <View style={[styles.badge, { backgroundColor }]}>
-      <Text style={[styles.badgeText, { color: textColor }]}>{label}</Text>
-    </View>
-  );
-}
-
-function TrustRow({
-  icon,
-  title,
-  detail,
-  palette,
-}: {
-  icon: ReactNode;
-  title: string;
-  detail: string;
-  palette: AppPalette;
-}) {
-  return (
-    <View style={styles.trustRow}>
-      <View
-        style={[styles.trustIcon, { backgroundColor: `${colors.accent}14` }]}
-      >
-        {icon}
-      </View>
-      <View style={styles.flex}>
-        <Text style={[styles.trustTitle, { color: palette.text }]}>
-          {title}
-        </Text>
-        <Text style={[styles.caption, { color: palette.textSecondary }]}>
-          {detail}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function Section({
-  title,
-  palette,
-  children,
-}: {
-  title: string;
-  palette: AppPalette;
-  children: ReactNode;
-}) {
-  return (
-    <View style={[styles.section, { borderBottomColor: palette.border }]}>
-      <Text style={[styles.sectionTitle, { color: palette.text }]}>
-        {title}
-      </Text>
-      {children}
-    </View>
-  );
-}
-
-function InfoRow({
-  label,
-  value,
-  palette,
-  last,
-}: {
-  label: string;
-  value: string;
-  palette: AppPalette;
-  last?: boolean;
-}) {
-  return (
-    <View
-      style={[
-        styles.infoRow,
-        !last && {
-          borderBottomColor: palette.border,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-        },
-      ]}
-    >
-      <Text style={[styles.infoLabel, { color: palette.textSecondary }]}>
-        {label}
-      </Text>
-      <Text selectable style={[styles.infoValue, { color: palette.text }]}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function PriceRow({
-  label,
-  value,
-  palette,
-}: {
-  label: string;
-  value: string;
-  palette: AppPalette;
-}) {
-  return (
-    <View style={styles.priceRow}>
-      <Text style={[styles.priceRowLabel, { color: palette.textSecondary }]}>
-        {label}
-      </Text>
-      <Text style={[styles.priceRowValue, { color: palette.text }]}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function ReservationCard({
-  palette,
-  price,
-  priceUnit,
-  rating,
-  category,
-  available,
-  actionLabel,
-  contactLabel,
-  copy,
-  onAction,
-  onContact,
-  onMaps,
-}: {
-  palette: AppPalette;
-  price: string;
-  priceUnit: string;
-  rating: number;
-  category: string;
-  available: boolean;
-  actionLabel: string;
-  contactLabel: string;
-  copy: Copy;
-  onAction: () => void;
-  onContact: () => void;
-  onMaps: () => void;
-}) {
-  return (
-    <View
-      style={[
-        styles.reservationCard,
-        { backgroundColor: palette.surface, borderColor: palette.border },
-      ]}
-    >
-      <View style={styles.reservationHeader}>
-        <View style={styles.flex}>
-          <Text
-            selectable
-            style={[styles.reservationPrice, { color: palette.text }]}
-          >
-            {price}
-          </Text>
-          <Text
-            style={[styles.reservationUnit, { color: palette.textSecondary }]}
-          >
-            {priceUnit}
-          </Text>
-        </View>
-        <View style={styles.rating}>
-          <Star color={colors.warning} fill={colors.warning} size={17} />
-          <Text style={[styles.ratingText, { color: palette.text }]}>
-            {rating.toFixed(1)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.priceBreakdown, { borderColor: palette.border }]}>
-        <PriceRow label={copy.service} value="0 FCFA" palette={palette} />
-        <PriceRow label={copy.cleaning} value="0 FCFA" palette={palette} />
-        <PriceRow label={copy.taxes} value="0 FCFA" palette={palette} />
-        <PriceRow label={copy.deposit} value="0 FCFA" palette={palette} />
-      </View>
-
-      <View style={[styles.bookingFacts, { backgroundColor: palette.subtle }]}>
-        <View style={styles.bookingFact}>
-          <HomeCheck color={colors.accent} size={20} />
-          <Text
-            style={[styles.bookingFactLabel, { color: palette.textSecondary }]}
-          >
-            {copy.category}
-          </Text>
-          <Text style={[styles.bookingFactValue, { color: palette.text }]}>
-            {category}
-          </Text>
-        </View>
-        <View style={styles.bookingFact}>
-          <CheckCircle2
-            color={available ? colors.success : colors.warning}
-            size={20}
-          />
-          <Text
-            style={[styles.bookingFactLabel, { color: palette.textSecondary }]}
-          >
-            {copy.availability}
-          </Text>
-          <Text style={[styles.bookingFactValue, { color: palette.text }]}>
-            {available ? copy.immediate : copy.pending}
-          </Text>
-        </View>
-        <View style={styles.bookingFact}>
-          <Sparkles color={colors.accent} size={20} />
-          <Text
-            style={[styles.bookingFactLabel, { color: palette.textSecondary }]}
-          >
-            {copy.housingState}
-          </Text>
-          <Text style={[styles.bookingFactValue, { color: palette.text }]}>
-            {copy.ready}
-          </Text>
-        </View>
-      </View>
-
-      <PrimaryButton label={actionLabel} onPress={onAction} />
-      <SecondaryButton
-        label={contactLabel}
-        onPress={onContact}
-        palette={palette}
-        icon={<Send color={palette.text} size={19} />}
-      />
-      <SecondaryButton
-        label={copy.maps}
-        onPress={onMaps}
-        palette={palette}
-        icon={<MapPin color={palette.text} size={19} />}
-      />
-      <Text style={[styles.noCharge, { color: palette.textSecondary }]}>
-        {copy.noCharge}
-      </Text>
-      <View style={[styles.totalRow, { borderTopColor: palette.border }]}>
-        <Text style={[styles.totalLabel, { color: palette.text }]}>
-          {copy.total}
-        </Text>
-        <Text selectable style={[styles.totalPrice, { color: palette.text }]}>
-          {price}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function PrimaryButton({
-  label,
-  onPress,
-}: {
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-    >
-      <LinearGradient colors={actionGradient} style={styles.primaryGradient}>
-        <Text numberOfLines={2} style={styles.primaryText}>
-          {label}
-        </Text>
-      </LinearGradient>
-    </Pressable>
-  );
-}
-
-function SecondaryButton({
-  label,
-  onPress,
-  palette,
-  icon,
-}: {
-  label: string;
-  onPress: () => void;
-  palette: AppPalette;
-  icon?: ReactNode;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.secondaryButton,
-        {
-          borderColor: palette.border,
-          backgroundColor: pressed ? palette.subtle : palette.surface,
-        },
-      ]}
-    >
-      {icon}
-      <Text style={[styles.secondaryText, { color: palette.text }]}>
-        {label}
-      </Text>
     </Pressable>
   );
 }
@@ -1262,27 +675,6 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   page: { width: "100%", maxWidth: 780, alignSelf: "center" },
   pageWide: { maxWidth: 1180, paddingHorizontal: 24 },
-  navigation: {
-    minHeight: 68,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  navigationActions: { flexDirection: "row", alignItems: "center", gap: 2 },
-  headerAction: {
-    minWidth: touchTarget,
-    minHeight: touchTarget,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-  },
-  // Anula el paddingHorizontal de headerAction en vez de competir con el.
-  headerActionText: { paddingLeft: 8, paddingRight: 14 },
-  headerActionLabel: { fontSize: 14, lineHeight: 20, fontWeight: "800" },
   content: { gap: 24 },
   contentWide: {
     flexDirection: "row",
@@ -1290,93 +682,64 @@ const styles = StyleSheet.create({
     gap: 28,
     paddingBottom: 20,
   },
-  // Unico dueno del margen lateral: antes lo repetian seis bloques y bastaba
-  // que uno se desviara para romper la linea de alineacion de toda la pantalla.
-  mainColumn: { flex: 1, minWidth: 0, paddingHorizontal: gutter },
-  mainColumnWide: { paddingHorizontal: 0 },
-  intro: { paddingTop: band, paddingBottom: band, gap: 12 },
-  title: {
-    fontSize: 27,
-    lineHeight: 33,
-    fontWeight: "900",
-    letterSpacing: -0.6,
-  },
-  metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 12,
-  },
-  rating: { minHeight: 28, flexDirection: "row", alignItems: "center", gap: 4 },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: "900",
-    fontVariant: ["tabular-nums"],
-  },
-  reviewCount: {
-    fontSize: 13,
-    fontWeight: "700",
-    textDecorationLine: "underline",
-    fontVariant: ["tabular-nums"],
-  },
-  locationRow: {
-    flex: 1,
-    minWidth: 220,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  location: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: "700",
-    textDecorationLine: "underline",
-  },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  badge: {
-    minHeight: 30,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: { fontSize: 12, fontWeight: "900" },
-  hero: {
-    aspectRatio: 1.16,
-    borderRadius: radius.lg,
+  mainColumn: { flex: 1, minWidth: 0 },
+  hero: { aspectRatio: 1.05, overflow: "hidden" },
+  heroWide: {
+    aspectRatio: 16 / 10,
+    borderRadius: radius.xl,
     borderCurve: "continuous",
-    overflow: "hidden",
   },
-  heroWide: { aspectRatio: 16 / 10 },
   heroSlide: { height: "100%" },
   heroImage: { width: "100%", height: "100%" },
+  topShade: { position: "absolute", top: 0, left: 0, right: 0, height: 120 },
+  controls: {
+    position: "absolute",
+    left: gutter,
+    right: gutter,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  controlsEnd: { flexDirection: "row", alignItems: "center", gap: 10 },
+  glassButton: {
+    width: touchTarget - 4,
+    height: touchTarget - 4,
+    borderRadius: (touchTarget - 4) / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.94)",
+    boxShadow: "0 6px 16px rgba(15,23,42,0.18)",
+  },
   imageCounter: {
     position: "absolute",
     right: 14,
-    top: 14,
-    minHeight: 32,
+    bottom: 14,
+    minHeight: 30,
     borderRadius: radius.pill,
     paddingHorizontal: 11,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(15,23,42,0.74)",
   },
+  // En móvil la hoja de contenido tapa el borde inferior de la foto: se
+  // elevan los indicadores para que no queden bajo ella.
+  imageCounterOverSheet: { bottom: sheetOverlap + 14 },
   imageCounterText: {
     color: "white",
     fontSize: 12,
-    fontWeight: "900",
+    fontWeight: "700",
     fontVariant: ["tabular-nums"],
   },
   dots: {
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 13,
+    bottom: 20,
     flexDirection: "row",
     justifyContent: "center",
     gap: 6,
   },
+  dotsOverSheet: { bottom: sheetOverlap + 20 },
   dot: {
     width: 7,
     height: 7,
@@ -1384,234 +747,41 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.56)",
   },
   dotActive: { width: 20, backgroundColor: "white" },
-  hostBlock: {
-    paddingVertical: band,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  hostCopy: { flex: 1, minWidth: 0, gap: 3 },
-  hostEyebrow: {
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.7,
-  },
-  ownerName: { fontSize: 16, lineHeight: 22, fontWeight: "900" },
-  propertyFacts: { fontSize: 13, lineHeight: 19, fontWeight: "600" },
-  avatarCheck: {
-    position: "absolute",
-    right: -4,
-    bottom: -3,
-    width: 25,
-    height: 25,
-    borderRadius: 13,
-    borderWidth: 2,
-    backgroundColor: colors.accentDark,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  trustList: {
-    paddingVertical: band,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 14,
-  },
-  trustRow: { flexDirection: "row", alignItems: "center", gap: 13 },
-  trustIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  trustTitle: { fontSize: 14, lineHeight: 20, fontWeight: "900" },
-  caption: { fontSize: 13, lineHeight: 19, marginTop: 2 },
-  flex: { flex: 1, minWidth: 0 },
-  section: {
-    paddingVertical: bandLarge,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 14,
-  },
-  sectionTitle: {
-    fontSize: 21,
-    lineHeight: 27,
-    fontWeight: "900",
-    letterSpacing: -0.25,
-  },
-  body: { fontSize: 15, lineHeight: 24 },
-  infoList: {
-    borderRadius: radius.md,
+  sheet: { paddingHorizontal: gutter, paddingTop: 22, gap: blockGap },
+  sheetOverlap: {
+    marginTop: -sheetOverlap,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     borderCurve: "continuous",
-    overflow: "hidden",
-    paddingHorizontal: 14,
   },
-  infoRow: {
-    minHeight: 52,
-    paddingVertical: 11,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
+  intro: { gap: 12 },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  title: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "800",
+    letterSpacing: -0.7,
   },
-  infoLabel: { flex: 1, fontSize: 13, lineHeight: 19, fontWeight: "700" },
-  // flexShrink en lugar de un tope porcentual: 'Non requise / non indiquee' se
-  // truncaba contra el 54 % en frances.
-  infoValue: {
-    flexShrink: 1,
-    textAlign: "right",
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: "900",
-  },
-  emptyReview: {
-    borderRadius: radius.md,
-    borderCurve: "continuous",
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  // flexBasis + flexGrow deja que reflote sola: dos columnas en movil, mas en
-  // tablet. Con width 50% fijo, un servicio de nombre largo se partia en movil
-  // y quedaba desierto en pantalla ancha.
-  amenitiesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    rowGap: 16,
-    columnGap: 12,
-  },
-  amenity: {
-    flexBasis: 150,
-    flexGrow: 1,
-    minHeight: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-  },
-  amenityText: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: "800" },
-  aside: { width: 356 },
-  // Sin margen propio: en movil lo coloca mainColumn y en pantalla ancha el
-  // aside. Antes arrastraba marginHorizontal 16 tambien dentro del aside de
-  // 356 px, donde sobraba y descuadraba la columna.
-  reservationCard: {
-    marginTop: bandLarge,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.xl,
-    borderCurve: "continuous",
-    padding: 18,
-    gap: 14,
-    boxShadow: "0 14px 36px rgba(15,23,42,0.10)",
-  },
-  reservationHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  reservationPrice: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "900",
-    fontVariant: ["tabular-nums"],
-  },
-  reservationUnit: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  priceBreakdown: {
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 9,
-  },
-  priceRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  priceRowLabel: { flex: 1, fontSize: 13, lineHeight: 19 },
-  priceRowValue: {
-    fontSize: 13,
-    lineHeight: 19,
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  location: { flex: 1, fontSize: 14, lineHeight: 21, fontWeight: "600" },
+  priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" },
+  price: {
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
   },
-  bookingFacts: {
-    borderRadius: radius.md,
-    borderCurve: "continuous",
-    padding: 12,
-    gap: 11,
-  },
-  bookingFact: {
-    minHeight: 24,
+  priceUnit: { fontSize: 14, lineHeight: 20, fontWeight: "700" },
+  facts: { flexDirection: "row", gap: 10 },
+  flex: { flex: 1, minWidth: 0 },
+  body: { fontSize: 15, lineHeight: 24 },
+  amenitiesGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    flexWrap: "wrap",
+    rowGap: 10,
+    columnGap: 10,
   },
-  bookingFactLabel: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: "700",
-  },
-  bookingFactValue: {
-    flexShrink: 1,
-    textAlign: "right",
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: "900",
-  },
-  primaryButton: {
-    minHeight: 56,
-    borderRadius: radius.md,
-    borderCurve: "continuous",
-    overflow: "hidden",
-  },
-  primaryGradient: {
-    flex: 1,
-    minHeight: 56,
-    paddingHorizontal: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryText: {
-    color: "white",
-    textAlign: "center",
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: "900",
-  },
-  secondaryButton: {
-    minHeight: 52,
-    borderRadius: radius.md,
-    borderCurve: "continuous",
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  secondaryText: {
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: "900",
-  },
-  noCharge: { textAlign: "center", fontSize: 12, lineHeight: 18 },
-  totalRow: {
-    minHeight: 52,
-    paddingTop: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  totalLabel: { flex: 1, fontSize: 15, fontWeight: "900" },
-  totalPrice: {
-    fontSize: 16,
-    fontWeight: "900",
-    fontVariant: ["tabular-nums"],
-  },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
+  aside: { width: 356 },
   ctaBar: {
     position: "absolute",
     left: 0,
@@ -1628,12 +798,12 @@ const styles = StyleSheet.create({
   },
   ctaPriceBlock: { flex: 1, minWidth: 0 },
   ctaPrice: {
-    fontSize: 16,
-    lineHeight: 21,
-    fontWeight: "900",
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "800",
     fontVariant: ["tabular-nums"],
   },
-  ctaAvailability: { fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  ctaUnit: { fontSize: 12, lineHeight: 17, fontWeight: "600" },
   ctaButtonWrap: { minWidth: 148, maxWidth: "56%" },
   center: {
     flex: 1,

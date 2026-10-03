@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
-export const conversationKeys = { all: ['conversations'] as const, list: (userId: string) => ['conversations', userId] as const, messages: (id: string) => ['messages', id] as const };
+export const conversationKeys = { all: ['conversations'] as const, list: (userId: string) => ['conversations', userId] as const, messages: (id: string) => ['messages', id] as const, chatId: (route: string) => ['chat-id', route] as const };
 
 const realtimeSessionId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let realtimeSubscriptionId = 0;
@@ -12,16 +12,18 @@ function uniqueChannelTopic(topic: string) {
   return `${topic}:${realtimeSessionId}:${realtimeSubscriptionId}`;
 }
 
-function subscribeToConversationSummaries(userId: string, onChange: () => void) {
+// La bandeja no es una tabla: se recalcula con list_my_chats() cuando llega o
+// cambia (leído) un mensaje dirigido a este perfil.
+function subscribeToConversationSummaries(profileId: string, onChange: () => void) {
   const channel = supabase
-    .channel(uniqueChannelTopic(`conversation-summary:${userId}`))
+    .channel(uniqueChannelTopic(`conversation-summary:${profileId}`))
     .on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
-        table: 'conversation_summaries',
-        filter: `user_id=eq.${userId}`,
+        table: 'messages',
+        filter: `recipient_id=eq.${profileId}`,
       },
       onChange,
     )
@@ -42,7 +44,7 @@ function subscribeToActiveConversation(conversationId: string, userId: string | 
         event: '*',
         schema: 'public',
         table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`,
+        filter: `chat_id=eq.${conversationId}`,
       },
       onChange,
     )
@@ -59,17 +61,21 @@ function subscribeToActiveConversation(conversationId: string, userId: string | 
   };
 }
 
-export function useConversationSummaryRealtime(userId?: string) {
+/**
+ * `userId` es la clave de caché de la bandeja (id de Clerk); `profileId` es el
+ * uuid de public.users, que es lo que guarda messages.recipient_id.
+ */
+export function useConversationSummaryRealtime(userId?: string, profileId?: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!userId || !isSupabaseConfigured) return;
+    if (!userId || !profileId || !isSupabaseConfigured) return;
 
     return subscribeToConversationSummaries(
-      userId,
+      profileId,
       () => void queryClient.invalidateQueries({ queryKey: conversationKeys.list(userId) }),
     );
-  }, [queryClient, userId]);
+  }, [profileId, queryClient, userId]);
 }
 
 export function useActiveConversationRealtime(conversationId?: string, userId?: string) {

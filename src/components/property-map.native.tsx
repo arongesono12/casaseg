@@ -42,4 +42,4 @@ export function PropertyMap({ properties, onSelect, userLocation }: Props) {
     return items.map((property) => <Marker key={property.id} coordinate={property.coordinates!} title={property.title} onPress={() => onSelect?.(property)} />);
   })}</MapView>;
 }
-const styles = StyleSheet.create({ map: { flex: 1 }, cluster: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.brand, borderWidth: 3, borderColor: 'white', alignItems: 'center', justifyContent: 'center' }, clusterText: { color: 'white', fontWeight: '900' } });
+const styles = StyleSheet.create({ map: { flex: 1 }, cluster: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.brand, borderWidth: 3, borderColor: 'white', alignItems: 'center', justifyContent: 'center' }, clusterText: { color: 'white', fontWeight: '700' } });

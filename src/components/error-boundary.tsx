@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PremiumErrorState } from '@/components/ui/premium';
 import { radius } from '@/constants/theme';
+import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 /**
@@ -20,13 +21,14 @@ type State = { error: Error | null };
 
 function ErrorFallback({ error, onRetry }: { error: Error; onRetry: () => void }) {
   const { palette } = useAppTheme();
+  const { t } = useI18n();
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <PremiumErrorState
-          title="Algo se ha roto"
-          description="La pantalla no se pudo mostrar. Puedes reintentarlo; si vuelve a pasar, cierra y abre la app."
+          title={t('errorScreenTitle')}
+          description={t('errorScreenBody')}
           onRetry={onRetry}
         />
         {/* El detalle técnico solo en desarrollo: en producción no aporta nada

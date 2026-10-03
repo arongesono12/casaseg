@@ -1,4 +1,11 @@
 import { LegalPage } from '@/components/legal-page';
+import { defineCopy, useCopy } from '@/providers/i18n-context';
+
+const privacyCopy = defineCopy({
+  es: { title: 'Política de Privacidad', description: 'Cómo protegemos y tratamos tus datos personales en CasaSeg.', summary: 'Este documento explica qué datos tratamos, para qué los usamos y cómo puedes ejercer tus derechos.', contactTitle: '¿Tienes alguna pregunta sobre tus datos?', contactDescription: 'Escríbenos desde tu correo asociado a CasaSeg para que podamos verificar tu identidad.', contactLabel: 'Contactar con privacidad' },
+  fr: { title: 'Politique de confidentialité', description: 'Comment nous protégeons et traitons vos données personnelles sur CasaSeg.', summary: 'Ce document explique quelles données nous traitons, à quelles fins et comment exercer vos droits.', contactTitle: 'Une question sur vos données ?', contactDescription: 'Écrivez-nous depuis l’adresse e-mail associée à CasaSeg afin que nous puissions vérifier votre identité.', contactLabel: 'Contacter l’équipe confidentialité' },
+  en: { title: 'Privacy Policy', description: 'How we protect and process your personal data at CasaSeg.', summary: 'This document explains which data we process, why we use it and how you can exercise your rights.', contactTitle: 'Questions about your data?', contactDescription: 'Write to us from the email linked to CasaSeg so we can verify your identity.', contactLabel: 'Contact the privacy team' },
+});
 
 const sections = [
   {
@@ -122,16 +129,17 @@ const sections = [
 ] as const;
 
 export default function Privacy() {
+  const copy = useCopy(privacyCopy);
   return (
     <LegalPage
-      title="Política de Privacidad"
-      description="Cómo protegemos y tratamos tus datos personales en CasaSeg."
+      title={copy.title}
+      description={copy.description}
       updated="22 jul 2026"
       documentUrl="https://casaseg.com/es/privacy"
-      summary="Este documento explica qué datos tratamos, para qué los usamos y cómo puedes ejercer tus derechos."
-      contactTitle="¿Tienes alguna pregunta sobre tus datos?"
-      contactDescription="Escríbenos desde tu correo asociado a CasaSeg para que podamos verificar tu identidad."
-      contactLabel="Contactar con privacidad"
+      summary={copy.summary}
+      contactTitle={copy.contactTitle}
+      contactDescription={copy.contactDescription}
+      contactLabel={copy.contactLabel}
       sections={sections}
     />
   );

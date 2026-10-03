@@ -1,21 +1,23 @@
 import MapView, { Marker } from 'react-native-maps';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius } from '@/constants/theme';
+import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import type { PropertyLocationPickerProps } from './property-location-picker';
 
 export function PropertyLocationPicker({ value, onChange }: PropertyLocationPickerProps) {
   const { palette } = useAppTheme();
+  const { t } = useI18n();
   return (
     <View style={styles.container}>
-      <Text style={[styles.hint, { color: palette.textSecondary }]}>Toca el mapa para marcar la vivienda. Puedes arrastrar el marcador para ajustar el punto.</Text>
+      <Text style={[styles.hint, { color: palette.textSecondary }]}>{t('pickLocationHint')}</Text>
       <MapView
         style={styles.map}
         initialRegion={{ latitude: value?.latitude ?? 3.7504, longitude: value?.longitude ?? 8.7371, latitudeDelta: 0.35, longitudeDelta: 0.35 }}
         onPress={(event) => onChange(event.nativeEvent.coordinate)}>
         {value && <Marker coordinate={value} draggable onDragEnd={(event) => onChange(event.nativeEvent.coordinate)} />}
       </MapView>
-      <Text style={styles.status}>{value ? 'Punto seleccionado para el mapa público' : 'Selecciona un punto para continuar'}</Text>
+      <Text style={[styles.status, { color: palette.brandText }]}>{value ? t('pickLocationDone') : t('pickLocationPending')}</Text>
     </View>
   );
 }

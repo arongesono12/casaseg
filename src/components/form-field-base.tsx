@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { FormFieldProps } from './form-field.types';
-import { colors, radius, touchTarget } from '@/constants/theme';
+import { colors, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { useAppTheme } from '@/providers/theme-context';
 
 /** React Native fallback for web and controls not yet covered safely by Expo UI. */
@@ -41,7 +41,7 @@ export function FallbackFormField({ label, error, inputRef, rightAccessory, ...i
         />
         {rightAccessory && <View style={styles.rightAccessory}>{rightAccessory}</View>}
       </View>
-      {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+      {error && <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{error}</Text>}
     </View>
   );
 }
@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
   multiline: { minHeight: 112, paddingTop: 14, textAlignVertical: 'top' },
   inputWithAccessory: { paddingRight: 58 },
   rightAccessory: { position: 'absolute', right: 3, top: 3, width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
-  error: { color: colors.error, fontSize: 13 },
-  focused: { boxShadow: '0 0 0 3px rgba(20,184,166,0.22)' },
+  error: { fontSize: 13 },
+  focused: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.30)}` },
 });

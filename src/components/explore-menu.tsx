@@ -18,6 +18,8 @@ import {
   type IconProps,
 } from '@/components/ui/icons';
 import { actionGradient, colors, radius, touchTarget } from '@/constants/theme';
+import { haptics } from '@/lib/haptics';
+import { iconRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n, type Locale } from '@/providers/i18n-context';
 import { useAppTheme, type ThemeMode } from '@/providers/theme-context';
@@ -55,19 +57,20 @@ function Choice({
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
-      onPress={() => onPress(value)}
+      android_ripple={pressRipple}
+      onPress={() => { if (!selected) haptics.selection(); onPress(value); }}
       style={({ pressed }) => [
         styles.choice,
         {
           backgroundColor: selected ? colors.brandSoft : palette.surface,
           borderColor: selected ? `${colors.brand}66` : palette.border,
         },
-        pressed && styles.pressed,
+        pressed && !usesRipple && styles.pressed,
       ]}
     >
       {Icon ? <Icon color={selected ? colors.brandDark : palette.textSecondary} size={17} /> : null}
       <Text style={[styles.choiceLabel, { color: selected ? colors.brandDark : palette.textSecondary }]}>{label}</Text>
-      {selected ? <Check color={colors.brandDark} size={16} /> : null}
+      {selected ? <Check color={palette.brandIcon} size={16} /> : null}
     </Pressable>
   );
 }
@@ -117,7 +120,7 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
         >
           <View style={styles.menuHeader}>
             <View>
-              <Text style={[styles.menuEyebrow, { color: colors.brandDark }]}>CASASEG</Text>
+              <Text style={[styles.menuEyebrow, { color: palette.brandText }]}>CASASEG</Text>
               <Text accessibilityRole="header" style={[styles.menuTitle, { color: palette.text }]}>{t('menu')}</Text>
             </View>
             <Pressable
@@ -125,7 +128,8 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
               accessibilityRole="button"
               hitSlop={8}
               onPress={onClose}
-              style={({ pressed }) => [styles.closeButton, { backgroundColor: palette.subtle }, pressed && styles.pressed]}
+              android_ripple={iconRipple(touchTarget)}
+              style={({ pressed }) => [styles.closeButton, { backgroundColor: palette.subtle }, pressed && !usesRipple && styles.pressed]}
             >
               <X color={palette.text} size={22} />
             </Pressable>
@@ -134,11 +138,12 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
           <ScrollView contentContainerStyle={styles.menuContent} showsVerticalScrollIndicator={false}>
             <Pressable
               accessibilityRole="button"
+              android_ripple={pressRipple}
               onPress={() => navigate(isAuthenticated ? '/(tabs)/profile' : '/(auth)/login')}
               style={({ pressed }) => [
                 styles.accountCard,
                 { backgroundColor: palette.surface, borderColor: palette.border },
-                pressed && styles.pressed,
+                pressed && !usesRipple && styles.pressed,
               ]}
             >
               <LinearGradient colors={actionGradient} style={styles.avatar}>
@@ -197,7 +202,8 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
             <Pressable
               accessibilityRole="button"
               onPress={() => navigate('/settings')}
-              style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
+              android_ripple={pressRipple}
+              style={({ pressed }) => [styles.menuRow, pressed && !usesRipple && styles.pressed]}
             >
               <View style={[styles.rowIcon, { backgroundColor: palette.subtle }]}>
                 <Settings color={palette.textSecondary} size={20} />
@@ -210,12 +216,13 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
               <Pressable
                 accessibilityRole="button"
                 onPress={() => void handleSignOut()}
-                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
+                android_ripple={pressRipple}
+              style={({ pressed }) => [styles.menuRow, pressed && !usesRipple && styles.pressed]}
               >
                 <View style={[styles.rowIcon, { backgroundColor: `${colors.error}12` }]}>
                   <LogOut color={colors.error} size={20} />
                 </View>
-                <Text style={[styles.rowLabel, { color: colors.error }]}>{t('signOut')}</Text>
+                <Text style={[styles.rowLabel, { color: palette.errorText }]}>{t('signOut')}</Text>
               </Pressable>
             ) : null}
           </ScrollView>
@@ -233,11 +240,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     minHeight: 76,
+    overflow: 'hidden',
     padding: 12,
   },
   accountCopy: { flex: 1, gap: 3, minWidth: 0 },
   accountSubtitle: { fontSize: 12, lineHeight: 16 },
-  accountTitle: { fontSize: 15, fontWeight: '900' },
+  accountTitle: { fontSize: 15, fontWeight: '700' },
   avatar: { alignItems: 'center', borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },
   backdrop: {
     backgroundColor: 'rgba(2,6,23,0.48)',
@@ -254,6 +262,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     minHeight: 44,
+    overflow: 'hidden',
     paddingHorizontal: 12,
   },
   choiceLabel: { fontSize: 12, fontWeight: '800' },
@@ -261,10 +270,10 @@ const styles = StyleSheet.create({
   closeButton: { alignItems: 'center', borderRadius: touchTarget / 2, height: touchTarget, justifyContent: 'center', width: touchTarget },
   divider: { height: StyleSheet.hairlineWidth },
   menuContent: { gap: 24, paddingBottom: 24 },
-  menuEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  menuEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
   menuHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 20 },
   menuRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 54 },
-  menuTitle: { fontSize: 27, fontWeight: '900', lineHeight: 32 },
+  menuTitle: { fontSize: 27, fontWeight: '800', lineHeight: 32 },
   overlay: { alignItems: 'flex-end', flex: 1 },
   panel: {
     flex: 1,
@@ -276,6 +285,6 @@ const styles = StyleSheet.create({
   rowIcon: { alignItems: 'center', borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
   rowLabel: { flex: 1, fontSize: 14, fontWeight: '800' },
   section: { gap: 11 },
-  sectionLabel: { fontSize: 14, fontWeight: '900' },
+  sectionLabel: { fontSize: 14, fontWeight: '700' },
   sectionTitle: { alignItems: 'center', flexDirection: 'row', gap: 8 },
 });

@@ -432,7 +432,7 @@ async function main() {
         'Te faltó --confirmar-produccion.\n' +
         '  Vas a crear usuarios reales en la instancia de producción de Clerk.\n' +
         '  Lanza primero la simulación sin --aplicar y revisa el resumen.\n' +
-        '  Cuando estés seguro: npm run migrate:clerk -- --aplicar --confirmar-produccion',
+        '  Cuando estés seguro: bun run migrate:clerk -- --aplicar --confirmar-produccion',
       );
     }
   }

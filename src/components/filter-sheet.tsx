@@ -4,17 +4,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { actionGradient, colors, radius } from '@/constants/theme';
+import { actionGradient, colors, radius, withAlpha } from '@/constants/theme';
 import { defaultPropertyFilters, propertyFiltersSchema, type PropertyFilters } from '@/features/properties/schemas/property-filters.schema';
 import { usePropertyCount } from '@/features/properties/hooks/use-properties';
+import { haptics } from '@/lib/haptics';
+import { onBrandRipple, pressRipple } from '@/lib/press-feedback';
 import { useAppTheme } from '@/providers/theme-context';
 import { useI18n } from '@/providers/i18n-context';
+import type { TranslationKey } from '@/providers/i18n-provider';
 import { useExplorerStore } from '@/stores/explorer-store';
 
 export type FilterSheetHandle = { present: () => void; dismiss: () => void };
-const categories: PropertyFilters['category'][] = ['Todos', 'Apartamentos', 'Casas', 'Estudios'];
-const availability: [PropertyFilters['availability'], string][] = [['all', 'Todas'], ['available', 'Disponibles'], ['occupied', 'Ocupadas']];
-const sorting: [PropertyFilters['sort'], string][] = [['recommended', 'Recomendadas'], ['rating', 'Mejor valoradas'], ['price-asc', 'Menor precio'], ['price-desc', 'Mayor precio'], ['newest', 'Más recientes']];
+// Los valores son los del esquema de filtros; la etiqueta visible sale del idioma activo.
+const categories: [PropertyFilters['category'], TranslationKey][] = [['Todos', 'all'], ['Apartamentos', 'apartments'], ['Casas', 'houses'], ['Estudios', 'studios']];
+const availability: [PropertyFilters['availability'], TranslationKey][] = [['all', 'all'], ['available', 'availableOnly'], ['occupied', 'occupiedOnly']];
+const sorting: [PropertyFilters['sort'], TranslationKey][] = [['recommended', 'recommended'], ['rating', 'sortRating'], ['price-asc', 'sortPriceAsc'], ['price-desc', 'sortPriceDesc'], ['newest', 'sortNewest']];
 
 export const FilterSheet = forwardRef<FilterSheetHandle>(function FilterSheet(_, ref) {
   const modalRef = useRef<BottomSheetModal>(null);
@@ -44,7 +48,7 @@ export const FilterSheet = forwardRef<FilterSheetHandle>(function FilterSheet(_,
   }), [appliedFilters, reset]);
 
   const renderBackdrop = useCallback((props: React.ComponentProps<typeof BottomSheetBackdrop>) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />, []);
-  const onValid = useCallback((values: PropertyFilters) => { applyFilters(values); modalRef.current?.dismiss(); }, [applyFilters]);
+  const onValid = useCallback((values: PropertyFilters) => { haptics.tap(); applyFilters(values); modalRef.current?.dismiss(); }, [applyFilters]);
 
   return (
     <BottomSheetModal ref={modalRef} snapPoints={snapPoints} enableDynamicSizing={false} backdropComponent={renderBackdrop} keyboardBehavior="interactive" android_keyboardInputMode="adjustResize" backgroundStyle={{ backgroundColor: palette.surface }} handleIndicatorStyle={{ backgroundColor: palette.muted, width: 44 }}>
@@ -54,20 +58,24 @@ export const FilterSheet = forwardRef<FilterSheetHandle>(function FilterSheet(_,
           <Field control={control} name="location" label={t('location')} placeholder="Malabo, Bata, Sipopo…" error={errors.location?.message} />
           <Field control={control} name="name" label={t('propertyName')} placeholder={t('propertyName')} error={errors.name?.message} />
           <Field control={control} name="maxPrice" label={t('maxPrice')} placeholder="1200000" keyboardType="numeric" error={errors.maxPrice?.message} />
-          <ChoiceField control={control} name="category" label={t('category')} options={categories.map((value) => [value, value])} />
+          <ChoiceField control={control} name="category" label={t('category')} options={categories} />
           <ChoiceField control={control} name="availability" label={t('availability')} options={availability} />
           <ChoiceField control={control} name="sort" label={t('sort')} options={sorting} />
         </BottomSheetScrollView>
-        <View style={[styles.footer, { borderColor: palette.border, backgroundColor: palette.surface }]}><Pressable accessibilityRole="button" onPress={() => void handleSubmit(onValid)()}><LinearGradient colors={actionGradient} style={styles.applyButton}><Text style={styles.applyText}>{t('showResults', { count: countIsCurrent && countQuery.data !== undefined ? String(countQuery.data) : '…' })}</Text></LinearGradient></Pressable></View>
+        <View style={[styles.footer, { borderColor: palette.border, backgroundColor: palette.surface }]}><Pressable accessibilityRole="button" android_ripple={onBrandRipple} onPress={() => void handleSubmit(onValid)()} style={styles.applyShell}><LinearGradient colors={actionGradient} style={styles.applyButton}><Text style={styles.applyText}>{t('showResults', { count: countIsCurrent && countQuery.data !== undefined ? String(countQuery.data) : '…' })}</Text></LinearGradient></Pressable></View>
       </BottomSheetView>
     </BottomSheetModal>
   );
 });
 
 type FieldProps = { control: ReturnType<typeof useForm<PropertyFilters>>['control']; name: 'location' | 'name' | 'maxPrice'; label: string; placeholder: string; keyboardType?: 'default' | 'numeric'; error?: string };
-function Field({ control, name, label, placeholder, keyboardType = 'default', error }: FieldProps) { const { palette } = useAppTheme(); return <View style={styles.fieldGroup}><Text style={[styles.label, { color: palette.text }]}>{label}</Text><Controller control={control} name={name} render={({ field: { value, onChange, onBlur } }) => <BottomSheetTextInput accessibilityLabel={label} placeholder={placeholder} placeholderTextColor={palette.muted} value={value} onBlur={onBlur} onChangeText={onChange} keyboardType={keyboardType} style={[styles.input, { backgroundColor: palette.subtle, borderColor: error ? colors.error : palette.border, color: palette.text }]} />} />{error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}</View>; }
+function Field({ control, name, label, placeholder, keyboardType = 'default', error }: FieldProps) { const { palette } = useAppTheme(); return <View style={styles.fieldGroup}><Text style={[styles.label, { color: palette.text }]}>{label}</Text><Controller control={control} name={name} render={({ field: { value, onChange, onBlur } }) => <BottomSheetTextInput accessibilityLabel={label} placeholder={placeholder} placeholderTextColor={palette.muted} value={value} onBlur={onBlur} onChangeText={onChange} keyboardType={keyboardType} style={[styles.input, { backgroundColor: palette.subtle, borderColor: error ? colors.error : palette.border, color: palette.text }]} />} />{error && <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{error}</Text>}</View>; }
 
 type ChoiceName = 'category' | 'availability' | 'sort';
-function ChoiceField({ control, name, label, options }: { control: ReturnType<typeof useForm<PropertyFilters>>['control']; name: ChoiceName; label: string; options: string[][] }) { const { palette } = useAppTheme(); return <View style={styles.fieldGroup}><Text style={[styles.label, { color: palette.text }]}>{label}</Text><Controller control={control} name={name} render={({ field: { value, onChange } }) => <View style={styles.choices}>{options.map(([option, text]) => { const selected = value === option; return <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => onChange(option)} style={[styles.choice, { borderColor: selected ? colors.brand : palette.border, backgroundColor: selected ? 'rgba(37,99,235,0.12)' : palette.surface }]}><Text style={[styles.choiceText, { color: selected ? colors.brandDark : palette.textSecondary }]}>{text}</Text></Pressable>; })}</View>} /></View>; }
+function ChoiceField({ control, name, label, options }: { control: ReturnType<typeof useForm<PropertyFilters>>['control']; name: ChoiceName; label: string; options: [string, TranslationKey][] }) {
+  const { palette } = useAppTheme();
+  const { t } = useI18n();
+  return <View style={styles.fieldGroup}><Text style={[styles.label, { color: palette.text }]}>{label}</Text><Controller control={control} name={name} render={({ field: { value, onChange } }) => <View style={styles.choices}>{options.map(([option, labelKey]) => { const selected = value === option; return <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected }} android_ripple={pressRipple} onPress={() => { if (!selected) haptics.selection(); onChange(option); }} style={[styles.choice, { borderColor: selected ? colors.brand : palette.border, backgroundColor: selected ? withAlpha(colors.brand, 0.12) : palette.surface }]}><Text style={[styles.choiceText, { color: selected ? colors.brandDark : palette.textSecondary }]}>{t(labelKey)}</Text></Pressable>; })}</View>} /></View>;
+}
 
-const styles = StyleSheet.create({ sheet: { flex: 1 }, content: { paddingHorizontal: 20, paddingBottom: 20, gap: 18 }, headingRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }, headingCopy: { flex: 1, gap: 4 }, title: { fontSize: 27, lineHeight: 33, fontWeight: '900' }, subtitle: { fontSize: 14, lineHeight: 20 }, reset: { minHeight: 44, justifyContent: 'center' }, resetText: { color: colors.brandDark, fontSize: 14, fontWeight: '800' }, fieldGroup: { gap: 8 }, label: { fontSize: 13, fontWeight: '800' }, input: { minHeight: 54, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 16, fontSize: 16 }, error: { color: colors.error, fontSize: 13 }, choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { minHeight: 44, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 14, justifyContent: 'center' }, choiceText: { fontSize: 13, fontWeight: '700' }, footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 }, applyButton: { minHeight: 54, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' }, applyText: { color: 'white', fontSize: 16, fontWeight: '900' } });
+const styles = StyleSheet.create({ sheet: { flex: 1 }, content: { paddingHorizontal: 20, paddingBottom: 20, gap: 18 }, headingRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }, headingCopy: { flex: 1, gap: 4 }, title: { fontSize: 27, lineHeight: 33, fontWeight: '800' }, subtitle: { fontSize: 14, lineHeight: 20 }, reset: { minHeight: 44, justifyContent: 'center' }, resetText: { color: colors.brandDark, fontSize: 14, fontWeight: '800' }, fieldGroup: { gap: 8 }, label: { fontSize: 13, fontWeight: '800' }, input: { minHeight: 54, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 16, fontSize: 16 }, error: { color: colors.error, fontSize: 13 }, choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { minHeight: 44, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 14, justifyContent: 'center', overflow: 'hidden' }, applyShell: { borderRadius: radius.md, overflow: 'hidden' }, choiceText: { fontSize: 13, fontWeight: '700' }, footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 }, applyButton: { minHeight: 54, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' }, applyText: { color: 'white', fontSize: 16, fontWeight: '700' } });

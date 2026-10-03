@@ -1,4 +1,4 @@
-import { Host, TextInput, useNativeState } from '@expo/ui';
+import { Host, TextInput, useNativeState, type ObservableState } from '@expo/ui';
 import { useEffect, useState } from 'react';
 import type { NativeSyntheticEvent, StyleProp, TextInputFocusEventData, ViewStyle } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
@@ -7,6 +7,16 @@ import { FallbackFormField } from './form-field-base';
 import type { FormFieldProps } from './form-field.types';
 import { colors, radius } from '@/constants/theme';
 import { useAppTheme } from '@/providers/theme-context';
+
+/**
+ * Empuja el valor controlado desde React al estado nativo del campo. El estado
+ * nativo es un sistema externo, así que se sincroniza desde un efecto; la
+ * escritura vive fuera del componente porque el tipo universal de @expo/ui solo
+ * expone `.value` (sin los `get()`/`set()` del módulo nativo).
+ */
+function syncNativeText(state: ObservableState<string>, value: string) {
+  if (state.value !== value) state.value = value;
+}
 
 /** SDK 57's universal input renders SwiftUI on iOS and Compose on Android. */
 export function FormField({ error, inputRef, label, rightAccessory, ...inputProps }: FormFieldProps) {
@@ -18,7 +28,7 @@ export function FormField({ error, inputRef, label, rightAccessory, ...inputProp
   const useFallback = Boolean(inputRef || rightAccessory || inputProps.autoComplete || inputProps.textContentType || inputProps.secureTextEntry || inputProps.editable === false);
 
   useEffect(() => {
-    if (!useFallback && value !== undefined && text.value !== value) text.value = value;
+    if (!useFallback && value !== undefined) syncNativeText(text, value);
   }, [text, useFallback, value]);
 
   if (useFallback) {
@@ -57,7 +67,7 @@ export function FormField({ error, inputRef, label, rightAccessory, ...inputProp
           textStyle={{ color: palette.text, fontSize: 16 }}
         />
       </Host>
-      {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+      {error && <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{error}</Text>}
     </View>
   );
 }
@@ -66,5 +76,5 @@ const styles = StyleSheet.create({
   group: { gap: 7 },
   label: { fontSize: 13, fontWeight: '800' },
   host: { width: '100%' },
-  error: { color: colors.error, fontSize: 13 },
+  error: { fontSize: 13 },
 });

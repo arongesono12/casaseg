@@ -3,27 +3,35 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
-import { CheckCircle2, Clock, CreditCard, Inbox, Lock, Wallet, XCircle } from '@/components/ui/icons';
+import { CheckCircle2, Clock, CreditCard, Inbox, Wallet, XCircle } from '@/components/ui/icons';
 import { IconTile, MetricCard, PremiumButton, PremiumEmptyState, PremiumErrorState, SectionTitle, StatusPill } from '@/components/ui/premium';
-import { colors, radius, touchTarget } from '@/constants/theme';
+import { colors, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { fetchContracts } from '@/features/contracts/contracts.api';
 import { createPaymentOrder, fetchPaymentOrders, openPaymentCheckout, paymentProviderLabels, paymentProviders, type PaymentOrder, type PaymentProvider } from '@/features/payments/payments.api';
-import { useI18n } from '@/providers/i18n-context';
+import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import { formatXaf } from '@/utils/formatters';
+
+const paymentsCopy = defineCopy({
+  es: { completed: 'Completado', failed: 'Fallido', cancelled: 'Cancelado', processing: 'Procesando', pending: 'Pendiente', noPayableContract: 'No hay ningún contrato firmado pendiente de pago.', operations: 'Operaciones', completedMetric: 'Completadas', confirmedTotal: 'Total confirmado', paymentMethod: 'Método de pago', phoneLabel: 'Número de teléfono para FondoSeg', checkingContracts: 'Comprobando contratos…', chargeContract: 'Se cobrará el contrato de {title}.', historyTitle: 'Historial de operaciones', historyDetail: 'Estados confirmados directamente por el proveedor.', inProgress: '{count} en curso', loadingTitle: 'Cargando operaciones', loadingBody: 'Estamos comprobando los estados más recientes.', errorTitle: 'No pudimos cargar los pagos', errorBody: 'Comprueba la conexión y vuelve a intentarlo.', emptyTitle: 'Sin operaciones todavía', emptyBody: 'Cuando realices o recibas un pago, su estado verificado aparecerá aquí.' },
+  fr: { completed: 'Terminé', failed: 'Échoué', cancelled: 'Annulé', processing: 'En cours', pending: 'En attente', noPayableContract: 'Aucun contrat signé en attente de paiement.', operations: 'Opérations', completedMetric: 'Terminées', confirmedTotal: 'Total confirmé', paymentMethod: 'Moyen de paiement', phoneLabel: 'Numéro de téléphone pour FondoSeg', checkingContracts: 'Vérification des contrats…', chargeContract: 'Le contrat de {title} sera facturé.', historyTitle: 'Historique des opérations', historyDetail: 'Statuts confirmés directement par le prestataire.', inProgress: '{count} en cours', loadingTitle: 'Chargement des opérations', loadingBody: 'Nous vérifions les statuts les plus récents.', errorTitle: 'Impossible de charger les paiements', errorBody: 'Vérifiez la connexion et réessayez.', emptyTitle: 'Aucune opération pour le moment', emptyBody: 'Lorsque vous effectuez ou recevez un paiement, son statut vérifié apparaîtra ici.' },
+  en: { completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled', processing: 'Processing', pending: 'Pending', noPayableContract: 'There is no signed contract awaiting payment.', operations: 'Transactions', completedMetric: 'Completed', confirmedTotal: 'Confirmed total', paymentMethod: 'Payment method', phoneLabel: 'Phone number for FondoSeg', checkingContracts: 'Checking contracts…', chargeContract: 'The contract for {title} will be charged.', historyTitle: 'Transaction history', historyDetail: 'Statuses confirmed directly by the provider.', inProgress: '{count} in progress', loadingTitle: 'Loading transactions', loadingBody: 'We are checking the latest statuses.', errorTitle: 'We could not load the payments', errorBody: 'Check your connection and try again.', emptyTitle: 'No transactions yet', emptyBody: 'When you make or receive a payment, its verified status will appear here.' },
+});
+type PaymentsCopy = (typeof paymentsCopy)['es'];
 
 const key = ['payment-orders'] as const;
 const contractsKey = ['contracts'] as const;
 
-function paymentStatus(order: PaymentOrder) {
-  if (order.status === 'completed') return { label: 'Completado', tone: colors.success, icon: CheckCircle2 };
-  if (order.status === 'failed' || order.status === 'cancelled') return { label: order.status === 'failed' ? 'Fallido' : 'Cancelado', tone: colors.error, icon: XCircle };
-  return { label: order.status === 'processing' ? 'Procesando' : 'Pendiente', tone: colors.warning, icon: Clock };
+function paymentStatus(order: PaymentOrder, copy: PaymentsCopy) {
+  if (order.status === 'completed') return { label: copy.completed, tone: colors.success, icon: CheckCircle2 };
+  if (order.status === 'failed' || order.status === 'cancelled') return { label: order.status === 'failed' ? copy.failed : copy.cancelled, tone: colors.error, icon: XCircle };
+  return { label: order.status === 'processing' ? copy.processing : copy.pending, tone: colors.warning, icon: Clock };
 }
 
 export default function Payments() {
   const { palette } = useAppTheme();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const copy = useCopy(paymentsCopy);
   const client = useQueryClient();
   const [provider, setProvider] = useState<PaymentProvider>('bank_transfer');
   const [phone, setPhone] = useState('');
@@ -37,7 +45,7 @@ export default function Payments() {
 
   const pay = useMutation({
     mutationFn: async () => {
-      if (!payableContract) throw new Error('No hay ningún contrato firmado pendiente de pago.');
+      if (!payableContract) throw new Error(copy.noPayableContract);
       return openPaymentCheckout(await createPaymentOrder(payableContract.id, provider, phone));
     },
     onSettled: () => client.invalidateQueries({ queryKey: key }),
@@ -51,18 +59,13 @@ export default function Payments() {
   return (
     <RouteScreen title={t('payments')} description={t('paymentsSubtitle')}>
       <View style={styles.metrics}>
-        <MetricCard label="Operaciones" value={orders.isLoading ? '—' : orders.data?.length ?? 0} icon={Wallet} />
-        <MetricCard label="Completadas" value={orders.isLoading ? '—' : completed.length} icon={CheckCircle2} tone={colors.success} />
-        <MetricCard label="Total confirmado" value={orders.isLoading ? '—' : total ? formatXaf(total).replace(' XAF', '') : '0'} icon={CreditCard} tone="#7C3AED" />
-      </View>
-
-      <View style={[styles.notice, { backgroundColor: `${colors.success}0E`, borderColor: `${colors.success}25` }]}>
-        <IconTile icon={Lock} tone={colors.success} size={44} />
-        <Text style={[styles.noticeText, { color: palette.textSecondary }]}>{t('paymentSecurity')}</Text>
+        <MetricCard label={copy.operations} value={orders.isLoading ? '—' : orders.data?.length ?? 0} icon={Wallet} />
+        <MetricCard label={copy.completedMetric} value={orders.isLoading ? '—' : completed.length} icon={CheckCircle2} tone={colors.success} />
+        <MetricCard label={copy.confirmedTotal} value={orders.isLoading ? '—' : total ? formatXaf(total, undefined, locale) : '0'} icon={CreditCard} tone={colors.primary} />
       </View>
 
       <View style={styles.payBlock}>
-        <Text style={[styles.label, { color: palette.text }]}>Método de pago</Text>
+        <Text style={[styles.label, { color: palette.text }]}>{copy.paymentMethod}</Text>
         <View style={styles.providers}>
           {paymentProviders.map((option) => {
             const selected = provider === option;
@@ -72,7 +75,7 @@ export default function Payments() {
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 onPress={() => setProvider(option)}
-                style={[styles.provider, { borderColor: selected ? colors.brand : palette.border, backgroundColor: selected ? 'rgba(37,99,235,0.12)' : palette.surface }]}
+                style={[styles.provider, { borderColor: selected ? colors.brand : palette.border, backgroundColor: selected ? withAlpha(colors.brand, 0.12) : palette.surface }]}
               >
                 <Text style={[styles.providerText, { color: selected ? colors.brandDark : palette.textSecondary }]}>{paymentProviderLabels[option]}</Text>
               </Pressable>
@@ -82,7 +85,7 @@ export default function Payments() {
 
         {provider === 'fondoseg' ? (
           <TextInput
-            accessibilityLabel="Número de teléfono para FondoSeg"
+            accessibilityLabel={copy.phoneLabel}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -93,11 +96,11 @@ export default function Payments() {
         ) : null}
 
         {contracts.isLoading ? (
-          <Text style={[styles.hint, { color: palette.textSecondary }]}>Comprobando contratos…</Text>
+          <Text style={[styles.hint, { color: palette.textSecondary }]}>{copy.checkingContracts}</Text>
         ) : payableContract ? (
-          <Text style={[styles.hint, { color: palette.textSecondary }]}>Se cobrará el contrato de {payableContract.propertyTitle}.</Text>
+          <Text style={[styles.hint, { color: palette.textSecondary }]}>{interpolate(copy.chargeContract, { title: payableContract.propertyTitle })}</Text>
         ) : (
-          <Text style={[styles.hint, { color: palette.textSecondary }]}>No hay ningún contrato firmado pendiente de pago.</Text>
+          <Text style={[styles.hint, { color: palette.textSecondary }]}>{copy.noPayableContract}</Text>
         )}
 
         <PremiumButton
@@ -109,20 +112,20 @@ export default function Payments() {
         />
       </View>
 
-      <SectionTitle title="Historial de operaciones" detail="Estados confirmados directamente por el proveedor." action={pending ? <StatusPill label={`${pending} en curso`} tone={colors.warning} icon={Clock} /> : undefined} />
+      <SectionTitle title={copy.historyTitle} detail={copy.historyDetail} action={pending ? <StatusPill label={interpolate(copy.inProgress, { count: pending })} tone={colors.warning} icon={Clock} /> : undefined} />
 
-      {orders.isLoading ? <PremiumEmptyState icon={Wallet} title="Cargando operaciones" description="Estamos comprobando los estados más recientes." loading /> : null}
-      {orders.isError ? <PremiumErrorState title="No pudimos cargar los pagos" description="Comprueba la conexión y vuelve a intentarlo." onRetry={() => void orders.refetch()} /> : null}
-      {!orders.isLoading && !orders.isError && !orders.data?.length ? <PremiumEmptyState icon={Inbox} title="Sin operaciones todavía" description="Cuando realices o recibas un pago, su estado verificado aparecerá aquí." /> : null}
+      {orders.isLoading ? <PremiumEmptyState icon={Wallet} title={copy.loadingTitle} description={copy.loadingBody} loading /> : null}
+      {orders.isError ? <PremiumErrorState title={copy.errorTitle} description={copy.errorBody} onRetry={() => void orders.refetch()} /> : null}
+      {!orders.isLoading && !orders.isError && !orders.data?.length ? <PremiumEmptyState icon={Inbox} title={copy.emptyTitle} description={copy.emptyBody} /> : null}
 
       <View style={styles.list}>
         {orders.data?.map((order) => {
-          const status = paymentStatus(order);
+          const status = paymentStatus(order, copy);
           return (
             <View key={order.id} style={[styles.order, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <IconTile icon={CreditCard} tone={status.tone} size={46} />
               <View style={styles.orderCopy}>
-                <Text selectable style={[styles.amount, { color: palette.text }]}>{formatXaf(order.amount).replace('XAF', order.currency)}</Text>
+                <Text selectable style={[styles.amount, { color: palette.text }]}>{formatXaf(order.amount, undefined, locale)}</Text>
                 <Text style={[styles.provider_, { color: palette.textSecondary }]}>{order.provider.toUpperCase()} · #{order.id.slice(0, 8).toUpperCase()}</Text>
               </View>
               <StatusPill label={status.label} tone={status.tone} icon={status.icon} />
@@ -130,15 +133,13 @@ export default function Payments() {
           );
         })}
       </View>
-      {pay.error ? <Text accessibilityRole="alert" style={styles.error}>{pay.error.message}</Text> : null}
+      {pay.error ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{pay.error.message}</Text> : null}
     </RouteScreen>
   );
 }
 
 const styles = StyleSheet.create({
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  notice: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  noticeText: { flex: 1, fontSize: 13, lineHeight: 19 },
   payBlock: { gap: 10 },
   label: { fontSize: 13, fontWeight: '800' },
   providers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
   list: { gap: 10 },
   order: { minHeight: 86, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   orderCopy: { flex: 1, minWidth: 0, gap: 4 },
-  amount: { fontSize: 17, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  amount: { fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
   provider_: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
-  error: { color: colors.error, fontSize: 13, lineHeight: 18 },
+  error: { fontSize: 13, lineHeight: 18 },
 });

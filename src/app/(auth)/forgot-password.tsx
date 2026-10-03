@@ -8,10 +8,12 @@ import { PremiumButton } from '@/components/ui/premium';
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
+import { useAppTheme } from '@/providers/theme-context';
 
 export default function ForgotPasswordScreen() {
   const { requestPasswordReset } = useAuth();
   const { t } = useI18n();
+  const { palette } = useAppTheme();
   // El correo llega desde el login cuando el acceso fallo por falta de
   // contrasena: reescribirlo ahi seria pedir dos veces el mismo dato.
   const { email: emailInicial } = useLocalSearchParams<{ email?: string }>();
@@ -34,9 +36,9 @@ export default function ForgotPasswordScreen() {
     <RouteScreen title={t('forgotTitle')} description={t('forgotSubtitle')}>
       <FormField label={t('email')} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
       <PremiumButton label={t('sendLink')} onPress={() => void submit()} />
-      {message ? <Text>{message}</Text> : null}
+      {message ? <Text style={{ color: palette.text }}>{message}</Text> : null}
       <Pressable onPress={() => router.push('/(auth)/login')}>
-        <Text style={styles.link}>{t('backToLogin')}</Text>
+        <Text style={[styles.link, { color: palette.brandText }]}>{t('backToLogin')}</Text>
       </Pressable>
     </RouteScreen>
   );

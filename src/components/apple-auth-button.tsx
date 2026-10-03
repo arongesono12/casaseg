@@ -1,5 +1,5 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { Apple } from '@/components/ui/icons';
 import { radius } from '@/constants/theme';
 
 export type AppleAuthButtonProps = {
@@ -25,7 +25,7 @@ export function AppleAuthButton({ backgroundColor, borderColor, disabled, label,
         { backgroundColor, borderColor, opacity: disabled ? 0.55 : pressed ? 0.75 : 1 },
       ]}
     >
-      <FontAwesome color={textColor} name="apple" size={24} />
+      <Apple color={textColor} fill={textColor} size={22} />
       <Text style={[styles.label, { color: textColor }]}>{label}</Text>
     </Pressable>
   );

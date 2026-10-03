@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
+import { authMessage } from '@/features/auth/auth-messages';
 import { codigoDeClerk, comoError, lanzarSiFalla } from '@/features/auth/clerk-errors';
 import { getOAuthTransport } from '@/features/auth/oauth-transport';
 import { isExpoGo } from '@/lib/execution-environment';
@@ -63,13 +64,13 @@ function accesoPendiente(
   if (estado === 'needs_second_factor') {
     return new AccesoPendienteError(
       'needs_second_factor',
-      'Esta cuenta tiene verificación en dos pasos. Introduce el código de tu app de autenticación.',
+      authMessage('secondFactor'),
       'codigo',
     );
   }
 
   if (estado === 'needs_identifier') {
-    return new AccesoPendienteError('needs_identifier', 'No reconocimos ese correo. Comprueba que esté bien escrito.', 'ninguna');
+    return new AccesoPendienteError('needs_identifier', authMessage('unknownEmail'), 'ninguna');
   }
 
   // Sin `password` entre los factores, la contrasena escrita nunca va a servir:
@@ -94,7 +95,7 @@ function accesoPendiente(
   if (estado === 'needs_new_password') {
     return new AccesoPendienteError(
       'needs_new_password',
-      'Esta cuenta necesita una contraseña nueva antes de entrar. Te enviaremos un código para crearla.',
+      authMessage('needsNewPassword'),
       'restablecer',
     );
   }
@@ -120,7 +121,7 @@ function rolDesdeMetadata(metadata: unknown): { role: UserRole; error: string | 
 
   const role = parseUserRole(bruto);
   if (!role) {
-    return { role: 'client', error: 'El perfil contiene un rol no reconocido.' };
+    return { role: 'client', error: authMessage('unknownRole') };
   }
 
   return { role, error: null };
@@ -172,7 +173,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const updateProfileName = useCallback(async (name: string) => {
     const nextName = name.trim();
-    if (nextName.length < 2) throw new Error('Introduce un nombre válido.');
+    if (nextName.length < 2) throw new Error(authMessage('invalidName'));
 
     if (demoUser) {
       const nextDemoUser = { ...demoUser, name: nextName };
@@ -181,14 +182,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    if (!clerkUser) throw new Error('No hay una sesión activa.');
+    if (!clerkUser) throw new Error(authMessage('noSession'));
 
     const [firstName, ...resto] = nextName.split(' ');
     await clerkUser.update({ firstName, lastName: resto.join(' ') || undefined });
   }, [clerkUser, demoUser]);
 
   const updatePassword = useCallback(async (password: string) => {
-    if (!clerkUser) throw new Error('No hay una sesión activa.');
+    if (!clerkUser) throw new Error(authMessage('noSession'));
     await clerkUser.updatePassword({ newPassword: password });
   }, [clerkUser]);
 
@@ -236,7 +237,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [clerkSignIn]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    if (!clerkSignIn) throw new Error('El servicio de acceso todavía se está iniciando.');
+    if (!clerkSignIn) throw new Error(authMessage('signInStarting'));
 
     const identifier = email.trim().toLowerCase();
     const { error } = await clerkSignIn.password({ identifier, password });
@@ -249,7 +250,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (codigo === 'form_identifier_not_found') {
         throw new AccesoPendienteError(
           'form_identifier_not_found',
-          'No hay ninguna cuenta con ese correo. Comprueba que esté bien escrito o crea una cuenta.',
+          authMessage('noAccountForEmail'),
           'registrarse',
         );
       }
@@ -265,18 +266,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (pendiente) throw pendiente;
       }
 
-      throw comoError(error, 'No se pudo iniciar sesión.');
+      throw comoError(error, authMessage('signInFailed'));
     }
 
     if (clerkSignIn.status !== 'complete') {
       throw accesoPendiente(clerkSignIn.status, clerkSignIn.supportedFirstFactors ?? undefined);
     }
 
-    lanzarSiFalla(await clerkSignIn.finalize(), 'No se pudo abrir la sesión.');
+    lanzarSiFalla(await clerkSignIn.finalize(), authMessage('openSessionFailed'));
   }, [clerkSignIn, metodosDeLaCuenta]);
 
   const signUp = useCallback(async ({ email, password, name, role }: { email: string; password: string; name: string; role: 'client' | 'owner' }) => {
-    if (!clerkSignUp) throw new Error('El servicio de registro todavía se está iniciando.');
+    if (!clerkSignUp) throw new Error(authMessage('signUpStarting'));
 
     const nombre = name.trim();
     const [firstName, ...resto] = nombre.split(' ');
@@ -290,35 +291,35 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // rol. Solo deja constancia de lo que la persona pidió; el webhook crea
       // la cuenta como `client` y, si pidió `owner`, abre la solicitud.
       unsafeMetadata: { name: nombre, requestedRole: role },
-    }), 'No se pudo crear la cuenta.');
+    }), authMessage('signUpFailed'));
 
     // Si la instancia no exige verificar el correo, la cuenta ya está lista.
     if (clerkSignUp.status === 'complete') {
-      lanzarSiFalla(await clerkSignUp.finalize(), 'No se pudo abrir la sesión.');
+      lanzarSiFalla(await clerkSignUp.finalize(), authMessage('openSessionFailed'));
       return;
     }
 
-    lanzarSiFalla(await clerkSignUp.verifications.sendEmailCode(), 'No se pudo enviar el código.');
+    lanzarSiFalla(await clerkSignUp.verifications.sendEmailCode(), authMessage('sendCodeFailed'));
   }, [clerkSignUp]);
 
   const verifyOtp = useCallback(async (_email: string, token: string) => {
-    if (!clerkSignUp) throw new Error('El registro expiró. Vuelve a crear la cuenta.');
+    if (!clerkSignUp) throw new Error(authMessage('signUpExpired'));
 
     lanzarSiFalla(
       await clerkSignUp.verifications.verifyEmailCode({ code: token.trim() }),
-      'El código no es válido.',
+      authMessage('invalidCode'),
     );
 
     if (clerkSignUp.status !== 'complete') {
-      throw new Error('La verificación no se completó. Solicita un código nuevo.');
+      throw new Error(authMessage('verificationIncomplete'));
     }
 
-    lanzarSiFalla(await clerkSignUp.finalize(), 'No se pudo abrir la sesión.');
+    lanzarSiFalla(await clerkSignUp.finalize(), authMessage('openSessionFailed'));
   }, [clerkSignUp]);
 
   const resendSignupOtp = useCallback(async (_email: string) => {
-    if (!clerkSignUp) throw new Error('El registro expiró. Vuelve a crear la cuenta.');
-    lanzarSiFalla(await clerkSignUp.verifications.sendEmailCode(), 'No se pudo reenviar el código.');
+    if (!clerkSignUp) throw new Error(authMessage('signUpExpired'));
+    lanzarSiFalla(await clerkSignUp.verifications.sendEmailCode(), authMessage('resendCodeFailed'));
   }, [clerkSignUp]);
 
   const signInWithOAuth = useCallback(async (provider: 'google' | 'apple') => {
@@ -354,16 +355,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [startAppleAuthenticationFlow, startGoogleAuthenticationFlow, startSSOFlow]);
 
   const requestPasswordReset = useCallback(async (email: string) => {
-    if (!clerkSignIn) throw new Error('El servicio de acceso todavía se está iniciando.');
+    if (!clerkSignIn) throw new Error(authMessage('signInStarting'));
 
     lanzarSiFalla(
       await clerkSignIn.create({ identifier: email.trim().toLowerCase() }),
-      'No se pudo encontrar esa cuenta.',
+      authMessage('accountNotFound'),
     );
 
     lanzarSiFalla(
       await clerkSignIn.resetPasswordEmailCode.sendCode(),
-      'No se pudo enviar el código de recuperación.',
+      authMessage('recoveryCodeFailed'),
     );
   }, [clerkSignIn]);
 

@@ -14,10 +14,11 @@ import { useAppTheme } from '@/providers/theme-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useExplorerStore } from '@/stores/explorer-store';
 import { formatXaf } from '@/utils/formatters';
+import { pressRipple, usesRipple } from '@/lib/press-feedback';
 
 export default function MapScreen() {
   const { palette } = useAppTheme();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const filterRef = useRef<FilterSheetHandle>(null);
   const filters = useExplorerStore((state) => state.filters);
   const setViewMode = useExplorerStore((state) => state.setViewMode);
@@ -31,13 +32,13 @@ export default function MapScreen() {
   const locate = async () => {
     const permission = await Location.requestForegroundPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permiso no concedido', 'Puedes seguir explorando el mapa y buscar por ubicación manualmente.');
+      Alert.alert(t('locationDeniedTitle'), t('locationDeniedBody'));
       return;
     }
     const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     setUserLocation({ latitude: current.coords.latitude, longitude: current.coords.longitude });
   };
-  const requestLocation = () => Alert.alert('Usar mi ubicación', 'CasaSeg usará tu ubicación una sola vez para centrar el mapa y mostrar viviendas cercanas. No se guardará.', [{ text: 'Ahora no', style: 'cancel' }, { text: 'Continuar', onPress: () => void locate() }]);
+  const requestLocation = () => Alert.alert(t('useMyLocation'), t('useMyLocationBody'), [{ text: t('notNow'), style: 'cancel' }, { text: t('continue'), onPress: () => void locate() }]);
   const openList = () => { setViewMode('list'); router.replace('/(tabs)/explore'); };
   const goBack = () => { setViewMode('list'); router.back(); };
 
@@ -47,18 +48,18 @@ export default function MapScreen() {
       <SafeAreaView pointerEvents="box-none" style={styles.overlay}>
         <View style={styles.top}>
           <View style={styles.header}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('back')} onPress={goBack} style={[styles.iconButton, { backgroundColor: palette.surface }]}><ArrowLeft color={palette.text} size={22} /></Pressable>
-            <Pressable accessibilityRole="button" onPress={() => filterRef.current?.present()} style={[styles.search, { backgroundColor: palette.surface }]}><Search color={palette.textSecondary} size={20} /><Text numberOfLines={1} style={[styles.searchText, { color: palette.text }]}>{filters.location || t('mapSearch')}</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('viewList')} onPress={openList} style={styles.viewToggle}><LinearGradient colors={actionGradient} style={styles.viewToggleGradient}><List color="white" size={21} /></LinearGradient></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('back')} android_ripple={pressRipple} onPress={goBack} style={({ pressed }) => [styles.iconButton, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}><ArrowLeft color={palette.text} size={22} /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={filters.location ? `${t('mapSearch')}: ${filters.location}` : t('mapSearch')} android_ripple={pressRipple} onPress={() => filterRef.current?.present()} style={({ pressed }) => [styles.search, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}><Search color={palette.textSecondary} size={20} /><Text numberOfLines={1} style={[styles.searchText, { color: palette.text }]}>{filters.location || t('mapSearch')}</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('viewList')} android_ripple={pressRipple} onPress={openList} style={({ pressed }) => [styles.viewToggle, pressed && !usesRipple && styles.pressed]}><LinearGradient colors={actionGradient} style={styles.viewToggleGradient}><List color="white" size={21} /></LinearGradient></Pressable>
           </View>
           {!mapQuery.isError && <View style={[styles.count, { backgroundColor: palette.surface }]}>
-            {mapQuery.isPending ? <ActivityIndicator color={colors.brand} /> : <Text style={[styles.countText, { color: palette.text }]}>{t('mapCount', { shown: String(mappedCount), total: String(properties.length) })}</Text>}
+            {mapQuery.isPending ? <ActivityIndicator color={palette.brandIcon} /> : <Text style={[styles.countText, { color: palette.text }]}>{t('mapCount', { shown: String(mappedCount), total: String(properties.length) })}</Text>}
           </View>}
-          {mapQuery.isError && <Pressable accessibilityRole="button" onPress={() => void mapQuery.refetch()} style={[styles.count, { backgroundColor: palette.surface }]}><Text style={[styles.countText, { color: colors.error }]}>No se pudieron cargar. Reintentar</Text></Pressable>}
+          {mapQuery.isError && <Pressable accessibilityRole="button" android_ripple={pressRipple} onPress={() => void mapQuery.refetch()} style={({ pressed }) => [styles.count, { backgroundColor: palette.surface, minHeight: 48, justifyContent: 'center' }, pressed && !usesRipple && styles.pressed]}><Text style={[styles.countText, { color: palette.errorText }]}>{t('mapLoadError')}</Text></Pressable>}
         </View>
         <View style={styles.bottom}>
-          <View style={styles.actions}><Pressable accessibilityRole="button" accessibilityLabel={t('myLocation')} onPress={requestLocation} style={[styles.iconButton, { backgroundColor: palette.surface }]}><LocateFixed color={colors.primary} size={22} /></Pressable></View>
-          {selected && <Pressable onPress={() => router.push({ pathname: '/property/[id]', params: { id: selected.id } })} style={[styles.selected, { backgroundColor: palette.surface }]}><Image source={{ uri: selected.imageUrls[0] }} cachePolicy="disk" contentFit="cover" style={styles.thumb} /><View style={styles.selectedCopy}><Text numberOfLines={1} style={[styles.selectedTitle, { color: palette.text }]}>{selected.title}</Text><Text style={[styles.selectedLocation, { color: palette.textSecondary }]}>{selected.location}</Text><Text style={[styles.selectedPrice, { color: colors.brandDark }]}>{formatXaf(selected.price)}</Text></View></Pressable>}
+          <View style={styles.actions}><Pressable accessibilityRole="button" accessibilityLabel={t('myLocation')} android_ripple={pressRipple} onPress={requestLocation} style={({ pressed }) => [styles.iconButton, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}><LocateFixed color={palette.brandIcon} size={22} /></Pressable></View>
+          {selected && <Pressable accessibilityRole="button" accessibilityLabel={t('viewProperty', { title: selected.title })} android_ripple={pressRipple} onPress={() => router.push({ pathname: '/property/[id]', params: { id: selected.id } })} style={({ pressed }) => [styles.selected, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}><Image source={{ uri: selected.imageUrls[0] }} cachePolicy="disk" contentFit="cover" style={styles.thumb} /><View style={styles.selectedCopy}><Text numberOfLines={1} style={[styles.selectedTitle, { color: palette.text }]}>{selected.title}</Text><Text style={[styles.selectedLocation, { color: palette.textSecondary }]}>{selected.location}</Text><Text style={[styles.selectedPrice, { color: colors.brandDark }]}>{formatXaf(selected.price, undefined, locale)}</Text></View></Pressable>}
         </View>
       </SafeAreaView>
       <FilterSheet ref={filterRef} />
@@ -83,7 +84,8 @@ const styles = StyleSheet.create({
   selected: { minHeight: 104, borderRadius: radius.lg, padding: 10, flexDirection: 'row', gap: 12 },
   thumb: { width: 108, borderRadius: radius.md },
   selectedCopy: { flex: 1, justifyContent: 'center', gap: 4 },
-  selectedTitle: { fontSize: 15, fontWeight: '900' },
+  selectedTitle: { fontSize: 15, fontWeight: '700' },
   selectedLocation: { fontSize: 13 },
-  selectedPrice: { fontSize: 15, fontWeight: '900' },
+  selectedPrice: { fontSize: 15, fontWeight: '700' },
+  pressed: { opacity: 0.78 },
 });

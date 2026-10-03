@@ -22,17 +22,18 @@ export default function TabsLayout() {
       badgeTextColor="white"
       blurEffect={resolvedMode === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
       disableTransparentOnScrollEdge={false}
-      iconColor={{ default: palette.muted, selected: colors.brand }}
-      indicatorColor={colors.brandSoft}
+      iconColor={{ default: palette.muted, selected: palette.brandIcon }}
+      indicatorColor={palette.brandSoft}
       labelStyle={{
         default: { color: palette.muted, fontSize: 11, fontWeight: '600' },
-        selected: { color: colors.brandDark, fontSize: 11, fontWeight: '800' },
+        // Como en las apps del sistema, la pestaña activa se distingue por color, no por grosor.
+        selected: { color: palette.brandText, fontSize: 11, fontWeight: '600' },
       }}
       labelVisibilityMode="labeled"
       minimizeBehavior="never"
       rippleColor={`${colors.brand}20`}
       shadowColor={palette.border}
-      tintColor={colors.brand}
+      tintColor={palette.brandIcon}
     >
       <NativeTabs.Trigger name="explore">
         <NativeTabs.Trigger.Icon

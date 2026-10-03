@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -18,6 +17,7 @@ import { loginSchema } from '@/features/auth/auth.schemas';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { AccesoPendienteError } from '@/providers/auth-provider';
 import { useAuth } from '@/providers/auth-context';
+import { haptics } from '@/lib/haptics';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -57,11 +57,10 @@ export default function LoginScreen() {
       setSubmitError('');
       setSubmitAccion('ninguna');
       await auth.signIn(values.email, values.password);
-      if (Platform.OS !== 'web') {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
+      haptics.success();
       router.replace('/(tabs)/explore');
     } catch (error) {
+      haptics.error();
       // Un acceso a medias no es un fallo: trae el paso que falta y como darlo.
       if (error instanceof AccesoPendienteError) {
         setSubmitAccion(error.accion);
@@ -92,9 +91,9 @@ export default function LoginScreen() {
   // Cada acceso a medias tiene una salida distinta. La pantalla ofrece solo la
   // que corresponde, con el correo ya escrito, para no pedir dos veces el dato.
   const salida = {
-    restablecer: { ruta: '/(auth)/forgot-password' as const, etiqueta: 'Enviar código para crear contraseña' },
-    oauth: { ruta: '/(auth)/forgot-password' as const, etiqueta: 'Crear una contraseña para esta cuenta' },
-    registrarse: { ruta: '/(auth)/register' as const, etiqueta: 'Crear una cuenta con este correo' },
+    restablecer: { ruta: '/(auth)/forgot-password' as const, etiqueta: t('sendResetCode') },
+    oauth: { ruta: '/(auth)/forgot-password' as const, etiqueta: t('createPasswordForAccount') },
+    registrarse: { ruta: '/(auth)/register' as const, etiqueta: t('createAccountWithEmail') },
     codigo: null,
     ninguna: null,
   }[submitAccion];
@@ -198,19 +197,19 @@ export default function LoginScreen() {
               </View>
               <Text style={[styles.optionText, { color: palette.text }]}>{t('rememberMe')}</Text>
             </Pressable>
-            <Pressable accessibilityRole="link" onPress={() => router.push('/(auth)/forgot-password')} style={styles.inlineTarget}><Text style={[styles.forgotLink, { color: colors.brandDark }]}>{t('forgotPassword')}</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/(auth)/forgot-password')} style={styles.inlineTarget}><Text style={[styles.forgotLink, { color: palette.brandText }]}>{t('forgotPassword')}</Text></Pressable>
           </View>
 
           {submitError ? (
             <View style={styles.errorBlock}>
-              <Text accessibilityRole="alert" style={styles.error}>{submitError}</Text>
+              <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{submitError}</Text>
               {salida ? (
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => router.push({ pathname: salida.ruta, params: { email: correoIntentado } })}
                   style={styles.inlineTarget}
                 >
-                  <Text style={[styles.forgotLink, { color: colors.brandDark }]}>{salida.etiqueta}</Text>
+                  <Text style={[styles.forgotLink, { color: palette.brandText }]}>{salida.etiqueta}</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -246,7 +245,7 @@ export default function LoginScreen() {
 
           {!isSupabaseConfigured && <View style={styles.demo}><Text style={[styles.demoTitle, { color: palette.textSecondary }]}>{t('devMode')}</Text><Pressable accessibilityRole="button" onPress={() => void auth.signInDemo('client')}><Text style={styles.link}>{t('clientDemo')}</Text></Pressable><Pressable accessibilityRole="button" onPress={() => void auth.signInDemo('owner')}><Text style={styles.link}>{t('ownerDemo')}</Text></Pressable><Pressable accessibilityRole="button" onPress={() => void auth.signInDemo('admin')}><Text style={styles.link}>{t('adminDemo')}</Text></Pressable></View>}
 
-          <Pressable accessibilityRole="link" onPress={() => router.push('/(auth)/register')}><Text style={styles.link}>{t('createAccount')}</Text></Pressable>
+          <Pressable accessibilityRole="link" onPress={() => router.push('/(auth)/register')}><Text style={[styles.link, { color: palette.brandText }]}>{t('createAccount')}</Text></Pressable>
           <View style={styles.legalLinks}>
             <Pressable accessibilityRole="link" onPress={() => router.push('/legal/terms')} style={styles.inlineTarget}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('termsAndConditions')}</Text></Pressable>
             <Text style={{ color: palette.muted }}>·</Text>
@@ -266,7 +265,7 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, width: '100%', maxWidth: 560, alignSelf: 'center', justifyContent: 'center', padding: 24, gap: 14 },
   contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingVertical: 18, gap: 12 },
   heading: { gap: 10, marginBottom: 12 },
-  title: { fontSize: 30, lineHeight: 36, fontWeight: '900' },
+  title: { fontSize: 30, lineHeight: 36, fontWeight: '800' },
   titleCompact: { fontSize: 26, lineHeight: 31 },
   subtitle: { fontSize: 16, lineHeight: 24 },
   eyeButton: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
@@ -283,5 +282,5 @@ const styles = StyleSheet.create({
   legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
   legalLink: { fontSize: 13, fontWeight: '600' },
   errorBlock: { gap: 2 },
-  error: { color: colors.error, fontSize: 13, lineHeight: 19 },
+  error: { fontSize: 13, lineHeight: 19 },
 });

@@ -17,8 +17,15 @@ import {
   ShieldCheck,
 } from '@/components/ui/icons';
 import { IconTile, PremiumButton, StatusPill, type IconComponent } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, radius, withAlpha } from '@/constants/theme';
+import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
+
+const legalCopy = defineCopy({
+  es: { goToSection: 'Ir a la sección {number}: {title}', defaultSummary: 'Consulta los puntos esenciales de este documento y accede rápidamente a cada sección.', defaultContactTitle: '¿Necesitas aclarar algún punto?', defaultContactBody: 'Escríbenos desde tu correo asociado a CasaSeg para que podamos ayudarte.', defaultContactLabel: 'Contactar con soporte', shareMessage: '{title} de CasaSeg', summaryTitle: 'Información clara y transparente', updated: 'Actualizado · {date}', official: 'Documento oficial', share: 'Compartir', print: 'Imprimir', save: 'Guardar', help: 'Ayuda', contentsTitle: 'En este documento', contentsDetail: 'Selecciona una sección para ir directamente.', section: 'SECCIÓN {number}', supportSubject: 'Consulta sobre {title}', helpCenter: 'Centro de ayuda', footer: 'CasaSeg · {title} · Última actualización: {date}', spanishOnly: '' },
+  fr: { goToSection: 'Aller à la section {number} : {title}', defaultSummary: 'Consultez les points essentiels de ce document et accédez rapidement à chaque section.', defaultContactTitle: 'Besoin de précisions ?', defaultContactBody: 'Écrivez-nous depuis l’adresse e-mail associée à CasaSeg pour que nous puissions vous aider.', defaultContactLabel: 'Contacter le support', shareMessage: '{title} de CasaSeg', summaryTitle: 'Des informations claires et transparentes', updated: 'Mis à jour · {date}', official: 'Document officiel', share: 'Partager', print: 'Imprimer', save: 'Enregistrer', help: 'Aide', contentsTitle: 'Dans ce document', contentsDetail: 'Choisissez une section pour y accéder directement.', section: 'SECTION {number}', supportSubject: 'Question sur {title}', helpCenter: 'Centre d’aide', footer: 'CasaSeg · {title} · Dernière mise à jour : {date}', spanishOnly: 'Ce document fait foi dans sa version espagnole, la seule disponible pour le moment.' },
+  en: { goToSection: 'Go to section {number}: {title}', defaultSummary: 'Review the key points of this document and jump quickly to each section.', defaultContactTitle: 'Need something clarified?', defaultContactBody: 'Write to us from the email linked to CasaSeg so we can help you.', defaultContactLabel: 'Contact support', shareMessage: 'CasaSeg {title}', summaryTitle: 'Clear and transparent information', updated: 'Updated · {date}', official: 'Official document', share: 'Share', print: 'Print', save: 'Save', help: 'Help', contentsTitle: 'In this document', contentsDetail: 'Choose a section to jump straight to it.', section: 'SECTION {number}', supportSubject: 'Question about {title}', helpCenter: 'Help center', footer: 'CasaSeg · {title} · Last updated: {date}', spanishOnly: 'The Spanish version of this document is the binding one and the only one available for now.' },
+});
 
 type LegalSection = {
   title: string;
@@ -67,7 +74,7 @@ function CompactAction({ label, icon: Icon, onPress }: CompactActionProps) {
         focused && styles.focused,
         pressed && styles.pressed,
       ]}>
-      <Icon color={colors.brand} size={18} />
+      <Icon color={palette.brandIcon} size={18} />
       <Text style={[styles.compactActionLabel, { color: palette.text }]}>{label}</Text>
     </Pressable>
   );
@@ -75,13 +82,14 @@ function CompactAction({ label, icon: Icon, onPress }: CompactActionProps) {
 
 function ContentsLink({ index, label, onPress }: { index: number; label: string; onPress: () => void }) {
   const { palette } = useAppTheme();
+  const copy = useCopy(legalCopy);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
 
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`Ir a la sección ${index + 1}: ${label}`}
+      accessibilityLabel={interpolate(copy.goToSection, { number: index + 1, title: label })}
       onBlur={() => setFocused(false)}
       onFocus={() => setFocused(true)}
       onHoverIn={() => setHovered(true)}
@@ -93,7 +101,7 @@ function ContentsLink({ index, label, onPress }: { index: number; label: string;
         focused && styles.focused,
         pressed && styles.pressed,
       ]}>
-      <Text style={[styles.contentsNumber, { color: colors.brand }]}>{String(index + 1).padStart(2, '0')}</Text>
+      <Text style={[styles.contentsNumber, { color: palette.brandText }]}>{String(index + 1).padStart(2, '0')}</Text>
       <Text numberOfLines={2} style={[styles.contentsLabel, { color: palette.textSecondary }]}>{label}</Text>
       <ChevronRight color={palette.muted} size={17} />
     </Pressable>
@@ -106,21 +114,24 @@ export function LegalPage({
   updated,
   sections,
   documentUrl = 'https://casaseg.com',
-  summary = 'Consulta los puntos esenciales de este documento y accede rápidamente a cada sección.',
-  contactTitle = '¿Necesitas aclarar algún punto?',
-  contactDescription = 'Escríbenos desde tu correo asociado a CasaSeg para que podamos ayudarte.',
-  contactLabel = 'Contactar con soporte',
+  summary,
+  contactTitle,
+  contactDescription,
+  contactLabel,
 }: LegalPageProps) {
   const { palette } = useAppTheme();
+  const copy = useCopy(legalCopy);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const wide = width >= 860;
   const scrollRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<number[]>([]);
-  const layoutOffsets = useRef({ document: 0, content: 0, sections: 0 });
+  const layoutOffsets = useRef({ screen: 0, document: 0, content: 0, sections: 0 });
 
   const scrollToSection = (index: number) => {
-    const offset = layoutOffsets.current.document
+    // screen: el contenido empieza debajo de la cabecera a sangre de RouteScreen.
+    const offset = layoutOffsets.current.screen
+      + layoutOffsets.current.document
       + layoutOffsets.current.content
       + layoutOffsets.current.sections
       + (sectionOffsets.current[index] ?? 0);
@@ -128,7 +139,7 @@ export function LegalPage({
   };
 
   const shareDocument = () => {
-    void Share.share({ title, message: `${title} de CasaSeg\n${documentUrl}`, url: documentUrl }).catch(() => undefined);
+    void Share.share({ title, message: `${interpolate(copy.shareMessage, { title })}\n${documentUrl}`, url: documentUrl }).catch(() => undefined);
   };
 
   const printOrShare = () => {
@@ -140,26 +151,33 @@ export function LegalPage({
   };
 
   return (
-    <RouteScreen scrollRef={scrollRef} title={title} description={description} maxWidth={1040}>
+    <RouteScreen scrollRef={scrollRef} title={title} description={description} maxWidth={1040} onContentOffset={(y) => { layoutOffsets.current.screen = y; }}>
       <View style={[styles.summary, { backgroundColor: `${colors.brand}0D`, borderColor: `${colors.brand}24` }]}>
         <IconTile icon={ShieldCheck} size={52} />
         <View style={styles.summaryCopy}>
-          <Text style={[styles.summaryTitle, { color: palette.text }]}>Información clara y transparente</Text>
+          <Text style={[styles.summaryTitle, { color: palette.text }]}>{copy.summaryTitle}</Text>
           <Text selectable style={[styles.summaryText, { color: palette.textSecondary }]}>
-            {summary}
+            {summary ?? copy.defaultSummary}
           </Text>
         </View>
       </View>
 
+      {copy.spanishOnly ? (
+        <View style={[styles.note, { backgroundColor: `${colors.warning}0D`, borderColor: `${colors.warning}2B` }]}>
+          <Info color={colors.warning} size={18} />
+          <Text selectable style={[styles.noteText, { color: palette.textSecondary }]}>{copy.spanishOnly}</Text>
+        </View>
+      ) : null}
+
       <View style={styles.documentMeta}>
         <View style={styles.metaRow}>
-          <StatusPill label={`Actualizado · ${updated}`} tone={colors.brand} icon={CheckCircle2} />
-          <StatusPill label="Documento oficial" tone={colors.success} icon={Lock} />
+          <StatusPill label={interpolate(copy.updated, { date: updated })} tone={colors.brand} icon={CheckCircle2} />
+          <StatusPill label={copy.official} tone={colors.success} icon={Lock} />
         </View>
         <View style={styles.actions}>
-          <CompactAction label="Compartir" icon={Share2} onPress={shareDocument} />
-          <CompactAction label={Platform.OS === 'web' ? 'Imprimir' : 'Guardar'} icon={FileText} onPress={printOrShare} />
-          <CompactAction label="Ayuda" icon={HelpCircle} onPress={() => router.push('/legal/help')} />
+          <CompactAction label={copy.share} icon={Share2} onPress={shareDocument} />
+          <CompactAction label={Platform.OS === 'web' ? copy.print : copy.save} icon={FileText} onPress={printOrShare} />
+          <CompactAction label={copy.help} icon={HelpCircle} onPress={() => router.push('/legal/help')} />
         </View>
       </View>
 
@@ -169,11 +187,11 @@ export function LegalPage({
         <View style={[styles.contents, wide && styles.contentsWide, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <View style={styles.contentsHeader}>
             <View style={[styles.contentsIcon, { backgroundColor: `${colors.brand}12` }]}>
-              <List color={colors.brand} size={20} />
+              <List color={palette.brandIcon} size={20} />
             </View>
             <View style={styles.contentsCopy}>
-              <Text style={[styles.contentsTitle, { color: palette.text }]}>En este documento</Text>
-              <Text style={[styles.contentsDetail, { color: palette.textSecondary }]}>Selecciona una sección para ir directamente.</Text>
+              <Text style={[styles.contentsTitle, { color: palette.text }]}>{copy.contentsTitle}</Text>
+              <Text style={[styles.contentsDetail, { color: palette.textSecondary }]}>{copy.contentsDetail}</Text>
             </View>
           </View>
           <View accessibilityRole="list" style={styles.contentsList}>
@@ -197,10 +215,10 @@ export function LegalPage({
                 style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
                 <View style={styles.sectionHeader}>
                   <View style={[styles.number, { backgroundColor: index === 0 ? `${colors.brand}14` : palette.subtle }]}>
-                    {section.icon ?? (index === 0 ? <Info color={colors.brand} size={20} /> : <FileText color={palette.textSecondary} size={20} />)}
+                    {section.icon ?? (index === 0 ? <Info color={palette.brandIcon} size={20} /> : <FileText color={palette.textSecondary} size={20} />)}
                   </View>
                   <View style={styles.sectionHeadingCopy}>
-                    <Text style={[styles.kicker, { color: colors.brand }]}>SECCIÓN {String(index + 1).padStart(2, '0')}</Text>
+                    <Text style={[styles.kicker, { color: palette.brandText }]}>{interpolate(copy.section, { number: String(index + 1).padStart(2, '0') })}</Text>
                     <Text selectable style={[styles.title, { color: palette.text }]}>{section.title}</Text>
                   </View>
                 </View>
@@ -217,7 +235,7 @@ export function LegalPage({
                 ) : null}
                 {section.note ? (
                   <View style={[styles.note, { backgroundColor: `${colors.brand}0A`, borderColor: `${colors.brand}20` }]}>
-                    <Info color={colors.brand} size={18} />
+                    <Info color={palette.brandIcon} size={18} />
                     <Text selectable style={[styles.noteText, { color: palette.textSecondary }]}>{section.note}</Text>
                   </View>
                 ) : null}
@@ -227,21 +245,21 @@ export function LegalPage({
 
           <View style={[styles.contactCard, { backgroundColor: `${colors.brand}0D`, borderColor: `${colors.brand}24` }]}>
             <View style={styles.contactCopy}>
-              <Text style={[styles.contactTitle, { color: palette.text }]}>{contactTitle}</Text>
+              <Text style={[styles.contactTitle, { color: palette.text }]}>{contactTitle ?? copy.defaultContactTitle}</Text>
               <Text style={[styles.contactText, { color: palette.textSecondary }]}>
-                {contactDescription}
+                {contactDescription ?? copy.defaultContactBody}
               </Text>
             </View>
             <View style={styles.contactActions}>
-              <PremiumButton label={contactLabel} icon={Mail} onPress={() => void Linking.openURL(`mailto:soporte@casaseg.com?subject=${encodeURIComponent(`Consulta sobre ${title}`)}`)} style={styles.contactButton} />
-              <PremiumButton variant="secondary" label="Centro de ayuda" icon={ExternalLink} onPress={() => router.push('/legal/help')} style={styles.contactButton} />
+              <PremiumButton label={contactLabel ?? copy.defaultContactLabel} icon={Mail} onPress={() => void Linking.openURL(`mailto:soporte@casaseg.com?subject=${encodeURIComponent(interpolate(copy.supportSubject, { title }))}`)} style={styles.contactButton} />
+              <PremiumButton variant="secondary" label={copy.helpCenter} icon={ExternalLink} onPress={() => router.push('/legal/help')} style={styles.contactButton} />
             </View>
           </View>
         </View>
       </View>
 
       <Text selectable style={[styles.footer, { color: palette.muted }]}>
-        CasaSeg · {title} · Última actualización: {updated}
+        {interpolate(copy.footer, { title, date: updated })}
       </Text>
     </RouteScreen>
   );
@@ -250,7 +268,7 @@ export function LegalPage({
 const styles = StyleSheet.create({
   summary: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
   summaryCopy: { flex: 1, gap: 4 },
-  summaryTitle: { fontSize: 16, lineHeight: 22, fontWeight: '900' },
+  summaryTitle: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
   summaryText: { fontSize: 14, lineHeight: 21 },
   documentMeta: { gap: 12 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -264,11 +282,11 @@ const styles = StyleSheet.create({
   contentsHeader: { padding: 6, flexDirection: 'row', alignItems: 'center', gap: 10 },
   contentsIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   contentsCopy: { flex: 1, gap: 2 },
-  contentsTitle: { fontSize: 16, lineHeight: 21, fontWeight: '900' },
+  contentsTitle: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
   contentsDetail: { fontSize: 12, lineHeight: 17 },
   contentsList: { gap: 1 },
   contentsLink: { minHeight: 44, borderRadius: radius.sm, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  contentsNumber: { width: 23, fontSize: 11, lineHeight: 15, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  contentsNumber: { width: 23, fontSize: 11, lineHeight: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   contentsLabel: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   contentColumn: { flex: 1, minWidth: 0, gap: 20 },
   sections: { gap: 12 },
@@ -276,8 +294,8 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   number: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   sectionHeadingCopy: { flex: 1, gap: 2 },
-  kicker: { fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 0.8 },
-  title: { fontSize: 20, lineHeight: 26, fontWeight: '900', letterSpacing: -0.2 },
+  kicker: { fontSize: 10, lineHeight: 14, fontWeight: '700', letterSpacing: 0.8 },
+  title: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.2 },
   body: { fontSize: 16, lineHeight: 28 },
   bulletList: { gap: 10 },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -287,11 +305,11 @@ const styles = StyleSheet.create({
   noteText: { flex: 1, fontSize: 14, lineHeight: 21 },
   contactCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 20, gap: 16 },
   contactCopy: { gap: 5 },
-  contactTitle: { fontSize: 20, lineHeight: 26, fontWeight: '900' },
+  contactTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700' },
   contactText: { maxWidth: 640, fontSize: 14, lineHeight: 22 },
   contactActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   contactButton: { flexGrow: 1, minWidth: 220 },
   footer: { textAlign: 'center', fontSize: 12, lineHeight: 18, paddingHorizontal: 12, paddingVertical: 8 },
-  focused: { boxShadow: '0 0 0 3px rgba(20,184,166,0.38)' },
+  focused: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.38)}` },
   pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
 });

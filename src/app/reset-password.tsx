@@ -8,6 +8,7 @@ import { RouteScreen } from '@/components/route-screen';
 import { PremiumButton } from '@/components/ui/premium';
 import { colors } from '@/constants/theme';
 import { useI18n } from '@/providers/i18n-context';
+import { useAppTheme } from '@/providers/theme-context';
 
 /**
  * Segundo paso de la recuperación de contraseña.
@@ -20,6 +21,7 @@ import { useI18n } from '@/providers/i18n-context';
 export default function ResetPasswordScreen() {
   const { signIn } = useSignIn();
   const { t } = useI18n();
+  const { palette } = useAppTheme();
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,15 +32,15 @@ export default function ResetPasswordScreen() {
     if (enviando) return;
 
     if (password.length < 8) {
-      setMessage('La contraseña debe tener al menos 8 caracteres.');
+      setMessage(t('passwordTooShort'));
       return;
     }
     if (password !== confirmPassword) {
-      setMessage('Las contraseñas no coinciden.');
+      setMessage(t('passwordsDontMatch'));
       return;
     }
     if (!signIn) {
-      setMessage('La solicitud expiró. Vuelve a pedir el código.');
+      setMessage(t('resetExpired'));
       return;
     }
 
@@ -65,9 +67,9 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <RouteScreen title={t('resetTitle')} description="Introduce el código que te enviamos y tu contraseña nueva.">
+    <RouteScreen title={t('resetTitle')} description={t('resetCodeSubtitle')}>
       <FormField
-        label="Código de verificación"
+        label={t('verificationCode')}
         placeholder="123456"
         autoCapitalize="none"
         autoComplete="one-time-code"
@@ -95,9 +97,9 @@ export default function ResetPasswordScreen() {
         onChangeText={setConfirmPassword}
       />
       <PremiumButton label={enviando ? t('loading') : t('savePassword')} onPress={() => void submit()} />
-      {message ? <Text accessibilityRole="alert">{message}</Text> : null}
+      {message ? <Text accessibilityRole="alert" style={{ color: palette.text }}>{message}</Text> : null}
       <Pressable onPress={() => router.replace('/(auth)/login')}>
-        <Text style={styles.link}>{t('backToLogin')}</Text>
+        <Text style={[styles.link, { color: palette.brandText }]}>{t('backToLogin')}</Text>
       </Pressable>
     </RouteScreen>
   );

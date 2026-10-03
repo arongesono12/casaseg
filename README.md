@@ -7,13 +7,13 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 1. Install dependencies
 
    ```bash
-   npm install
+   bun install
    ```
 
 2. Start the app
 
    ```bash
-   npm start
+   bun run start
    ```
 
 In the output, you'll find options to open the app in a
@@ -33,28 +33,28 @@ renderers in Expo Go. Native development builds are still required for custom mo
 such as Clerk's native Google sign-in and remote push notifications:
 
 ```bash
-npm run android:native
-npm run start:dev
+bun run android:native
+bun run start:dev
 ```
 
-Startup commands use Expo CLI directly. `npm start` explicitly selects Expo Go, so the
+Startup commands use Expo CLI directly. `bun run start` explicitly selects Expo Go, so the
 QR code uses an `exp://` link. Install Expo Go compatible with SDK 57 and connect the
-phone and computer to the same network. Use `npm run start:tunnel` if LAN is inaccessible.
+phone and computer to the same network. Use `bun run start:tunnel` if LAN is inaccessible.
 On a physical iPhone, sign in to the same Expo account in Expo Go and Expo CLI
 (`npx expo login`). See [Expo Go sign-in requirements](https://docs.expo.dev/troubleshooting/expo-go-sign-in-required/).
-After installing a native development build, use `npm run start:dev` or
-`npm run android:dev` to connect to that build instead.
+After installing a native development build, use `bun run start:dev` or
+`bun run android:dev` to connect to that build instead.
 
 Real sign-in requires `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` in `.env.local`, copied from
 the Clerk Dashboard's API keys page. Without it, development opens public screens as a
 guest; login and private routes remain unavailable. Remote builds require this key.
 
 After upgrading the SDK, rebuild previously installed development clients with
-`npm run android:native`, or create a new EAS development build. SDK 54 clients
+`bun run android:native`, or create a new EAS development build. SDK 54 clients
 cannot load the SDK 57 JavaScript runtime. Native directories generated locally
 must also be regenerated for SDK 57; Expo CLI's `prebuild` does this by default.
 
-On macOS, use `npm run ios:native`. For a physical device or when building iOS from Windows, use
+On macOS, use `bun run ios:native`. For a physical device or when building iOS from Windows, use
 the existing EAS development profile:
 
 ```bash
@@ -88,7 +88,7 @@ You can start developing by editing the files inside the **app** directory. This
 When you're ready, run:
 
 ```bash
-npm run reset-project
+bun run reset-project
 ```
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.

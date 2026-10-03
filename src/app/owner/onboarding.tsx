@@ -69,7 +69,7 @@ export default function OwnerOnboarding() {
           {draft.step === 3 ? (
             <PremiumButton label={documentSent ? t('documentSent') : t('sendDocument')} onPress={() => void uploadDocument()} />
           ) : null}
-          {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+          {error ? <Text accessibilityRole="alert" style={{ color: palette.errorText }}>{error}</Text> : null}
         </View>
       )}
 
