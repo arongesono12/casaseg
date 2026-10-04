@@ -7,7 +7,7 @@ import { HeroStatusBar, useHeroScroll } from '@/components/hero-status-bar';
 import { StatusBarScrim } from '@/components/status-bar-scrim';
 import { Bell, CheckCircle2 } from '@/components/ui/icons';
 import { HeroBadge, PremiumHero } from '@/components/ui/premium';
-import { colors, radius, type AppPalette } from '@/constants/theme';
+import { colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
 import { fetchNotifications, markNotificationsRead, type AppNotification } from '@/features/notifications/notifications.api';
 import { useAuth } from '@/providers/auth-context';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
@@ -26,7 +26,7 @@ const NotificationRow = memo(function NotificationRow({ notification, palette }:
     if (notification.conversationId) router.push({ pathname: '/chat/[conversationId]', params: { conversationId: notification.conversationId } });
     else if (notification.propertyId) router.push({ pathname: '/property/[id]', params: { id: notification.propertyId } });
   };
-  return <Pressable onPress={openTarget} style={[styles.item, { backgroundColor: palette.surface }]}><View style={[styles.dot, notification.read && styles.dotRead]} /><View style={styles.copy}><Text style={[styles.itemTitle, { color: palette.text }]}>{notification.title}</Text><Text style={[styles.body, { color: palette.textSecondary }]}>{notification.body}</Text><Text style={[styles.date, { color: palette.muted }]}>{formatDate(notification.createdAt)}</Text></View></Pressable>;
+  return <Pressable onPress={openTarget} style={[styles.item, { backgroundColor: palette.surface }]}><View style={[styles.dot, notification.read && styles.dotRead]} /><View style={styles.copy}><Text style={[styles.itemTitle, { color: palette.text }]}>{notification.title}</Text><Text style={[styles.body, { color: palette.textSecondary }]}>{notification.body}</Text><Text style={[styles.date, { color: palette.textSecondary }]}>{formatDate(notification.createdAt)}</Text></View></Pressable>;
 });
 
 function NotificationSeparator() {
@@ -78,4 +78,4 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1 }, headerBlock: { marginHorizontal: -16, marginBottom: 16, gap: 16 }, push: { marginHorizontal: 16, minHeight: 54, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }, pushText: { fontWeight: '800' }, list: { paddingHorizontal: 16 }, separator: { height: 8 }, item: { minHeight: 88, borderRadius: radius.lg, padding: 14, flexDirection: 'row', gap: 10 }, dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.error, marginTop: 6 }, dotRead: { opacity: 0 }, copy: { flex: 1, gap: 4 }, itemTitle: { fontSize: 15, fontWeight: '700' }, body: { fontSize: 14, lineHeight: 20 }, date: { fontSize: 12 } });
+const styles = StyleSheet.create({ safe: { flex: 1 }, headerBlock: { marginHorizontal: -16, marginBottom: 16, gap: 16 }, push: { marginHorizontal: 16, minHeight: 54, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }, pushText: { fontFamily: fontFamily.extrabold }, list: { paddingHorizontal: 16 }, separator: { height: 8 }, item: { minHeight: 88, borderRadius: radius.lg, padding: 14, flexDirection: 'row', gap: 10 }, dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.error, marginTop: 6 }, dotRead: { opacity: 0 }, copy: { flex: 1, gap: 4 }, itemTitle: { fontSize: 15, fontFamily: fontFamily.bold }, body: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20 }, date: { fontFamily: fontFamily.regular, fontSize: 12 } });

@@ -14,7 +14,7 @@ mock.module('@/lib/supabase', () => ({
   },
 }));
 
-const { fetchConversations, propertyIdFromChatRoute, resolveChatId, sendMessage } = await import('../../src/features/messaging/messaging.api');
+const { deleteChatForMe, fetchConversations, fetchMessages, propertyIdFromChatRoute, resolveChatId, sendMessage } = await import('../../src/features/messaging/messaging.api');
 
 describe('messaging api', () => {
   beforeEach(() => {
@@ -52,6 +52,18 @@ describe('messaging api', () => {
     rpcResults.send_chat_message = { data: [{ message_id: 'm2', chat_id: 'c1', sender_id: 'u1', content: 'Ok', created_at: '2026-10-01T10:00:00Z' }], error: null };
     await sendMessage({ chatId: 'c1', propertyId: 'p1' }, 'Ok');
     expect(rpcCalls[0]?.args).toEqual({ p_content: 'Ok', p_chat_id: 'c1', p_property_id: null });
+  });
+
+  test('loads messages through list_chat_messages so deleted history stays hidden', async () => {
+    rpcResults.list_chat_messages = { data: [{ id: 'm1', chat_id: 'c1', sender_id: 'u2', content: 'Hola', created_at: '2026-10-01T10:00:00Z', is_read: true, delivered_at: null }], error: null };
+    const [message] = await fetchMessages('c1');
+    expect(rpcCalls[0]).toEqual({ fn: 'list_chat_messages', args: { p_chat_id: 'c1', p_limit: 50 } });
+    expect(message.status).toBe('read');
+  });
+
+  test('deletes a chat only for the current user', async () => {
+    await deleteChatForMe('c1');
+    expect(rpcCalls[0]).toEqual({ fn: 'delete_chat_for_me', args: { p_chat_id: 'c1' } });
   });
 
   test('surfaces RPC errors', async () => {

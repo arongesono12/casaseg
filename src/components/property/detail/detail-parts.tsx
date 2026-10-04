@@ -15,7 +15,7 @@ import {
   type AppIcon,
 } from '@/components/ui/icons';
 import { UserAvatar } from '@/components/user-avatar';
-import { actionGradient, colors, radius, touchTarget, type AppPalette } from '@/constants/theme';
+import { actionGradient, colors, fontFamily, radius, touchTarget, type AppPalette } from '@/constants/theme';
 
 // Las comodidades se guardan con su nombre en español (ver amenities.ts); aquí
 // solo se elige el icono. Las que escribió el propietario usan el genérico.
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     boxShadow: '0 10px 28px rgba(15,23,42,0.06)',
   },
   badge: { minHeight: 30, borderRadius: radius.pill, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 12, fontWeight: '700' },
+  badgeText: { fontSize: 12, fontFamily: fontFamily.bold },
   factTile: {
     flex: 1,
     minWidth: 0,
@@ -166,16 +166,16 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   factIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  factValue: { fontSize: 16, lineHeight: 21, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  factLabel: { fontSize: 11, lineHeight: 15, fontWeight: '700' },
+  factValue: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.extrabold, fontVariant: ['tabular-nums'] },
+  factLabel: { fontSize: 11, lineHeight: 15, fontFamily: fontFamily.bold },
   hostCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  hostEyebrow: { fontSize: 11, lineHeight: 15, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
-  hostName: { fontSize: 17, lineHeight: 23, fontWeight: '800' },
+  hostEyebrow: { fontSize: 11, lineHeight: 15, fontFamily: fontFamily.bold, textTransform: 'uppercase', letterSpacing: 0.8 },
+  hostName: { fontSize: 17, lineHeight: 23, fontFamily: fontFamily.extrabold },
   hostVerified: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-  hostVerifiedText: { fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  hostVerifiedText: { fontSize: 12, lineHeight: 17, fontFamily: fontFamily.bold },
   hostAction: { width: touchTarget, height: touchTarget, borderRadius: touchTarget / 2, alignItems: 'center', justifyContent: 'center' },
   section: { gap: 14 },
-  sectionTitle: { fontSize: 20, lineHeight: 26, fontWeight: '800', letterSpacing: -0.3 },
+  sectionTitle: { fontSize: 20, lineHeight: 26, fontFamily: fontFamily.extrabold, letterSpacing: -0.3 },
   // flexBasis + flexGrow deja que reflote sola: dos columnas en móvil y más en tablet.
   amenity: {
     flexBasis: 150,
@@ -189,10 +189,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  amenityText: { flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  amenityText: { flex: 1, fontSize: 14, lineHeight: 19, fontFamily: fontFamily.bold },
   primaryButton: { minHeight: 56, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden' },
   primaryGradient: { flex: 1, minHeight: 56, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: 'white', textAlign: 'center', fontSize: 15, lineHeight: 20, fontWeight: '800' },
+  primaryText: { color: 'white', textAlign: 'center', fontSize: 15, lineHeight: 20, fontFamily: fontFamily.extrabold },
   secondaryButton: {
     minHeight: 52,
     borderRadius: radius.md,
@@ -204,6 +204,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  secondaryText: { textAlign: 'center', fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  secondaryText: { textAlign: 'center', fontSize: 14, lineHeight: 19, fontFamily: fontFamily.bold },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

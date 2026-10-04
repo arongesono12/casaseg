@@ -17,7 +17,7 @@ import {
   X,
   type IconProps,
 } from '@/components/ui/icons';
-import { actionGradient, colors, radius, touchTarget } from '@/constants/theme';
+import { actionGradient, colors, fontFamily, radius, touchTarget } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
 import { iconRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
 import { useAuth } from '@/providers/auth-context';
@@ -244,8 +244,8 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   accountCopy: { flex: 1, gap: 3, minWidth: 0 },
-  accountSubtitle: { fontSize: 12, lineHeight: 16 },
-  accountTitle: { fontSize: 15, fontWeight: '700' },
+  accountSubtitle: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 16 },
+  accountTitle: { fontSize: 15, fontFamily: fontFamily.bold },
   avatar: { alignItems: 'center', borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },
   backdrop: {
     backgroundColor: 'rgba(2,6,23,0.48)',
@@ -265,15 +265,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 12,
   },
-  choiceLabel: { fontSize: 12, fontWeight: '800' },
+  choiceLabel: { fontSize: 12, fontFamily: fontFamily.extrabold },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   closeButton: { alignItems: 'center', borderRadius: touchTarget / 2, height: touchTarget, justifyContent: 'center', width: touchTarget },
   divider: { height: StyleSheet.hairlineWidth },
   menuContent: { gap: 24, paddingBottom: 24 },
-  menuEyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
+  menuEyebrow: { fontSize: 10, fontFamily: fontFamily.bold, letterSpacing: 1.2 },
   menuHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 20 },
   menuRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 54 },
-  menuTitle: { fontSize: 27, fontWeight: '800', lineHeight: 32 },
+  menuTitle: { fontSize: 27, fontFamily: fontFamily.extrabold, lineHeight: 32 },
   overlay: { alignItems: 'flex-end', flex: 1 },
   panel: {
     flex: 1,
@@ -283,8 +283,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.76 },
   rowIcon: { alignItems: 'center', borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
-  rowLabel: { flex: 1, fontSize: 14, fontWeight: '800' },
+  rowLabel: { flex: 1, fontSize: 14, fontFamily: fontFamily.extrabold },
   section: { gap: 11 },
-  sectionLabel: { fontSize: 14, fontWeight: '700' },
+  sectionLabel: { fontSize: 14, fontFamily: fontFamily.bold },
   sectionTitle: { alignItems: 'center', flexDirection: 'row', gap: 8 },
 });

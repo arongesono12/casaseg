@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { Apple } from '@/components/ui/icons';
-import { radius } from '@/constants/theme';
+import { fontFamily, radius } from '@/constants/theme';
 
 export type AppleAuthButtonProps = {
   backgroundColor: string;
@@ -42,5 +42,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  label: { fontSize: 15, fontWeight: '700' },
+  label: { fontSize: 15, fontFamily: fontFamily.bold },
 });

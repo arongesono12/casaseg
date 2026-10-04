@@ -1,7 +1,7 @@
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/constants/theme';
+import { colors, fontFamily } from '@/constants/theme';
 import type { Property } from '@/types';
 
 type Props = { properties: Property[]; onSelect?: (property: Property) => void; userLocation?: { latitude: number; longitude: number } | null };
@@ -42,4 +42,4 @@ export function PropertyMap({ properties, onSelect, userLocation }: Props) {
     return items.map((property) => <Marker key={property.id} coordinate={property.coordinates!} title={property.title} onPress={() => onSelect?.(property)} />);
   })}</MapView>;
 }
-const styles = StyleSheet.create({ map: { flex: 1 }, cluster: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.brand, borderWidth: 3, borderColor: 'white', alignItems: 'center', justifyContent: 'center' }, clusterText: { color: 'white', fontWeight: '700' } });
+const styles = StyleSheet.create({ map: { flex: 1 }, cluster: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.brand, borderWidth: 3, borderColor: 'white', alignItems: 'center', justifyContent: 'center' }, clusterText: { color: 'white', fontFamily: fontFamily.bold } });

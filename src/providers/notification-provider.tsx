@@ -15,6 +15,8 @@ function canLoadNativeNotifications() {
   return Platform.OS !== 'web' && !isExpoGo;
 }
 
+const UNREAD_REFRESH_MS = 20_000;
+
 export function NotificationProvider({ children }: PropsWithChildren) {
   const { user, isAuthenticated } = useAuth();
   const { t } = useI18n();
@@ -24,6 +26,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     queryKey: conversationKeys.list(user?.id ?? 'anonymous'),
     queryFn: fetchConversations,
     enabled: isAuthenticated && Boolean(user),
+    // Respaldo del tiempo real: si el socket se cae (el token de Clerk caduca
+    // cada minuto), el contador de no leídos se sigue actualizando.
+    refetchInterval: UNREAD_REFRESH_MS,
   });
   const profileId = useProfileId();
   useConversationSummaryRealtime(user?.id, profileId);

@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, Clock, CreditCard, RefreshCw, ShieldCheck } from '@/components/ui/icons';
 import { IconTile, PremiumButton, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { confirmPaymentOrder } from '@/features/payments/payments.api';
 import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -35,7 +35,7 @@ export default function PaymentSuccess() {
         <StatusPill label={completed ? copy.confirmed : failed ? copy.notCompleted : copy.checking} tone={tone} icon={Icon} />
         <Text style={[styles.resultTitle, { color: palette.text }]}>{title}</Text>
         <Text style={[styles.resultText, { color: palette.textSecondary }]}>{description}</Text>
-        {orderId ? <Text selectable style={[styles.reference, { color: palette.muted }]}>{interpolate(copy.reference, { id: orderId.slice(0, 12).toUpperCase() })}</Text> : null}
+        {orderId ? <Text selectable style={[styles.reference, { color: palette.textSecondary }]}>{interpolate(copy.reference, { id: orderId.slice(0, 12).toUpperCase() })}</Text> : null}
       </View>
       <View style={[styles.security, { backgroundColor: `${colors.success}0D`, borderColor: `${colors.success}25` }]}>
         <IconTile icon={ShieldCheck} tone={colors.success} size={42} />
@@ -51,10 +51,10 @@ export default function PaymentSuccess() {
 const styles = StyleSheet.create({
   result: { minHeight: 280, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 24, alignItems: 'center', justifyContent: 'center', gap: 11, boxShadow: '0 12px 30px rgba(15,23,42,0.07)' },
   resultIcon: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 3 },
-  resultTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
-  resultText: { maxWidth: 400, fontSize: 14, lineHeight: 21, textAlign: 'center' },
-  reference: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
+  resultTitle: { fontSize: 22, fontFamily: fontFamily.extrabold, textAlign: 'center' },
+  resultText: { fontFamily: fontFamily.regular, maxWidth: 400, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  reference: { fontSize: 11, fontFamily: fontFamily.bold, letterSpacing: 0.4 },
   security: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  securityText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  error: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  securityText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18, textAlign: 'center' },
 });

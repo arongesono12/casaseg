@@ -17,7 +17,7 @@ import {
   ShieldCheck,
 } from '@/components/ui/icons';
 import { IconTile, PremiumButton, StatusPill, type IconComponent } from '@/components/ui/premium';
-import { colors, radius, withAlpha } from '@/constants/theme';
+import { colors, fontFamily, radius, withAlpha } from '@/constants/theme';
 import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -258,7 +258,7 @@ export function LegalPage({
         </View>
       </View>
 
-      <Text selectable style={[styles.footer, { color: palette.muted }]}>
+      <Text selectable style={[styles.footer, { color: palette.textSecondary }]}>
         {interpolate(copy.footer, { title, date: updated })}
       </Text>
     </RouteScreen>
@@ -268,13 +268,13 @@ export function LegalPage({
 const styles = StyleSheet.create({
   summary: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
   summaryCopy: { flex: 1, gap: 4 },
-  summaryTitle: { fontSize: 16, lineHeight: 22, fontWeight: '700' },
-  summaryText: { fontSize: 14, lineHeight: 21 },
+  summaryTitle: { fontSize: 16, lineHeight: 22, fontFamily: fontFamily.bold },
+  summaryText: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21 },
   documentMeta: { gap: 12 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   compactAction: { minHeight: 44, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  compactActionLabel: { fontSize: 14, lineHeight: 18, fontWeight: '800' },
+  compactActionLabel: { fontSize: 14, lineHeight: 18, fontFamily: fontFamily.extrabold },
   documentLayout: { gap: 16 },
   documentLayoutWide: { flexDirection: 'row', alignItems: 'flex-start', gap: 24 },
   contents: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 12, gap: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
@@ -282,34 +282,34 @@ const styles = StyleSheet.create({
   contentsHeader: { padding: 6, flexDirection: 'row', alignItems: 'center', gap: 10 },
   contentsIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   contentsCopy: { flex: 1, gap: 2 },
-  contentsTitle: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
-  contentsDetail: { fontSize: 12, lineHeight: 17 },
+  contentsTitle: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
+  contentsDetail: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   contentsList: { gap: 1 },
   contentsLink: { minHeight: 44, borderRadius: radius.sm, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  contentsNumber: { width: 23, fontSize: 11, lineHeight: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  contentsLabel: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  contentsNumber: { width: 23, fontSize: 11, lineHeight: 15, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
+  contentsLabel: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: fontFamily.bold },
   contentColumn: { flex: 1, minWidth: 0, gap: 20 },
   sections: { gap: 12 },
   section: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 20, gap: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   number: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   sectionHeadingCopy: { flex: 1, gap: 2 },
-  kicker: { fontSize: 10, lineHeight: 14, fontWeight: '700', letterSpacing: 0.8 },
-  title: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.2 },
-  body: { fontSize: 16, lineHeight: 28 },
+  kicker: { fontSize: 10, lineHeight: 14, fontFamily: fontFamily.bold, letterSpacing: 0.8 },
+  title: { fontSize: 20, lineHeight: 26, fontFamily: fontFamily.bold, letterSpacing: -0.2 },
+  body: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 28 },
   bulletList: { gap: 10 },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   bullet: { width: 6, height: 6, borderRadius: 3, marginTop: 10, flexShrink: 0 },
-  bulletText: { flex: 1, fontSize: 15, lineHeight: 25 },
+  bulletText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 15, lineHeight: 25 },
   note: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
-  noteText: { flex: 1, fontSize: 14, lineHeight: 21 },
+  noteText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 14, lineHeight: 21 },
   contactCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 20, gap: 16 },
   contactCopy: { gap: 5 },
-  contactTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700' },
-  contactText: { maxWidth: 640, fontSize: 14, lineHeight: 22 },
+  contactTitle: { fontSize: 20, lineHeight: 26, fontFamily: fontFamily.bold },
+  contactText: { fontFamily: fontFamily.regular, maxWidth: 640, fontSize: 14, lineHeight: 22 },
   contactActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   contactButton: { flexGrow: 1, minWidth: 220 },
-  footer: { textAlign: 'center', fontSize: 12, lineHeight: 18, paddingHorizontal: 12, paddingVertical: 8 },
+  footer: { fontFamily: fontFamily.regular, textAlign: 'center', fontSize: 12, lineHeight: 18, paddingHorizontal: 12, paddingVertical: 8 },
   focused: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.38)}` },
   pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
 });

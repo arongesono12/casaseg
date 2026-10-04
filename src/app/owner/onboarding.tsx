@@ -4,7 +4,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
 import { PremiumButton } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { uploadKycDocument } from '@/features/owner/kyc-upload';
 import { useOwnerDraft } from '@/features/owner/owner-draft.store';
 import { useI18n } from '@/providers/i18n-context';
@@ -84,7 +84,7 @@ export default function OwnerOnboarding() {
 const styles = StyleSheet.create({
   progressTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
   progress: { height: 7, backgroundColor: colors.brand },
-  input: { minHeight: 56, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 16, fontSize: 16 },
+  input: { fontFamily: fontFamily.regular, minHeight: 56, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 16, fontSize: 16 },
   info: { borderRadius: radius.lg, padding: 18, gap: 12 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   action: { flex: 1, minWidth: 140 },

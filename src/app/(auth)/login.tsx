@@ -12,7 +12,7 @@ import { FormField } from '@/components/form-field';
 import { GoogleAuthButton } from '@/components/google-auth-button';
 import { NativeActionButton } from '@/components/native-action-button';
 import { ArrowLeft, Check, Eye, EyeOff } from '@/components/ui/icons';
-import { colors, touchTarget } from '@/constants/theme';
+import { colors, fontFamily, touchTarget } from '@/constants/theme';
 import { loginSchema } from '@/features/auth/auth.schemas';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { AccesoPendienteError } from '@/providers/auth-provider';
@@ -265,22 +265,22 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, width: '100%', maxWidth: 560, alignSelf: 'center', justifyContent: 'center', padding: 24, gap: 14 },
   contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingVertical: 18, gap: 12 },
   heading: { gap: 10, marginBottom: 12 },
-  title: { fontSize: 30, lineHeight: 36, fontWeight: '800' },
+  title: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold },
   titleCompact: { fontSize: 26, lineHeight: 31 },
-  subtitle: { fontSize: 16, lineHeight: 24 },
+  subtitle: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24 },
   eyeButton: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
   optionsRow: { minHeight: touchTarget, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   rememberControl: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 9 },
   checkbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  optionText: { fontSize: 14, fontWeight: '700' },
-  forgotLink: { fontSize: 14, fontWeight: '700' },
+  optionText: { fontSize: 14, fontFamily: fontFamily.bold },
+  forgotLink: { fontSize: 14, fontFamily: fontFamily.bold },
   inlineTarget: { minHeight: touchTarget, justifyContent: 'center' },
   oauthButtons: { gap: 10 },
   demo: { alignItems: 'center', gap: 2, paddingVertical: 8 },
-  demoTitle: { fontSize: 12, fontWeight: '800' },
-  link: { minHeight: touchTarget, color: colors.brandDark, textAlign: 'center', textAlignVertical: 'center', fontSize: 15, lineHeight: 20, fontWeight: '800', paddingHorizontal: 9, paddingVertical: 14 },
+  demoTitle: { fontSize: 12, fontFamily: fontFamily.extrabold },
+  link: { minHeight: touchTarget, color: colors.brandDark, textAlign: 'center', textAlignVertical: 'center', fontSize: 15, lineHeight: 20, fontFamily: fontFamily.extrabold, paddingHorizontal: 9, paddingVertical: 14 },
   legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
-  legalLink: { fontSize: 13, fontWeight: '600' },
+  legalLink: { fontSize: 13, fontFamily: fontFamily.semibold },
   errorBlock: { gap: 2 },
-  error: { fontSize: 13, lineHeight: 19 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
 });

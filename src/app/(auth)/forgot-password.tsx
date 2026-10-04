@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { FormField } from '@/components/form-field';
 import { RouteScreen } from '@/components/route-screen';
 import { PremiumButton } from '@/components/ui/premium';
-import { colors } from '@/constants/theme';
+import { colors, fontFamily } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -45,5 +45,5 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  link: { color: colors.brandDark, fontWeight: '800' },
+  link: { color: colors.brandDark, fontFamily: fontFamily.extrabold },
 });

@@ -34,8 +34,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UserAvatar } from '@/components/user-avatar';
 import { CasasegLogo } from '@/components/ui/casaseg-logo';
-import { ArrowRight, Home, Layers3, UsersRound } from '@/components/ui/icons';
-import { actionGradient, brand, colors, radius, withAlpha } from '@/constants/theme';
+import { ArrowRight, Home, Layers3, Star, UsersRound } from '@/components/ui/icons';
+import { LegalPill, PremiumButton } from '@/components/ui/premium';
+import { colors, fontFamily, radius, spacing, typography, withAlpha } from '@/constants/theme';
 import {
   fetchOnboardingCommunity,
   fetchOnboardingProperty,
@@ -46,75 +47,20 @@ import { appStorage } from '@/lib/local-storage';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import type { Property } from '@/types';
+import { formatXaf } from '@/utils/formatters';
 
 const getStartedArtwork = require('../../../assets/images/onboarding/onboarding-get-started.png');
+/** Alto / ancho de la ilustración de "Empezar" (768 × 674). */
+const ARTWORK_RATIO = 674 / 768;
 
 /**
- * La marca la lidera el azul; el teal solo acompaña. El onboarding traía además
- * una familia coral/rosa que no pertenecía a ninguno de los dos y era la que
- * rompía la coherencia con el resto de la app.
+ * Estructura y reglas de datos del diseño de Stitch (stitch/casaseg-splash-screen):
+ * splash → descubrir → comunidad → empezar, con vivienda y cifras reales de
+ * Supabase. Lenguaje visual del rediseño B (design-demos/direction-approved.md):
+ * fondo liso del tema, título grande, foto protagonista y botón con degradado de
+ * acción. El onboarding ya no tiene paleta propia: usa la del ThemeProvider, así
+ * que su modo oscuro coincide con el del resto de la app.
  */
-const onboardingThemes = {
-  light: {
-    backgroundGradient: [brand.blue[100], brand.neutral[50], brand.blue[200]] as const,
-    splashGradient: [brand.blue[50], brand.neutral[50], brand.blue[100]] as const,
-    finalGradient: [brand.blue[200], brand.blue[100], brand.blue[50]] as const,
-    // La ilustración trae el rosa horneado en el PNG. El velo entra solo en la
-    // franja final (donde el dibujo ya es fondo, no personajes) y la funde con
-    // el panel, que arranca justo en ese mismo tono.
-    artworkOverlay: ['transparent', 'transparent', withAlpha(brand.blue[200], 0.74)] as const,
-    artworkOverlayStops: [0, 0.88, 1] as const,
-    text: brand.neutral[900],
-    body: brand.neutral[900],
-    secondary: colors.textSecondary,
-    brand: colors.brandDark,
-    accent: colors.brandDark,
-    surface: withAlpha(colors.surface, 0.72),
-    mediaSurface: brand.blue[50],
-    border: withAlpha(brand.neutral[700], 0.22),
-    divider: withAlpha(brand.neutral[700], 0.18),
-    icon: brand.neutral[900],
-    inactiveDot: brand.blue[300],
-    spinnerTrack: withAlpha(colors.primary, 0.24),
-    spinner: colors.primary,
-    avatarBorder: colors.surface,
-    signIn: colors.text,
-    retry: colors.brand,
-  },
-  dark: {
-    backgroundGradient: [brand.dark.background, brand.dark.surface, brand.blue[900]] as const,
-    splashGradient: [brand.dark.background, brand.dark.surface, brand.blue[900]] as const,
-    finalGradient: [brand.blue[900], brand.dark.elevated, brand.dark.surface] as const,
-    // En oscuro el velo sí cubre toda la imagen: además de fundir, es el scrim
-    // que baja la ilustración al nivel de luz del resto de la pantalla.
-    artworkOverlay: [withAlpha(brand.dark.background, 0.28), withAlpha(brand.dark.surface, 0.62), withAlpha(brand.blue[900], 0.94)] as const,
-    artworkOverlayStops: [0, 0.7, 1] as const,
-    text: brand.dark.text,
-    body: brand.dark.text,
-    secondary: brand.dark.textSecondary,
-    brand: brand.blue[400],
-    accent: brand.blue[300],
-    surface: withAlpha(brand.dark.surface, 0.88),
-    mediaSurface: brand.dark.elevated,
-    border: withAlpha(colors.surface, 0.16),
-    divider: withAlpha(colors.surface, 0.18),
-    icon: brand.dark.text,
-    inactiveDot: brand.dark.muted,
-    spinnerTrack: withAlpha(brand.blue[400], 0.22),
-    spinner: brand.blue[400],
-    avatarBorder: brand.dark.surface,
-    signIn: brand.dark.text,
-    retry: brand.blue[300],
-  },
-} as const;
-
-function useOnboardingTheme() {
-  const { resolvedMode } = useAppTheme();
-  return {
-    dark: resolvedMode === 'dark',
-    theme: onboardingThemes[resolvedMode],
-  };
-}
 
 const slides = [
   { id: 'discover' },
@@ -139,6 +85,11 @@ type CommonSlideProps = {
   topInset: number;
   width: number;
 };
+
+function useAccent() {
+  // Texto grande en azul de marca, legible en claro y en oscuro (palette.brandText).
+  return useAppTheme().palette.brandText;
+}
 
 function MotionBlock({ active, children, delay = 0, distance = 18, style }: MotionBlockProps) {
   const reduceMotion = useReducedMotion();
@@ -171,27 +122,17 @@ function MotionBlock({ active, children, delay = 0, distance = 18, style }: Moti
   return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
 }
 
-function Brand({
-  centered = false,
-  color = colors.brandDark,
-  large = false,
-}: {
-  centered?: boolean;
-  color?: string;
-  large?: boolean;
-}) {
-  const logoWidth = large ? 48 : 22;
-
+function Brand({ centered = false, large = false }: { centered?: boolean; large?: boolean }) {
+  const { palette } = useAppTheme();
   return (
     <View style={[styles.brand, centered && styles.brandCentered]}>
-      <CasasegLogo width={logoWidth} height={large ? 39 : 18} />
-      <Text style={[large ? styles.brandNameLarge : styles.brandName, { color }]}>CASASEG</Text>
+      <CasasegLogo width={large ? 56 : 26} height={large ? 46 : 21} />
+      <Text style={[large ? styles.brandNameLarge : styles.brandName, { color: palette.text }]}>CasaSeg</Text>
     </View>
   );
 }
 
 function SplashSpinner() {
-  const { theme } = useOnboardingTheme();
   const reduceMotion = useReducedMotion();
   const rotation = useSharedValue(0);
 
@@ -209,44 +150,31 @@ function SplashSpinner() {
     transform: [{ rotate: `${rotation.value * 360}deg` }],
   }));
 
-  return (
-    <Animated.View
-      style={[
-        styles.splashSpinner,
-        { borderColor: theme.spinnerTrack, borderTopColor: theme.spinner },
-        animatedStyle,
-      ]}
-    />
-  );
+  return <Animated.View style={[styles.splashSpinner, animatedStyle]} />;
 }
 
 function SplashScreenView() {
   const { t } = useI18n();
-  const { dark, theme } = useOnboardingTheme();
+  const { palette, resolvedMode } = useAppTheme();
 
   return (
-    <LinearGradient
-      colors={theme.splashGradient}
-      end={{ x: 1, y: 1 }}
-      start={{ x: 0, y: 0 }}
-      style={styles.splash}
-    >
-      <StatusBar style={dark ? 'light' : 'dark'} />
+    <View style={[styles.splash, { backgroundColor: palette.background }]}>
+      <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <MotionBlock active delay={80} distance={10} style={styles.splashCenter}>
-        <Brand color={theme.text} large />
+        <Brand large />
         <SplashSpinner />
       </MotionBlock>
       <View accessibilityLabel={t('onboardingLoadingLabel')} style={styles.splashDots}>
-        <View style={[styles.splashDot, { backgroundColor: theme.spinner }, styles.splashDotActive]} />
-        <View style={[styles.splashDot, { backgroundColor: theme.inactiveDot }]} />
-        <View style={[styles.splashDot, { backgroundColor: theme.inactiveDot }]} />
+        <View style={[styles.splashDot, styles.splashDotActive]} />
+        <View style={[styles.splashDot, { backgroundColor: palette.border }]} />
+        <View style={[styles.splashDot, { backgroundColor: palette.border }]} />
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 function PageDot({ active }: { active: boolean }) {
-  const { theme } = useOnboardingTheme();
+  const { palette } = useAppTheme();
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(active ? 1 : 0);
 
@@ -261,15 +189,7 @@ function PageDot({ active }: { active: boolean }) {
     transform: [{ scale: interpolate(progress.value, [0, 1], [0.84, 1.18]) }],
   }));
 
-  return (
-    <Animated.View
-      style={[
-        styles.pageDot,
-        { backgroundColor: active ? theme.spinner : theme.inactiveDot },
-        animatedStyle,
-      ]}
-    />
-  );
+  return <Animated.View style={[styles.pageDot, { backgroundColor: active ? palette.brandIcon : palette.border }, animatedStyle]} />;
 }
 
 function Pagination({ current }: { current: number }) {
@@ -277,43 +197,22 @@ function Pagination({ current }: { current: number }) {
 
   return (
     <View
-      accessibilityLabel={t('onboardingPageStatus', {
-        current: String(current + 1),
-        total: String(slides.length),
-      })}
+      accessibilityLabel={t('onboardingPageStatus', { current: String(current + 1), total: String(slides.length) })}
       style={styles.pagination}
     >
-      {slides.map((slide, index) => (
-        <PageDot active={index === current} key={slide.id} />
-      ))}
+      {slides.map((slide, index) => <PageDot active={index === current} key={slide.id} />)}
     </View>
   );
 }
 
-function PrimaryButton({
-  label,
-  onPress,
-  showArrow = false,
-}: {
-  label: string;
-  onPress: () => void;
-  showArrow?: boolean;
-}) {
+function TextAction({ label, onPress, strong }: { label: string; onPress: () => void; strong?: string }) {
+  const { palette } = useAppTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.primaryButtonHitbox, pressed && styles.pressed]}
-    >
-      <LinearGradient
-        colors={actionGradient}
-        end={{ x: 1, y: 0.5 }}
-        start={{ x: 0, y: 0.5 }}
-        style={styles.primaryButton}
-      >
-        <Text style={styles.primaryButtonLabel}>{label}</Text>
-        {showArrow ? <ArrowRight color="white" size={18} /> : null}
-      </LinearGradient>
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}>
+      <Text style={[styles.textActionLabel, { color: palette.text }]}>
+        {strong ? `${label} ` : label}
+        {strong ? <Text style={styles.textActionStrong}>{strong}</Text> : null}
+      </Text>
     </Pressable>
   );
 }
@@ -343,89 +242,72 @@ function AnimatedPropertyImage({ active, property }: { active: boolean; property
     return () => cancelAnimation(scale);
   }, [active, reduceMotion, scale]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
-    <Animated.View style={[styles.propertyImageMotion, animatedStyle]}>
+    <Animated.View style={[styles.fill, animatedStyle]}>
       <Image
-        accessibilityLabel={t('onboardingPropertyAccessibility', {
-          location: property.location,
-          title: property.title,
-        })}
+        accessibilityLabel={t('onboardingPropertyAccessibility', { location: property.location, title: property.title })}
         cachePolicy="disk"
         contentFit="cover"
         source={{ uri: property.imageUrls[0] }}
-        style={styles.propertyImage}
+        style={styles.fill}
         transition={250}
       />
     </Animated.View>
   );
 }
 
-function PropertyVisual({
-  active,
-  error,
-  loading,
-  onRetry,
-  property,
-}: {
-  active: boolean;
-  error: boolean;
-  loading: boolean;
-  onRetry: () => void;
-  property: Property | null;
-}) {
+/** La vivienda real de Supabase, presentada igual que una tarjeta de Explorar. */
+function PropertyVisual({ active, error, loading, onRetry, property }: { active: boolean; error: boolean; loading: boolean; onRetry: () => void; property: Property | null }) {
   const { t } = useI18n();
-  const { theme } = useOnboardingTheme();
+  const { palette } = useAppTheme();
 
   if (loading) {
     return (
-      <View
-        style={[
-          styles.propertyState,
-          { backgroundColor: theme.surface, borderColor: theme.border },
-        ]}
-      >
-        <ActivityIndicator color={theme.spinner} size="large" />
-        <Text style={[styles.stateText, { color: theme.secondary }]}>
-          {t('onboardingPropertyLoading')}
-        </Text>
+      <View style={[styles.propertyFrame, styles.propertyState, { backgroundColor: palette.subtle }]}>
+        <ActivityIndicator color={palette.brandIcon} size="large" />
+        <Text style={[styles.stateText, { color: palette.textSecondary }]}>{t('onboardingPropertyLoading')}</Text>
       </View>
     );
   }
 
   if (error || !property?.imageUrls[0]) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        onPress={onRetry}
-        style={({ pressed }) => [
-          styles.propertyState,
-          { backgroundColor: theme.surface, borderColor: theme.border },
-          pressed && styles.pressed,
-        ]}
-      >
-        <Home color={theme.spinner} size={42} />
-        <Text style={[styles.stateTitle, { color: theme.text }]}>
-          {t('onboardingPropertyLoadError')}
-        </Text>
-        <Text style={[styles.retryText, { color: theme.retry }]}>
-          {t('onboardingTapToRetry')}
-        </Text>
+      <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.propertyFrame, styles.propertyState, { backgroundColor: palette.subtle }, pressed && styles.pressed]}>
+        <Home color={palette.brandIcon} size={40} />
+        <Text style={[styles.stateTitle, { color: palette.text }]}>{t('onboardingPropertyLoadError')}</Text>
+        <Text style={[styles.stateText, styles.underline, { color: palette.text }]}>{t('onboardingTapToRetry')}</Text>
       </Pressable>
     );
   }
 
+  const amount = formatXaf(property.price);
+  const unit = formatXaf(property.price, property.priceType).slice(amount.length);
+
   return (
-    <View
-      style={[
-        styles.propertyFrame,
-        { backgroundColor: theme.mediaSurface, borderColor: theme.border },
-      ]}
-    >
-      <AnimatedPropertyImage active={active} property={property} />
+    <View style={styles.propertyCard}>
+      <View style={[styles.propertyFrame, { backgroundColor: palette.subtle }]}>
+        <AnimatedPropertyImage active={active} property={property} />
+        <View pointerEvents="none" style={styles.propertyPill}>
+          <LegalPill status={property.legalStatus} labels={{ verified: t('legalVerified'), pending: t('legalPending'), restricted: t('legalRestricted') }} />
+        </View>
+      </View>
+      <View style={styles.propertySummary}>
+        <View style={styles.propertyTitleRow}>
+          <Text numberOfLines={1} style={[styles.propertyTitle, { color: palette.text }]}>{property.title}</Text>
+          {property.rating ? (
+            <View style={styles.rating}>
+              <Star color={palette.text} fill={palette.text} size={13} />
+              <Text style={[styles.propertyMeta, { color: palette.text }]}>{property.rating.toFixed(1)}</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text numberOfLines={1} style={[styles.propertyMeta, { color: palette.textSecondary }]}>{property.location}</Text>
+        <Text numberOfLines={1} style={[styles.propertyMeta, { color: palette.text }]}>
+          <Text style={styles.propertyPrice}>{amount}</Text>{unit}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -441,115 +323,65 @@ function DiscoverSlide({
   propertyLoading,
   topInset,
   width,
-}: CommonSlideProps & {
-  onRetry: () => void;
-  property: Property | null;
-  propertyError: boolean;
-  propertyLoading: boolean;
-}) {
+}: CommonSlideProps & { onRetry: () => void; property: Property | null; propertyError: boolean; propertyLoading: boolean }) {
   const { t } = useI18n();
-  const { theme } = useOnboardingTheme();
+  const { palette } = useAppTheme();
+  const accent = useAccent();
 
   return (
     <ScrollView
       bounces={false}
-      contentContainerStyle={[
-        styles.discoverPage,
-        {
-          minHeight: height,
-          paddingBottom: Math.max(bottomInset, 12),
-          paddingTop: topInset + 14,
-        },
-      ]}
+      contentContainerStyle={[styles.page, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg), paddingTop: topInset + spacing.lg }]}
       showsVerticalScrollIndicator={false}
       style={{ width }}
     >
       <MotionBlock active={active} delay={20} distance={-8}>
-        <Brand color={theme.brand} />
+        <Brand />
       </MotionBlock>
 
-      <MotionBlock active={active} delay={90} distance={18} style={styles.discoverTitleBlock}>
-        <Text style={[styles.discoverTitle, { color: theme.text }]}>
+      <MotionBlock active={active} delay={90} distance={18} style={styles.titleBlock}>
+        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
           {t('onboardingDiscoverTitlePrimary')}{'\n'}
-          <Text style={[styles.accentText, { color: theme.accent }]}>
-            {t('onboardingDiscoverTitleAccent')}
-          </Text>
+          <Text style={{ color: accent }}>{t('onboardingDiscoverTitleAccent')}</Text>
         </Text>
       </MotionBlock>
 
       <MotionBlock active={active} delay={170} distance={28} style={styles.discoverVisual}>
-        <PropertyVisual
-          active={active}
-          error={propertyError}
-          loading={propertyLoading}
-          onRetry={onRetry}
-          property={property}
-        />
+        <PropertyVisual active={active} error={propertyError} loading={propertyLoading} onRetry={onRetry} property={property} />
       </MotionBlock>
 
       <MotionBlock active={active} delay={260} distance={18}>
-        <Text style={[styles.discoverBody, { color: theme.body }]}>
-          {t('onboardingDiscoverBody')}
-        </Text>
+        <Text style={[styles.body, { color: palette.textSecondary }]}>{t('onboardingDiscoverBody')}</Text>
       </MotionBlock>
 
-      <MotionBlock active={active} delay={340} distance={16} style={styles.discoverActions}>
-        <PrimaryButton label={t('onboardingNext')} onPress={onNext} />
-        <Pressable
-          accessibilityRole="button"
-          onPress={finishOnboarding}
-          style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
-        >
-          <Text style={[styles.skipLabel, { color: theme.accent }]}>
-            {t('onboardingSkip')}
-          </Text>
-        </Pressable>
+      <MotionBlock active={active} delay={340} distance={16} style={styles.actions}>
+        <Pagination current={0} />
+        <PremiumButton label={t('onboardingNext')} onPress={onNext} style={styles.cta} />
+        <TextAction label={t('onboardingSkip')} onPress={finishOnboarding} />
       </MotionBlock>
     </ScrollView>
   );
 }
 
-function CommunityContent({
-  active,
-  community,
-  error,
-  loading,
-  onRetry,
-}: {
-  active: boolean;
-  community?: OnboardingCommunity;
-  error: boolean;
-  loading: boolean;
-  onRetry: () => void;
-}) {
+function CommunityContent({ active, community, error, loading, onRetry }: { active: boolean; community?: OnboardingCommunity; error: boolean; loading: boolean; onRetry: () => void }) {
   const { t } = useI18n();
-  const { theme } = useOnboardingTheme();
+  const { palette } = useAppTheme();
 
   if (loading) {
     return (
       <View style={styles.communityState}>
-        <ActivityIndicator color={theme.spinner} size="large" />
-        <Text style={[styles.stateText, { color: theme.secondary }]}>
-          {t('onboardingCommunityLoading')}
-        </Text>
+        <ActivityIndicator color={palette.brandIcon} size="large" />
+        <Text style={[styles.stateText, { color: palette.textSecondary }]}>{t('onboardingCommunityLoading')}</Text>
       </View>
     );
   }
 
   if (error || !community) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        onPress={onRetry}
-        style={({ pressed }) => [styles.communityState, pressed && styles.pressed]}
-      >
-        <UsersRound color={theme.spinner} size={40} />
-        <Text style={[styles.stateTitle, { color: theme.text }]}>
-          {t('onboardingCommunityLoadError')}
-        </Text>
-        <Text style={[styles.retryText, { color: theme.retry }]}>
-          {t('onboardingTapToRetry')}
-        </Text>
+      <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.communityState, pressed && styles.pressed]}>
+        <UsersRound color={palette.brandIcon} size={40} />
+        <Text style={[styles.stateTitle, { color: palette.text }]}>{t('onboardingCommunityLoadError')}</Text>
+        <Text style={[styles.stateText, styles.underline, { color: palette.text }]}>{t('onboardingTapToRetry')}</Text>
       </Pressable>
     );
   }
@@ -562,52 +394,41 @@ function CommunityContent({
 
   return (
     <>
-      <View style={styles.statsRow}>
+      {/* Mismo bloque de confianza que el detalle de una propiedad: tres celdas con filetes. */}
+      <View style={[styles.stats, { borderColor: palette.border, backgroundColor: palette.surface }]}>
         {stats.map(({ Icon, label, value }, index) => (
           <MotionBlock
             active={active}
             delay={210 + index * 90}
             distance={18}
             key={label}
-            style={[
-              styles.stat,
-              index > 0 && styles.statDivider,
-              index > 0 && { borderLeftColor: theme.divider },
-            ]}
+            style={[styles.stat, index > 0 && { borderLeftColor: palette.border, borderLeftWidth: StyleSheet.hairlineWidth }]}
           >
-            <Icon color={theme.icon} size={25} />
-            <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
-            <Text style={[styles.statLabel, { color: theme.body }]}>{label}</Text>
+            <Icon color={palette.text} size={22} />
+            <Text style={[styles.statValue, { color: palette.text }]}>{value}</Text>
+            <Text style={[styles.statLabel, { color: palette.textSecondary }]}>{label}</Text>
           </MotionBlock>
         ))}
       </View>
 
-      <MotionBlock active={active} delay={520} distance={16} style={styles.communityMembers}>
-        <View style={styles.avatarRow}>
-          {community.members.map((member, index) => (
-            <MotionBlock
-              active={active}
-              delay={580 + index * 80}
-              distance={12}
-              key={member.id}
-              style={[
-                styles.avatarBorder,
-                {
-                  backgroundColor: theme.mediaSurface,
-                  borderColor: theme.avatarBorder,
-                  marginLeft: index === 0 ? 0 : -9,
-                  zIndex: community.members.length - index,
-                },
-              ]}
-            >
-              <UserAvatar name={member.name} size={42} uri={member.avatar} />
-            </MotionBlock>
-          ))}
-        </View>
-        <Text style={[styles.activeUsers, { color: theme.text }]}>
-          {t('onboardingActiveUsers', { count: String(community.memberCount) })}
-        </Text>
-      </MotionBlock>
+      {community.members.length ? (
+        <MotionBlock active={active} delay={520} distance={16} style={styles.members}>
+          <View style={styles.avatarRow}>
+            {community.members.map((member, index) => (
+              <MotionBlock
+                active={active}
+                delay={580 + index * 80}
+                distance={12}
+                key={member.id}
+                style={[styles.avatarBorder, { backgroundColor: palette.subtle, borderColor: palette.background, marginLeft: index === 0 ? 0 : -10, zIndex: community.members.length - index }]}
+              >
+                <UserAvatar name={member.name} size={44} uri={member.avatar} />
+              </MotionBlock>
+            ))}
+          </View>
+          <Text style={[styles.activeUsers, { color: palette.text }]}>{t('onboardingActiveUsers', { count: String(community.memberCount) })}</Text>
+        </MotionBlock>
+      ) : null}
     </>
   );
 }
@@ -623,150 +444,81 @@ function CommunitySlide({
   onRetry,
   topInset,
   width,
-}: CommonSlideProps & {
-  community?: OnboardingCommunity;
-  communityError: boolean;
-  communityLoading: boolean;
-  onRetry: () => void;
-}) {
+}: CommonSlideProps & { community?: OnboardingCommunity; communityError: boolean; communityLoading: boolean; onRetry: () => void }) {
   const { t } = useI18n();
-  const { theme } = useOnboardingTheme();
+  const { palette } = useAppTheme();
 
   return (
     <ScrollView
       bounces={false}
-      contentContainerStyle={[
-        styles.communityPage,
-        {
-          minHeight: height,
-          paddingBottom: Math.max(bottomInset, 18),
-          paddingTop: topInset + 20,
-        },
-      ]}
+      contentContainerStyle={[styles.page, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg), paddingTop: topInset + spacing.lg }]}
       showsVerticalScrollIndicator={false}
       style={{ width }}
     >
       <MotionBlock active={active} delay={20} distance={-8}>
-        <Brand centered color={theme.text} />
+        <Brand />
       </MotionBlock>
-      <MotionBlock active={active} delay={90} distance={18} style={styles.communityHeading}>
-        <Text style={[styles.communityTitle, { color: theme.text }]}>
-          {t('onboardingCommunityTitle')}
-        </Text>
-        <Text style={[styles.communitySubtitle, { color: theme.body }]}>
-          {t('onboardingCommunitySubtitle')}
-        </Text>
+      <MotionBlock active={active} delay={90} distance={18} style={styles.titleBlock}>
+        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{t('onboardingCommunityTitle')}</Text>
+        <Text style={[styles.body, styles.subtitle, { color: palette.textSecondary }]}>{t('onboardingCommunitySubtitle')}</Text>
       </MotionBlock>
 
       <View style={styles.communityData}>
-        <CommunityContent
-          active={active}
-          community={community}
-          error={communityError}
-          loading={communityLoading}
-          onRetry={onRetry}
-        />
+        <CommunityContent active={active} community={community} error={communityError} loading={communityLoading} onRetry={onRetry} />
       </View>
 
-      <MotionBlock active={active} delay={690} distance={12} style={styles.communityFooter}>
+      <MotionBlock active={active} delay={690} distance={12} style={styles.actions}>
         <Pagination current={1} />
-        <Pressable
-          accessibilityRole="button"
-          onPress={onNext}
-          style={({ pressed }) => [styles.nextTextButton, pressed && styles.pressed]}
-        >
-          <Text style={[styles.nextTextLabel, { color: theme.text }]}>
-            {t('onboardingNext')}
-          </Text>
-        </Pressable>
+        <PremiumButton label={t('onboardingNext')} onPress={onNext} style={styles.cta} />
+        <TextAction label={t('onboardingSkip')} onPress={finishOnboarding} />
       </MotionBlock>
     </ScrollView>
   );
 }
 
-function GetStartedSlide({
-  active,
-  bottomInset,
-  height,
-  topInset,
-  width,
-}: Omit<CommonSlideProps, 'onNext'>) {
+function GetStartedSlide({ active, bottomInset, height, topInset, width }: Omit<CommonSlideProps, 'onNext'>) {
   const { t } = useI18n();
-  const { theme } = useOnboardingTheme();
-  const artworkHeight = width * 1.01;
-  const fullArtworkHeight = width * (1376 / 768);
-  const compactHeight = height < 720;
-  const copyTopGap = compactHeight
-    ? 28
-    : Math.max(60, Math.min(105, height - artworkHeight - 345));
-  const actionsTopGap = compactHeight ? 16 : 34;
+  const { palette, resolvedMode } = useAppTheme();
+  // La ilustración ya no lleva texto ni logo horneados: se muestra entera.
+  const artworkHeight = Math.min(width * ARTWORK_RATIO, height * 0.5);
+  // La ilustración trae un rosa horneado en la franja inferior; el velo la funde
+  // con el fondo del tema. En oscuro además baja su luz al nivel del resto.
+  const overlay = resolvedMode === 'dark'
+    ? (['rgba(10,10,10,0.30)', 'rgba(10,10,10,0.62)', palette.background] as const)
+    : (['transparent', 'transparent', palette.background] as const);
 
   return (
     <ScrollView
       bounces={false}
-      contentContainerStyle={[
-        styles.getStartedPage,
-        {
-          minHeight: height,
-          paddingBottom: Math.max(bottomInset, 14),
-          paddingTop: topInset,
-        },
-      ]}
+      contentContainerStyle={[styles.getStartedPage, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg) }]}
       showsVerticalScrollIndicator={false}
       style={{ width }}
     >
       <MotionBlock active={active} delay={30} distance={-10}>
-        <View style={[styles.finalArtworkCrop, { height: artworkHeight, width }]}>
+        <View style={[styles.artworkCrop, { height: artworkHeight + topInset, width, paddingTop: topInset }]}>
           <Image
             accessibilityLabel={t('onboardingIllustrationAccessibility')}
             contentFit="contain"
             source={getStartedArtwork}
-            style={{ height: fullArtworkHeight, width }}
+            style={{ height: artworkHeight, width }}
           />
-          <LinearGradient
-            colors={theme.artworkOverlay}
-            locations={theme.artworkOverlayStops}
-            style={StyleSheet.absoluteFill}
-          />
+          <LinearGradient colors={overlay} locations={[0, 0.7, 1]} style={StyleSheet.absoluteFill} />
         </View>
       </MotionBlock>
 
-      <LinearGradient
-        colors={theme.finalGradient}
-        locations={[0, 0.46, 1]}
-        style={[
-          styles.getStartedCopy,
-          {
-            minHeight: Math.max(0, height - artworkHeight - topInset),
-            paddingTop: copyTopGap,
-          },
-        ]}
-      >
+      <View style={styles.getStartedCopy}>
         <MotionBlock active={active} delay={150} distance={20}>
-          <Text style={[styles.getStartedTitle, { color: theme.text }]}>{t('onboardingGetStartedTitle')}</Text>
+          <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{t('onboardingGetStartedTitle')}</Text>
         </MotionBlock>
         <MotionBlock active={active} delay={230} distance={18}>
-          <Text style={[styles.getStartedBody, { color: theme.body }]}>{t('onboardingGetStartedBody')}</Text>
+          <Text style={[styles.body, styles.subtitleLeft, { color: palette.textSecondary }]}>{t('onboardingGetStartedBody')}</Text>
         </MotionBlock>
-        <MotionBlock
-          active={active}
-          delay={310}
-          distance={18}
-          style={[styles.getStartedActions, { marginTop: actionsTopGap }]}
-        >
-          <PrimaryButton label={t('onboardingGetStartedCta')} onPress={finishOnboarding} showArrow />
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/(auth)/login')}
-            style={({ pressed }) => [styles.signInButton, pressed && styles.pressed]}
-          >
-            <Text style={[styles.signInLabel, { color: theme.signIn }]}>
-              {t('onboardingHaveAccount')}{' '}
-              <Text style={styles.signInStrong}>{t('signIn')}.</Text>
-            </Text>
-          </Pressable>
+        <MotionBlock active={active} delay={310} distance={18} style={styles.actions}>
+          <Pagination current={2} />
+          <PremiumButton label={t('onboardingGetStartedCta')} onPress={finishOnboarding} trailingIcon={ArrowRight} style={styles.cta} />
+          <TextAction label={t('onboardingHaveAccount')} strong={t('signIn')} onPress={() => router.push('/(auth)/login')} />
         </MotionBlock>
-      </LinearGradient>
+      </View>
     </ScrollView>
   );
 }
@@ -818,20 +570,12 @@ function SlideView(props: SlideViewProps) {
     );
   }
 
-  return (
-    <GetStartedSlide
-      active={props.active}
-      bottomInset={props.bottomInset}
-      height={props.height}
-      topInset={props.topInset}
-      width={props.width}
-    />
-  );
+  return <GetStartedSlide active={props.active} bottomInset={props.bottomInset} height={props.height} topInset={props.topInset} width={props.width} />;
 }
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { dark, theme } = useOnboardingTheme();
+  const { palette, resolvedMode } = useAppTheme();
   const reduceMotion = useReducedMotion();
   const { height, width } = useWindowDimensions();
   const pageWidth = Math.min(width, 520);
@@ -908,14 +652,8 @@ export default function OnboardingScreen() {
   if (showSplash) return <SplashScreenView />;
 
   return (
-    <LinearGradient
-      colors={theme.backgroundGradient}
-      end={{ x: 1, y: 1 }}
-      locations={[0, 0.48, 1]}
-      start={{ x: 0, y: 0 }}
-      style={styles.container}
-    >
-      <StatusBar style={dark ? 'light' : 'dark'} />
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <FlatList
         bounces={false}
         data={slides}
@@ -932,191 +670,69 @@ export default function OnboardingScreen() {
         showsHorizontalScrollIndicator={false}
         style={{ width: pageWidth }}
       />
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center' },
   pressed: { opacity: 0.72 },
+  fill: { width: '100%', height: '100%' },
+  underline: { textDecorationLine: 'underline' },
 
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brandCentered: { alignSelf: 'center' },
-  brandName: { fontSize: 13, lineHeight: 16, fontWeight: '700', letterSpacing: 0.15 },
-  brandNameLarge: { fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: 0.25 },
+  brandName: { fontSize: 17, lineHeight: 22, fontFamily: fontFamily.bold },
+  brandNameLarge: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.4 },
 
   splash: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  splashCenter: { alignItems: 'center', gap: 23 },
-  splashSpinner: {
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    borderWidth: 4,
-    borderColor: withAlpha(colors.primary, 0.24),
-    borderTopColor: colors.primary,
-  },
-  splashDots: {
-    position: 'absolute',
-    bottom: '19%',
-    flexDirection: 'row',
-    gap: 6,
-  },
-  splashDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: brand.blue[200] },
+  splashCenter: { alignItems: 'center', gap: 28 },
+  splashSpinner: { width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: withAlpha(colors.primary, 0.24), borderTopColor: colors.primary },
+  splashDots: { position: 'absolute', bottom: '19%', flexDirection: 'row', gap: 6 },
+  splashDot: { width: 6, height: 6, borderRadius: 3 },
   splashDotActive: { backgroundColor: colors.primary, transform: [{ scale: 1.15 }] },
 
   pageDot: { width: 7, height: 7, borderRadius: 4 },
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: spacing.sm },
 
-  primaryButtonHitbox: { width: '100%', borderRadius: radius.pill },
-  primaryButton: {
-    minHeight: 50,
-    borderRadius: radius.pill,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    boxShadow: `0 12px 24px ${withAlpha(colors.brand, 0.26)}`,
-  },
-  primaryButtonLabel: { color: 'white', fontSize: 15, fontWeight: '800' },
+  page: { flexGrow: 1, paddingHorizontal: spacing.xxl },
+  titleBlock: { marginTop: spacing.xxl },
+  title: typography.display,
+  body: typography.body,
+  subtitle: { marginTop: spacing.sm },
+  subtitleLeft: { marginTop: spacing.sm, maxWidth: 340 },
+  actions: { marginTop: 'auto', paddingTop: spacing.xl, alignItems: 'stretch', gap: spacing.xs },
+  cta: { alignSelf: 'stretch' },
+  textAction: { minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
+  textActionLabel: { fontSize: 15, fontFamily: fontFamily.medium, textAlign: 'center' },
+  textActionStrong: { fontFamily: fontFamily.bold, textDecorationLine: 'underline' },
 
-  discoverPage: { flexGrow: 1, paddingHorizontal: 16 },
-  discoverTitleBlock: { marginTop: 29 },
-  discoverTitle: {
-    color: brand.neutral[900],
-    fontSize: 29,
-    lineHeight: 35,
-    fontWeight: '800',
-    letterSpacing: -0.9,
-  },
-  accentText: { color: colors.brandDark },
-  discoverVisual: { marginTop: 25 },
-  propertyFrame: {
-    width: '100%',
-    aspectRatio: 1.42,
-    overflow: 'hidden',
-    borderRadius: 12,
-    backgroundColor: brand.blue[50],
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: withAlpha(brand.neutral[700], 0.22),
-    boxShadow: `0 8px 20px ${withAlpha(brand.blue[900], 0.12)}`,
-  },
-  propertyImageMotion: { width: '100%', height: '100%' },
-  propertyImage: { width: '100%', height: '100%' },
-  propertyState: {
-    width: '100%',
-    aspectRatio: 1.42,
-    borderRadius: 12,
-    backgroundColor: withAlpha(colors.surface, 0.72),
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-    padding: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: withAlpha(brand.neutral[700], 0.14),
-  },
-  stateTitle: { color: brand.neutral[900], fontSize: 15, fontWeight: '800', textAlign: 'center' },
-  stateText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
-  retryText: { color: colors.brand, fontSize: 13, fontWeight: '800', textAlign: 'center' },
-  discoverBody: {
-    marginTop: 20,
-    color: brand.neutral[900],
-    fontSize: 15,
-    lineHeight: 21,
-  },
-  discoverActions: { marginTop: 'auto', paddingTop: 20, alignItems: 'center' },
-  secondaryAction: {
-    minHeight: 45,
-    minWidth: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-  },
-  skipLabel: { color: colors.brandDark, fontSize: 14, fontWeight: '700' },
+  discoverVisual: { marginTop: spacing.xl, marginBottom: spacing.lg },
+  propertyCard: { gap: spacing.md },
+  propertyFrame: { width: '100%', aspectRatio: 4 / 3, overflow: 'hidden', borderRadius: radius.md, borderCurve: 'continuous' },
+  propertyPill: { position: 'absolute', left: 12, top: 12 },
+  propertyState: { alignItems: 'center', justifyContent: 'center', gap: 9, padding: 22 },
+  propertySummary: { gap: 2 },
+  propertyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  propertyTitle: { flex: 1, fontSize: 16, lineHeight: 21, fontFamily: fontFamily.semibold },
+  rating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  propertyMeta: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21 },
+  propertyPrice: { fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
+  stateTitle: { fontSize: 16, fontFamily: fontFamily.bold, textAlign: 'center' },
+  stateText: { fontFamily: fontFamily.regular, fontSize: 14, textAlign: 'center' },
 
-  communityPage: { flexGrow: 1, paddingHorizontal: 22, alignItems: 'stretch' },
-  communityHeading: { alignItems: 'center', marginTop: 23 },
-  communityTitle: {
-    color: brand.neutral[900],
-    fontSize: 29,
-    lineHeight: 34,
-    fontWeight: '800',
-    letterSpacing: -0.7,
-    textAlign: 'center',
-  },
-  communitySubtitle: {
-    marginTop: 10,
-    maxWidth: 390,
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
-  communityData: { flex: 1, justifyContent: 'center', minHeight: 305 },
-  communityState: {
-    minHeight: 220,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    padding: 20,
-  },
-  statsRow: { width: '100%', flexDirection: 'row', alignItems: 'stretch' },
-  stat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 106 },
-  statDivider: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: withAlpha(brand.neutral[700], 0.18) },
-  statValue: {
-    color: brand.neutral[900],
-    fontSize: 25,
-    lineHeight: 28,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  statLabel: {
-    color: brand.neutral[900],
-    fontSize: 10,
-    lineHeight: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  communityMembers: { alignItems: 'center', marginTop: 30 },
-  avatarRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  avatarBorder: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 2,
-    borderColor: colors.surface,
-    overflow: 'hidden',
-    backgroundColor: brand.blue[100],
-  },
-  activeUsers: { marginTop: 8, color: brand.neutral[900], fontSize: 13, fontWeight: '800' },
-  communityFooter: { alignItems: 'center', gap: 19 },
-  nextTextButton: { minWidth: 96, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  nextTextLabel: { color: brand.neutral[900], fontSize: 15, fontWeight: '600' },
+  communityData: { flex: 1, justifyContent: 'center', minHeight: 300, paddingVertical: spacing.xl },
+  communityState: { minHeight: 220, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20 },
+  stats: { width: '100%', flexDirection: 'row', alignItems: 'stretch', borderWidth: 1, borderRadius: radius.md, borderCurve: 'continuous', paddingVertical: spacing.lg },
+  stat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 4 },
+  statValue: { fontSize: 26, lineHeight: 32, fontFamily: fontFamily.extrabold, fontVariant: ['tabular-nums'] },
+  statLabel: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 16, textAlign: 'center' },
+  members: { alignItems: 'center', marginTop: spacing.xxxl },
+  avatarRow: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  avatarBorder: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, overflow: 'hidden' },
+  activeUsers: { marginTop: spacing.sm, fontSize: 15, fontFamily: fontFamily.semibold },
 
   getStartedPage: { flexGrow: 1 },
-  finalArtworkCrop: { overflow: 'hidden' },
-  getStartedCopy: { paddingHorizontal: 16 },
-  // El color lo pone el tema. Sobre el panel claro el texto va oscuro y ya no
-  // necesita sombra para separarse del fondo.
-  getStartedTitle: {
-    fontSize: 31,
-    lineHeight: 36,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  getStartedBody: {
-    marginTop: 8,
-    maxWidth: 310,
-    fontSize: 15,
-    lineHeight: 21,
-  },
-  getStartedActions: {},
-  signInButton: {
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  signInLabel: { color: colors.text, fontSize: 12, textAlign: 'center' },
-  signInStrong: { fontWeight: '800' },
+  artworkCrop: { overflow: 'hidden' },
+  getStartedCopy: { flex: 1, paddingHorizontal: spacing.xxl, paddingTop: spacing.lg },
 });

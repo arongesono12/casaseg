@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { ArrowRight, Building2, CheckCircle2, Clock, MapPin, Plus } from '@/components/ui/icons';
 import { HeroBadge, PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { useOwnerProperties } from '@/features/owner/use-owner-properties';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -67,11 +67,11 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
   statusOverlay: { position: 'absolute', left: 7, top: 7 },
   copy: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 7 },
-  title: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
+  title: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  location: { flex: 1, fontSize: 12 },
-  price: { fontSize: 14, fontWeight: '700' },
+  location: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12 },
+  price: { fontSize: 14, fontFamily: fontFamily.bold },
   editRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  edit: { color: colors.brand, fontSize: 12, fontWeight: '700' },
+  edit: { color: colors.brand, fontSize: 12, fontFamily: fontFamily.bold },
   pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
 });

@@ -6,7 +6,7 @@ import { RouteScreen } from '@/components/route-screen';
 import { UserAvatar } from '@/components/user-avatar';
 import { Building2, Home, Search, ShieldCheck, UsersRound } from '@/components/ui/icons';
 import { HeroBadge, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { fetchAdminUsers } from '@/features/admin/admin.api';
 import { adminCopy, roleLabel, statusLabel } from '@/features/admin/admin-copy';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
@@ -83,14 +83,14 @@ export default function AdminUsers() {
 
 const styles = StyleSheet.create({
   search: { minHeight: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', gap: 10, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
-  searchInput: { flex: 1, minHeight: 52, fontSize: 15 },
+  searchInput: { fontFamily: fontFamily.regular, flex: 1, minHeight: 52, fontSize: 15 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filter: { minHeight: 44, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
-  filterText: { fontSize: 12, fontWeight: '800' },
+  filterText: { fontSize: 12, fontFamily: fontFamily.extrabold },
   list: { gap: 10 },
   row: { minHeight: 94, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   copy: { flex: 1, minWidth: 0, gap: 5 },
-  name: { fontSize: 15, fontWeight: '700' },
-  email: { fontSize: 12, lineHeight: 17 },
+  name: { fontSize: 15, fontFamily: fontFamily.bold },
+  email: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { ChartLine, Check, Crown, ShieldCheck, Sparkles, Zap } from '@/components/ui/icons';
 import { PremiumButton, SectionTitle, StatusPill } from '@/components/ui/premium';
-import { colors, heroGradient, radius, withAlpha } from '@/constants/theme';
+import { colors, fontFamily, heroGradient, radius, withAlpha } from '@/constants/theme';
 import { openSubscriptionCheckout } from '@/features/payments/subscriptions.api';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -67,15 +67,15 @@ const styles = StyleSheet.create({
   planTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   crown: { width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(255,255,255,0.13)', alignItems: 'center', justifyContent: 'center' },
   planCopy: { gap: 9 },
-  name: { color: 'white', fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6 },
-  planDescription: { color: colors.onBrandMuted, fontSize: 15, lineHeight: 22 },
+  name: { color: 'white', fontSize: 28, lineHeight: 34, fontFamily: fontFamily.extrabold, letterSpacing: -0.6 },
+  planDescription: { fontFamily: fontFamily.regular, color: colors.onBrandMuted, fontSize: 15, lineHeight: 22 },
   benefits: { gap: 10 },
   benefit: { minHeight: 88, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   benefitIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: withAlpha(colors.primary, 0.10), alignItems: 'center', justifyContent: 'center' },
   benefitCopy: { flex: 1, gap: 3 },
-  benefitTitle: { fontSize: 14, fontWeight: '700' },
-  benefitDescription: { fontSize: 12, lineHeight: 17 },
+  benefitTitle: { fontSize: 14, fontFamily: fontFamily.bold },
+  benefitDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   guarantee: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  guaranteeText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  error: { fontSize: 13, lineHeight: 18 },
+  guaranteeText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18 },
 });

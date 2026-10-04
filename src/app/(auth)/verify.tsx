@@ -9,7 +9,7 @@ import { FormField } from '@/components/form-field';
 import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, Clock, Mail, ShieldCheck } from '@/components/ui/icons';
 import { PremiumButton } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { otpSchema } from '@/features/auth/auth.schemas';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
@@ -165,14 +165,14 @@ const styles = StyleSheet.create({
   notice: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   noticeIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   noticeCopy: { flex: 1, gap: 3 },
-  noticeTitle: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
-  noticeText: { fontSize: 13, lineHeight: 19 },
+  noticeTitle: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
+  noticeText: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   form: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 18, gap: 16, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
-  otpInput: { fontSize: 24, lineHeight: 30, fontWeight: '800', letterSpacing: 8, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  otpInput: { fontSize: 24, lineHeight: 30, fontFamily: fontFamily.extrabold, letterSpacing: 8, textAlign: 'center', fontVariant: ['tabular-nums'] },
   security: { borderRadius: radius.sm, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  securityText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  securityText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
   errorBanner: { borderWidth: StyleSheet.hairlineWidth, borderColor: `${colors.error}40`, borderRadius: radius.md, padding: 13, backgroundColor: `${colors.error}10` },
-  errorText: { fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  errorText: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.bold },
   successBanner: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  successText: { flex: 1, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  successText: { flex: 1, fontSize: 13, lineHeight: 19, fontFamily: fontFamily.bold },
 });

@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '@/constants/theme';
+import { colors, fontFamily } from '@/constants/theme';
 
 type UserAvatarProps = {
   name: string;
@@ -31,7 +31,7 @@ export function UserAvatar({ name, uri, size = 52 }: UserAvatarProps) {
       accessibilityLabel={`Foto de perfil de ${name}`}
       style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
     >
-      <Text style={[styles.initials, { fontSize: Math.max(14, size * 0.34) }]}>{getInitials(name)}</Text>
+      <Text style={[styles.initials, { fontFamily: fontFamily.regular, fontSize: Math.max(14, size * 0.34) }]}>{getInitials(name)}</Text>
       {imageUrl && (
         <Image
           source={{ uri: imageUrl }}
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   },
   initials: {
     color: 'white',
-    fontWeight: '700',
+    fontFamily: fontFamily.bold,
     letterSpacing: 0.4,
   },
 });

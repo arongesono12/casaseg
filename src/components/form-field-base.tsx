@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { FormFieldProps } from './form-field.types';
-import { colors, radius, touchTarget, withAlpha } from '@/constants/theme';
+import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { useAppTheme } from '@/providers/theme-context';
 
 /** React Native fallback for web and controls not yet covered safely by Expo UI. */
@@ -48,12 +48,12 @@ export function FallbackFormField({ label, error, inputRef, rightAccessory, ...i
 
 const styles = StyleSheet.create({
   group: { gap: 7 },
-  label: { fontSize: 13, fontWeight: '800' },
+  label: { fontSize: 13, fontFamily: fontFamily.extrabold },
   inputContainer: { position: 'relative' },
-  input: { width: '100%', minHeight: 54, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 16, fontSize: 16 },
+  input: { fontFamily: fontFamily.regular, width: '100%', minHeight: 54, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 16, fontSize: 16 },
   multiline: { minHeight: 112, paddingTop: 14, textAlignVertical: 'top' },
   inputWithAccessory: { paddingRight: 58 },
   rightAccessory: { position: 'absolute', right: 3, top: 3, width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
-  error: { fontSize: 13 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13 },
   focused: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.30)}` },
 });

@@ -1,6 +1,6 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-import { colors } from '@/constants/theme';
+import { colors, fontFamily } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useNotifications } from '@/providers/notification-context';
@@ -25,9 +25,9 @@ export default function TabsLayout() {
       iconColor={{ default: palette.muted, selected: palette.brandIcon }}
       indicatorColor={palette.brandSoft}
       labelStyle={{
-        default: { color: palette.muted, fontSize: 11, fontWeight: '600' },
+        default: { color: palette.textSecondary, fontSize: 11, fontFamily: fontFamily.semibold },
         // Como en las apps del sistema, la pestaña activa se distingue por color, no por grosor.
-        selected: { color: palette.brandText, fontSize: 11, fontWeight: '600' },
+        selected: { color: palette.brandText, fontSize: 11, fontFamily: fontFamily.semibold },
       }}
       labelVisibilityMode="labeled"
       minimizeBehavior="never"

@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { ArrowRight, Building2, CheckCircle2, Clock, MapPin, ShieldCheck, XCircle } from '@/components/ui/icons';
 import { HeroBadge, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { fetchAdminProperties, type AdminProperty } from '@/features/admin/admin.api';
 import { adminCopy, statusLabel } from '@/features/admin/admin-copy';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
@@ -77,15 +77,15 @@ export default function AdminProperties() {
 const styles = StyleSheet.create({
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filter: { minHeight: 44, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
-  filterText: { fontSize: 12, fontWeight: '800' },
+  filterText: { fontSize: 12, fontFamily: fontFamily.extrabold },
   list: { gap: 10 },
   card: { minHeight: 104, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   imageWrap: { width: 88, height: 82, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   image: { width: '100%', height: '100%' },
   copy: { flex: 1, minWidth: 0, gap: 6 },
-  title: { fontSize: 15, fontWeight: '700' },
+  title: { fontSize: 15, fontFamily: fontFamily.bold },
   location: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  locationText: { flex: 1, fontSize: 12 },
+  locationText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
 });

@@ -8,7 +8,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FilterSheet, type FilterSheetHandle } from '@/components/filter-sheet';
 import { PropertyMap } from '@/components/property-map';
-import { actionGradient, colors, radius } from '@/constants/theme';
+import { actionGradient, colors, fontFamily, radius } from '@/constants/theme';
 import { useMapProperties } from '@/features/properties/hooks/use-properties';
 import { useAppTheme } from '@/providers/theme-context';
 import { useI18n } from '@/providers/i18n-context';
@@ -74,18 +74,18 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, flexDirection: 'row', gap: 8, alignItems: 'center' },
   iconButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   search: { flex: 1, minHeight: 50, borderRadius: radius.pill, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  searchText: { flex: 1, fontSize: 15, fontWeight: '800' },
+  searchText: { flex: 1, fontSize: 15, fontFamily: fontFamily.extrabold },
   viewToggle: { borderRadius: 25, height: 50, overflow: 'hidden', width: 50 },
   viewToggleGradient: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   count: { alignSelf: 'center', borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8 },
-  countText: { fontSize: 13, fontWeight: '800' },
+  countText: { fontSize: 13, fontFamily: fontFamily.extrabold },
   bottom: { padding: 16, gap: 10 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
   selected: { minHeight: 104, borderRadius: radius.lg, padding: 10, flexDirection: 'row', gap: 12 },
   thumb: { width: 108, borderRadius: radius.md },
   selectedCopy: { flex: 1, justifyContent: 'center', gap: 4 },
-  selectedTitle: { fontSize: 15, fontWeight: '700' },
-  selectedLocation: { fontSize: 13 },
-  selectedPrice: { fontSize: 15, fontWeight: '700' },
+  selectedTitle: { fontSize: 15, fontFamily: fontFamily.bold },
+  selectedLocation: { fontFamily: fontFamily.regular, fontSize: 13 },
+  selectedPrice: { fontSize: 15, fontFamily: fontFamily.bold },
   pressed: { opacity: 0.78 },
 });

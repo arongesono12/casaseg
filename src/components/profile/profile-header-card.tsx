@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Calendar, CheckCircle2, Clock, Mail, Phone, ShieldCheck } from '@/components/ui/icons';
 import { StatusPill, type IconComponent } from '@/components/ui/premium';
 import { UserAvatar } from '@/components/user-avatar';
-import { actionGradient, type AppPalette, colors, radius } from '@/constants/theme';
+import { actionGradient, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
 import type { CurrentProfile } from '@/features/auth/use-current-profile';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 
@@ -126,7 +126,7 @@ function DetailItem({ icon: Icon, label, value, status, muted = false, palette, 
         <Icon color={palette.brandIcon} size={18} />
       </View>
       <View style={styles.detailCopy}>
-        <Text style={[styles.detailLabel, { color: palette.muted }]}>{label}</Text>
+        <Text style={[styles.detailLabel, { color: palette.textSecondary }]}>{label}</Text>
         <Text selectable numberOfLines={1} style={[styles.detailValue, { color: muted ? palette.muted : palette.text }]}>{value}</Text>
         {status ? (
           <View style={styles.detailStatus}>
@@ -149,16 +149,16 @@ const styles = StyleSheet.create({
   verifiedDot: { position: 'absolute', right: 4, bottom: 6, width: 28, height: 28, borderRadius: 14, borderWidth: 3, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
   rolePill: { paddingBottom: 6, flexShrink: 1 },
   identity: { gap: 4 },
-  name: { fontSize: 24, lineHeight: 30, fontWeight: '800' },
-  about: { marginTop: 6, fontSize: 14, lineHeight: 21 },
+  name: { fontSize: 24, lineHeight: 30, fontFamily: fontFamily.extrabold },
+  about: { fontFamily: fontFamily.regular, marginTop: 6, fontSize: 14, lineHeight: 21 },
   details: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 16, gap: 14 },
   detailsWide: { flexDirection: 'row', gap: 12 },
   detail: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   detailWide: { flex: 1, minWidth: 0 },
   detailIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   detailCopy: { flex: 1, minWidth: 0, gap: 2 },
-  detailLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
-  detailValue: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  detailLabel: { fontSize: 11, fontFamily: fontFamily.bold, letterSpacing: 0.4, textTransform: 'uppercase' },
+  detailValue: { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.semibold },
   detailStatus: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  detailStatusText: { fontSize: 12, fontWeight: '700' },
+  detailStatusText: { fontSize: 12, fontFamily: fontFamily.bold },
 });

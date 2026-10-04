@@ -6,7 +6,7 @@ import { RouteScreen } from '@/components/route-screen';
 import { UserAvatar } from '@/components/user-avatar';
 import { AlertCircle, ArrowRight, Building2, Clock, RefreshCw, ShieldCheck, UsersRound } from '@/components/ui/icons';
 import { HeroBadge, IconTile, MetricCard, PremiumEmptyState, SectionTitle, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { fetchAdminOverview } from '@/features/admin/admin.api';
 import { useAuth } from '@/providers/auth-context';
 import { roleLabel, statusLabel } from '@/features/admin/admin-copy';
@@ -111,18 +111,18 @@ const styles = StyleSheet.create({
   actions: { gap: 10 },
   syncNotice: { minHeight: 76, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11 },
   syncCopy: { flex: 1, minWidth: 0, gap: 3 },
-  syncTitle: { fontSize: 14, fontWeight: '700' },
-  syncDescription: { fontSize: 12, lineHeight: 17 },
+  syncTitle: { fontSize: 14, fontFamily: fontFamily.bold },
+  syncDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   syncButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: `${colors.warning}16` },
   action: { minHeight: 94, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   actionCopy: { flex: 1, minWidth: 0, gap: 4 },
-  actionTitle: { fontSize: 16, fontWeight: '700' },
-  actionDescription: { fontSize: 12, lineHeight: 17 },
+  actionTitle: { fontSize: 16, fontFamily: fontFamily.bold },
+  actionDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   previewList: { gap: 9 },
   previewRow: { minHeight: 74, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
   previewCopy: { flex: 1, minWidth: 0, gap: 3 },
-  previewTitle: { fontSize: 14, fontWeight: '700' },
-  previewDetail: { fontSize: 12, lineHeight: 17 },
-  viewAll: { color: colors.brand, fontSize: 13, fontWeight: '700', paddingVertical: 8 },
+  previewTitle: { fontSize: 14, fontFamily: fontFamily.bold },
+  previewDetail: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
+  viewAll: { color: colors.brand, fontSize: 13, fontFamily: fontFamily.bold, paddingVertical: 8 },
   pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
 });

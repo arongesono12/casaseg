@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { ArrowLeft, CreditCard, ShieldCheck, XCircle } from '@/components/ui/icons';
 import { IconTile, PremiumButton, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -39,8 +39,8 @@ export default function PaymentFailed() {
 const styles = StyleSheet.create({
   result: { minHeight: 280, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 24, alignItems: 'center', justifyContent: 'center', gap: 11, boxShadow: '0 12px 30px rgba(15,23,42,0.07)' },
   resultIcon: { width: 88, height: 88, borderRadius: 44, backgroundColor: `${colors.error}12`, alignItems: 'center', justifyContent: 'center', marginBottom: 3 },
-  resultTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
-  resultText: { maxWidth: 400, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  resultTitle: { fontSize: 22, fontFamily: fontFamily.extrabold, textAlign: 'center' },
+  resultText: { fontFamily: fontFamily.regular, maxWidth: 400, fontSize: 14, lineHeight: 21, textAlign: 'center' },
   security: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  securityText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  securityText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
 });

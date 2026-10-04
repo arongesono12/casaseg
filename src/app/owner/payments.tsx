@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, Clock, CreditCard, Inbox, Wallet, XCircle } from '@/components/ui/icons';
 import { IconTile, MetricCard, PremiumButton, PremiumEmptyState, PremiumErrorState, SectionTitle, StatusPill } from '@/components/ui/premium';
-import { colors, radius, touchTarget, withAlpha } from '@/constants/theme';
+import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { fetchContracts } from '@/features/contracts/contracts.api';
 import { createPaymentOrder, fetchPaymentOrders, openPaymentCheckout, paymentProviderLabels, paymentProviders, type PaymentOrder, type PaymentProvider } from '@/features/payments/payments.api';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
@@ -141,16 +141,16 @@ export default function Payments() {
 const styles = StyleSheet.create({
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   payBlock: { gap: 10 },
-  label: { fontSize: 13, fontWeight: '800' },
+  label: { fontSize: 13, fontFamily: fontFamily.extrabold },
   providers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   provider: { minHeight: 44, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 14, justifyContent: 'center' },
-  providerText: { fontSize: 13, fontWeight: '700' },
-  input: { minHeight: touchTarget, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
-  hint: { fontSize: 13, lineHeight: 19 },
+  providerText: { fontSize: 13, fontFamily: fontFamily.bold },
+  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
+  hint: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   list: { gap: 10 },
   order: { minHeight: 86, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   orderCopy: { flex: 1, minWidth: 0, gap: 4 },
-  amount: { fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  provider_: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
-  error: { fontSize: 13, lineHeight: 18 },
+  amount: { fontSize: 17, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
+  provider_: { fontSize: 11, fontFamily: fontFamily.bold, letterSpacing: 0.3 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18 },
 });

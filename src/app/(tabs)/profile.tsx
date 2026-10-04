@@ -10,7 +10,7 @@ import { RouteScreen } from '@/components/route-screen';
 import { ProfileHeaderCard } from '@/components/profile/profile-header-card';
 import { ArrowRight, Bell, Building2, Calendar, Check, CheckCircle2, HomeCheck, Lock, LogOut, Settings, ShieldCheck, Sparkles } from '@/components/ui/icons';
 import { PremiumButton, SectionTitle, SurfaceCard } from '@/components/ui/premium';
-import { actionGradient, type AppPalette, colors, radius, withAlpha } from '@/constants/theme';
+import { actionGradient, colors, fontFamily, radius, withAlpha, type AppPalette } from '@/constants/theme';
 import { useCurrentProfile } from '@/features/auth/use-current-profile';
 import { isAdminRole, isOwnerRole } from '@/lib/access-control';
 import { onBrandRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
@@ -241,32 +241,32 @@ const styles = StyleSheet.create({
   formFieldsWide: { flexDirection: 'row' },
   formField: { flex: 1, minWidth: 0 },
   feedback: { minHeight: 46, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  feedbackText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  feedbackText: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: fontFamily.bold },
   saveButton: { alignSelf: 'flex-end', width: '100%', maxWidth: 240 },
   roleWarning: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   trustCopy: { flex: 1, gap: 3 },
-  trustTitle: { fontSize: 14, fontWeight: '700' },
-  trustDescription: { fontSize: 12, lineHeight: 17 },
+  trustTitle: { fontSize: 14, fontFamily: fontFamily.bold },
+  trustDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   ownerCta: { borderRadius: radius.xl, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 14px 30px ${withAlpha(colors.brand, 0.20)}` },
   ownerGradient: { minHeight: 164, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
   ownerCopy: { flex: 1, gap: 8 },
   ownerEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ownerEyebrowText: { color: colors.onBrandMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  ownerTitle: { color: 'white', fontSize: 22, fontWeight: '800' },
-  ownerDescription: { color: colors.onBrandMuted, fontSize: 13, lineHeight: 19 },
+  ownerEyebrowText: { color: colors.onBrandMuted, fontSize: 10, fontFamily: fontFamily.bold, letterSpacing: 1 },
+  ownerTitle: { color: 'white', fontSize: 22, fontFamily: fontFamily.extrabold },
+  ownerDescription: { fontFamily: fontFamily.regular, color: colors.onBrandMuted, fontSize: 13, lineHeight: 19 },
   ownerArrow: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   section: { gap: 10 },
-  sectionTitle: { fontSize: 19, lineHeight: 24, fontWeight: '700' },
+  sectionTitle: { fontSize: 19, lineHeight: 24, fontFamily: fontFamily.bold },
   actions: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', boxShadow: '0 10px 24px rgba(15,23,42,0.05)' },
   divider: { height: StyleSheet.hairlineWidth, marginLeft: 70 },
   action: { minHeight: 76, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   focusRing: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.38)}` },
   actionIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   actionCopy: { flex: 1, minWidth: 0, gap: 3 },
-  actionText: { fontSize: 15, fontWeight: '700' },
-  actionDescription: { fontSize: 12, lineHeight: 17 },
+  actionText: { fontSize: 15, fontFamily: fontFamily.bold },
+  actionDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   signOut: { minHeight: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
-  signOutText: { fontSize: 15, fontWeight: '700' },
+  signOutText: { fontSize: 15, fontFamily: fontFamily.bold },
   pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
   tabSpacer: { height: 92 },
 });

@@ -12,6 +12,7 @@ import { HeroBadge, PremiumEmptyState, PremiumErrorState, PremiumHero } from '@/
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { fetchFavorites } from '@/features/properties/api/property.queries';
 import { useFavoriteMutation } from '@/features/properties/hooks/use-favorite-mutation';
+import { useFavoritesUserId } from '@/features/properties/hooks/use-favorites-user-id';
 import { responsiveGridColumns } from '@/lib/responsive-grid';
 import { useProperties } from '@/features/properties/hooks/use-properties';
 import { defaultPropertyFilters } from '@/features/properties/schemas/property-filters.schema';
@@ -38,8 +39,9 @@ export default function SavedScreen() {
   const columns = responsiveGridColumns(width, MAX_CONTENT_WIDTH, LIST_PADDING, GRID_GAP, fontScale, 3);
   // Ancho fijo por celda: con flex:1 una última fila de un solo elemento se estiraría a todo el ancho.
   const itemWidth = Math.floor((Math.min(width, MAX_CONTENT_WIDTH) - LIST_PADDING * 2 - GRID_GAP * (columns - 1)) / columns);
-  const userId = user?.id ?? 'guest';
-  const favorites = useQuery({ queryKey: propertyKeys.favorites(userId), queryFn: () => fetchFavorites(userId), enabled: Boolean(user) });
+  const favoritesUserId = useFavoritesUserId();
+  const userId = favoritesUserId ?? 'guest';
+  const favorites = useQuery({ queryKey: propertyKeys.favorites(userId), queryFn: () => fetchFavorites(userId), enabled: Boolean(favoritesUserId) });
   const properties = useProperties(defaultPropertyFilters);
   const mutation = useFavoriteMutation(userId);
   const favoriteIds = useMemo(() => new Set(favorites.data ?? []), [favorites.data]);

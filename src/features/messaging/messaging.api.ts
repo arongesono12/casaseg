@@ -10,9 +10,12 @@ export type Conversation = {
   propertyTitle?: string;
   propertyImage?: string;
   avatar?: string;
+  /** uuid del otro participante: decide qué burbujas son propias aunque el perfil propio aún no haya cargado. */
+  partnerId?: string;
   isOwner: boolean;
 };
-export type ChatMessage = { id: string; conversationId: string; senderId: string; content: string; createdAt: string; status: 'sent' | 'delivered' | 'read' };
+/** `pending` y `failed` solo existen en el cliente, mientras se envía un mensaje o si falló. */
+export type ChatMessage = { id: string; conversationId: string; senderId: string; content: string; createdAt: string; status: 'pending' | 'failed' | 'sent' | 'delivered' | 'read' };
 
 /** Prefijo de la ruta de chat cuando se abre desde una vivienda sin chat previo. */
 export const PROPERTY_CHAT_PREFIX = 'property-';
@@ -25,6 +28,7 @@ type ChatSummaryRow = {
   property_id: string | null;
   property_title: string | null;
   property_image: string | null;
+  partner_id: string | null;
   partner_name: string | null;
   partner_avatar: string | null;
   is_owner: boolean | null;
@@ -64,6 +68,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
     propertyTitle: row.property_title ?? undefined,
     propertyImage: row.property_image ?? undefined,
     avatar: row.partner_avatar ?? undefined,
+    partnerId: row.partner_id ?? undefined,
     isOwner: Boolean(row.is_owner),
   }));
 }
@@ -84,14 +89,18 @@ export async function resolveChatId(conversationId: string): Promise<string | nu
 export async function fetchMessages(chatId: string | null): Promise<ChatMessage[]> {
   if (!isSupabaseConfigured) return demoMessages;
   if (!chatId) return [];
-  const { data, error } = await supabase
-    .from('messages')
-    .select('id, chat_id, sender_id, content, created_at, is_read, delivered_at')
-    .eq('chat_id', chatId)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  // list_chat_messages respeta "Eliminar chat": solo devuelve lo posterior a
+  // que el usuario actual lo eliminara (el otro participante lo ve todo).
+  const { data, error } = await supabase.rpc('list_chat_messages', { p_chat_id: chatId, p_limit: 50 });
   if (error) throw error;
-  return (data as MessageRow[]).map(mapMessage);
+  return ((data ?? []) as MessageRow[]).map(mapMessage);
+}
+
+/** Elimina el chat solo para el usuario actual; reaparece si llega un mensaje nuevo. */
+export async function deleteChatForMe(chatId: string) {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase.rpc('delete_chat_for_me', { p_chat_id: chatId });
+  if (error) throw error;
 }
 
 /** Envía en un chat existente o, sin chat todavía, abre uno con el propietario de la vivienda. */

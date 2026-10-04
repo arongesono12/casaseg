@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PremiumErrorState } from '@/components/ui/premium';
-import { radius } from '@/constants/theme';
+import { fontFamily, radius } from '@/constants/theme';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -71,6 +71,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { flexGrow: 1, justifyContent: 'center', padding: 20, gap: 20 },
   details: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 14, gap: 6 },
-  detailsTitle: { fontSize: 13, fontWeight: '800' },
+  detailsTitle: { fontSize: 13, fontFamily: fontFamily.extrabold },
   detailsBody: { fontSize: 13, lineHeight: 19, fontFamily: 'monospace' },
 });

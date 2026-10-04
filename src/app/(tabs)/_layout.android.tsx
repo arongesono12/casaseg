@@ -6,7 +6,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Heart, HomeTab, MessagesSquare, UserRound, type AppIcon } from '@/components/ui/icons';
-import { actionGradient, colors, withAlpha } from '@/constants/theme';
+import { actionGradient, colors, fontFamily, withAlpha } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     color: 'white',
     fontSize: 10,
-    fontWeight: '800',
+    fontFamily: fontFamily.extrabold,
     height: 18,
     lineHeight: 14,
     minWidth: 18,
@@ -217,8 +217,8 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   tabIcon: { height: TAB_PILL_HEIGHT },
-  tabLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.1 },
-  tabLabelSelected: { fontWeight: '700' },
+  tabLabel: { fontSize: 11, fontFamily: fontFamily.semibold, letterSpacing: 0.1 },
+  tabLabelSelected: { fontFamily: fontFamily.bold },
   tabItem: {
     borderCurve: 'continuous',
     borderRadius: 30,

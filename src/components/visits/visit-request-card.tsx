@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Calendar, CheckCircle2, Clock, MapPinned, XCircle } from '@/components/ui/icons';
 import { IconTile, PremiumButton, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import type { VisitRequest } from '@/features/properties/api/visit-requests';
 import type { VisitRequestStatus } from '@/features/visits/visit-schedule';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
@@ -92,13 +92,13 @@ const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 15, gap: 12, boxShadow: '0 9px 24px rgba(15,23,42,0.05)' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   copy: { flex: 1, minWidth: 0, gap: 6 },
-  title: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
+  title: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  date: { fontSize: 13, lineHeight: 18, fontWeight: '700', textTransform: 'capitalize' },
+  date: { fontSize: 13, lineHeight: 18, fontFamily: fontFamily.bold, textTransform: 'capitalize' },
   pill: { flexDirection: 'row' },
   note: { borderRadius: radius.md, borderCurve: 'continuous', padding: 12, gap: 3 },
-  noteLabel: { fontSize: 11, lineHeight: 15, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
-  noteText: { fontSize: 14, lineHeight: 20 },
+  noteLabel: { fontSize: 11, lineHeight: 15, fontFamily: fontFamily.bold, textTransform: 'uppercase', letterSpacing: 0.6 },
+  noteText: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20 },
   actions: { flexDirection: 'row', gap: 10 },
   action: { flex: 1 },
 });

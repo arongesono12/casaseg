@@ -1,7 +1,7 @@
 import { Send } from '@/components/ui/icons';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { radius, type AppPalette } from '@/constants/theme';
+import { fontFamily, radius, type AppPalette } from '@/constants/theme';
 
 import type { DetailCopy } from './detail-copy';
 import { PrimaryButton, SecondaryButton } from './detail-parts';
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     gap: 14,
     boxShadow: '0 14px 36px rgba(15,23,42,0.10)',
   },
-  price: { fontSize: 24, lineHeight: 30, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 13, lineHeight: 18, fontWeight: '700', marginTop: 2 },
-  noCharge: { textAlign: 'center', fontSize: 12, lineHeight: 18 },
+  price: { fontSize: 24, lineHeight: 30, fontFamily: fontFamily.extrabold, fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 13, lineHeight: 18, fontFamily: fontFamily.bold, marginTop: 2 },
+  noCharge: { fontFamily: fontFamily.regular, textAlign: 'center', fontSize: 12, lineHeight: 18 },
 });

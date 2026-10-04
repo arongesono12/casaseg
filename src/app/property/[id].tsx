@@ -24,30 +24,30 @@ import { PropertyGallery } from "@/components/property/property-gallery";
 import {
     AmenityChip,
     Badge,
-    FactTile,
-    HostCard,
-    PrimaryButton,
     SecondaryButton,
     Section,
 } from "@/components/property/detail/detail-parts";
 import { detailCopy } from "@/components/property/detail/detail-copy";
 import { ReservationCard } from "@/components/property/detail/reservation-card";
+import { CasasegLogo } from "@/components/ui/casaseg-logo";
 import {
     ArrowLeft,
-    BedDouble,
-    Bath,
+    ChevronRight,
+    Clock,
     Heart,
     MapPin,
-    Ruler,
     Share2,
     Star,
 } from "@/components/ui/icons";
-import { colors, radius, touchTarget, type AppPalette } from "@/constants/theme";
+import { PremiumButton } from "@/components/ui/premium";
+import { UserAvatar } from "@/components/user-avatar";
+import { colors, fontFamily, radius, touchTarget, typography, type AppPalette } from '@/constants/theme';
 import { propertyKeys } from "@/features/properties/api/property.keys";
 import { fetchFavorites } from "@/features/properties/api/property.queries";
 import { useProfileId } from "@/features/auth/use-profile-id";
 import { amenityLabel } from "@/features/properties/amenities";
 import { useFavoriteMutation } from "@/features/properties/hooks/use-favorite-mutation";
+import { useFavoritesUserId } from "@/features/properties/hooks/use-favorites-user-id";
 import { useProperty } from "@/features/properties/hooks/use-properties";
 import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-context";
@@ -76,6 +76,7 @@ const HeroSlide = memo(function HeroSlide({
   index,
   total,
   width,
+  height,
   title,
   photosLabel,
   photoLabel,
@@ -85,6 +86,7 @@ const HeroSlide = memo(function HeroSlide({
   index: number;
   total: number;
   width: number;
+  height: number;
   title: string;
   photosLabel: string;
   photoLabel: string;
@@ -97,7 +99,7 @@ const HeroSlide = memo(function HeroSlide({
       accessibilityRole="button"
       accessibilityLabel={`${photosLabel} ${index + 1} / ${total}: ${title}`}
       onPress={open}
-      style={[styles.heroSlide, { width }]}
+      style={{ width, height }}
     >
       <Image
         source={{ uri }}
@@ -122,7 +124,7 @@ export default function PropertyDetailScreen() {
   const { palette } = useAppTheme();
   const { t, locale } = useI18n();
   const copy = detailCopy[locale];
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   // owner_id guarda el uuid de Supabase; user.id es el id de Clerk.
   const profileId = useProfileId();
   const propertyQuery = useProperty(id);
@@ -133,13 +135,16 @@ export default function PropertyDetailScreen() {
   const [heroWidth, setHeroWidth] = useState(() =>
     Math.max(1, wide ? Math.min(width - 48, 760) : width),
   );
+  // Misma proporción que styles.hero / styles.heroWide.
+  const heroHeight = Math.round(heroWidth / (wide ? 16 / 10 : 1.05));
   const [guestFavorite, setGuestFavorite] = useState(false);
+  const favoritesUserId = useFavoritesUserId();
   const favorites = useQuery({
-    queryKey: propertyKeys.favorites(user?.id ?? "guest"),
-    queryFn: () => fetchFavorites(user!.id),
-    enabled: Boolean(user),
+    queryKey: propertyKeys.favorites(favoritesUserId ?? "guest"),
+    queryFn: () => fetchFavorites(favoritesUserId!),
+    enabled: Boolean(favoritesUserId),
   });
-  const favoriteMutation = useFavoriteMutation(user?.id ?? "guest");
+  const favoriteMutation = useFavoriteMutation(favoritesUserId ?? "guest");
   const images = useMemo(() => {
     const uniqueImages = Array.from(
       new Set((property?.imageUrls ?? []).map(normalizeImageUrl)),
@@ -157,13 +162,14 @@ export default function PropertyDetailScreen() {
         index={index}
         total={images.length}
         width={heroWidth}
+        height={heroHeight}
         title={property?.title ?? ""}
         photosLabel={t("photos")}
         photoLabel={t("photo", { count: String(index + 1) })}
         onOpen={openGalleryAt}
       />
     ),
-    [heroWidth, images.length, openGalleryAt, property?.title, t],
+    [heroHeight, heroWidth, images.length, openGalleryAt, property?.title, t],
   );
 
   if (propertyQuery.isLoading) {
@@ -282,6 +288,8 @@ export default function PropertyDetailScreen() {
     );
   };
 
+  const verified = property.legalStatus === "verified";
+
   const updateHeroIndex = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setGalleryIndex(
       Math.min(
@@ -329,6 +337,7 @@ export default function PropertyDetailScreen() {
               >
                 <FlatList
                   data={images}
+                  style={StyleSheet.absoluteFill}
                   horizontal
                   pagingEnabled
                   bounces={false}
@@ -386,24 +395,28 @@ export default function PropertyDetailScreen() {
                 ]}
               >
                 <View style={styles.intro}>
+                  <Text selectable style={[styles.title, { color: palette.text }]}>
+                    {property.title}
+                  </Text>
+                  <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
+                    {t("entireHome", { location: property.location })}
+                  </Text>
+                  <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
+                    {t("beds", { count: String(property.bedrooms) })} ·{" "}
+                    {t("baths", { count: String(property.bathrooms) })} ·{" "}
+                    {property.area ? `${property.area} m²` : "—"}
+                  </Text>
                   <View style={styles.badgeRow}>
                     <Badge
                       label={category}
-                      backgroundColor={`${colors.accent}1C`}
-                      textColor={colors.accentDark}
+                      backgroundColor={palette.brandSoft}
+                      textColor={palette.brandText}
                     />
                     {property.isNew && (
                       <Badge
                         label={t("newBadge")}
                         backgroundColor={palette.brand}
-                        textColor="white"
-                      />
-                    )}
-                    {property.legalStatus === "verified" && (
-                      <Badge
-                        label={copy.verified}
-                        backgroundColor={`${colors.accent}1C`}
-                        textColor={colors.accentDark}
+                        textColor={colors.onBrand}
                       />
                     )}
                     <Badge
@@ -413,74 +426,74 @@ export default function PropertyDetailScreen() {
                           ? `${colors.warning}20`
                           : `${colors.success}1C`
                       }
-                      textColor={
-                        property.isOccupied ? colors.warning : colors.success
-                      }
+                      textColor={property.isOccupied ? "#92400E" : "#047857"}
                     />
                   </View>
-                  <Text selectable style={[styles.title, { color: palette.text }]}>
-                    {property.title}
-                  </Text>
-                  <View style={styles.locationRow}>
-                    <MapPin color={palette.brandIcon} size={18} />
-                    <Text
-                      selectable
-                      numberOfLines={2}
-                      style={[styles.location, { color: palette.textSecondary }]}
-                    >
-                      {property.location}
+                </View>
+
+                {/* Bloque de confianza del rediseño B: verificación, valoración y reseñas. */}
+                <View style={[styles.trustSummary, { borderColor: palette.border }]}>
+                  <View style={[styles.trustCell, styles.trustCellWide]}>
+                    {verified ? (
+                      <CasasegLogo width={26} />
+                    ) : (
+                      <Clock color={palette.textSecondary} size={20} />
+                    )}
+                    <Text style={[styles.trustLabel, { color: palette.text }]}>
+                      {verified
+                        ? t("verifiedByCasaseg")
+                        : t(property.legalStatus === "pending" ? "legalPending" : "legalRestricted")}
                     </Text>
                   </View>
-                  <View style={styles.priceRow}>
-                    <Text
-                      selectable
-                      numberOfLines={1}
-                      style={[styles.price, { color: palette.text }]}
-                    >
-                      {price}
+                  <View style={[styles.trustDivider, { backgroundColor: palette.border }]} />
+                  <View style={styles.trustCell}>
+                    <Text style={[styles.trustValue, { color: palette.text }]}>
+                      {property.rating.toFixed(1)}
                     </Text>
-                    <Text style={[styles.priceUnit, { color: palette.textSecondary }]}>
-                      {priceUnit}
+                    <View style={styles.stars}>
+                      {[0, 1, 2, 3, 4].map((star) => (
+                        <Star
+                          key={star}
+                          color={palette.text}
+                          fill={star < Math.round(property.rating) ? palette.text : "transparent"}
+                          size={11}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  <View style={[styles.trustDivider, { backgroundColor: palette.border }]} />
+                  <View style={styles.trustCell}>
+                    <Text style={[styles.trustValue, { color: palette.text }]}>
+                      {property.reviewCount}
+                    </Text>
+                    <Text style={[styles.trustLink, { color: palette.text }]}>
+                      {t("reviewsLabel")}
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.facts}>
-                  <FactTile
-                    icon={BedDouble}
-                    value={String(property.bedrooms)}
-                    label={copy.bedroomsLabel}
-                    palette={palette}
-                  />
-                  <FactTile
-                    icon={Bath}
-                    value={String(property.bathrooms)}
-                    label={copy.bathroomsLabel}
-                    palette={palette}
-                  />
-                  <FactTile
-                    icon={Ruler}
-                    value={property.area ? `${property.area} m²` : "—"}
-                    label={copy.areaLabel}
-                    palette={palette}
-                  />
-                  <FactTile
-                    icon={Star}
-                    value={property.rating.toFixed(1)}
-                    label={copy.ratingLabel}
-                    palette={palette}
-                  />
-                </View>
-
-                <HostCard
-                  palette={palette}
-                  name={property.ownerName}
-                  avatar={property.ownerAvatar}
-                  eyebrow={copy.host}
-                  verifiedLabel={copy.hostVerified}
-                  contactLabel={contactLabel}
-                  onContact={contactHost}
-                />
+                {/* Sin sello de "verificado": la app no guarda la verificación del propietario. */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={contactLabel}
+                  onPress={contactHost}
+                  style={({ pressed }) => [
+                    styles.hostRow,
+                    { borderBottomColor: palette.border },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <UserAvatar name={property.ownerName} uri={property.ownerAvatar} size={48} />
+                  <View style={styles.flex}>
+                    <Text numberOfLines={1} style={[styles.hostName, { color: palette.text }]}>
+                      {t("ownerBy", { name: property.ownerName })}
+                    </Text>
+                    <Text style={[styles.hostCaption, { color: palette.textSecondary }]}>
+                      {contactLabel}
+                    </Text>
+                  </View>
+                  <ChevronRight color={palette.textSecondary} size={22} />
+                </Pressable>
 
                 <Section title={t("description")} palette={palette}>
                   <Text
@@ -542,7 +555,7 @@ export default function PropertyDetailScreen() {
             <Text
               selectable
               numberOfLines={1}
-              style={[styles.ctaPrice, { color: palette.text }]}
+              style={[styles.ctaPrice, styles.underline, { color: palette.text }]}
             >
               {price}
             </Text>
@@ -551,7 +564,7 @@ export default function PropertyDetailScreen() {
             </Text>
           </View>
           <View style={styles.ctaButtonWrap}>
-            <PrimaryButton label={actionLabel} onPress={requestVisit} />
+            <PremiumButton label={actionLabel} onPress={requestVisit} />
           </View>
         </View>
       )}
@@ -689,7 +702,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     borderCurve: "continuous",
   },
-  heroSlide: { height: "100%" },
   heroImage: { width: "100%", height: "100%" },
   topShade: { position: "absolute", top: 0, left: 0, right: 0, height: 120 },
   controls: {
@@ -727,7 +739,7 @@ const styles = StyleSheet.create({
   imageCounterText: {
     color: "white",
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: fontFamily.bold,
     fontVariant: ["tabular-nums"],
   },
   dots: {
@@ -754,27 +766,43 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.xl,
     borderCurve: "continuous",
   },
-  intro: { gap: 12 },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "800",
-    letterSpacing: -0.7,
+  intro: { alignItems: "center", gap: 6 },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 6 },
+  title: { ...typography.title, fontSize: 25, lineHeight: 31, textAlign: "center" },
+  subtitle: { ...typography.body, textAlign: "center" },
+  trustSummary: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    borderCurve: "continuous",
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
+  trustCell: { flex: 1, alignItems: "center", gap: 2, paddingHorizontal: 4 },
+  trustCellWide: { flex: 1.4 },
+  trustDivider: { width: StyleSheet.hairlineWidth, height: 38 },
+  trustLabel: { fontSize: 13, lineHeight: 17, fontFamily: fontFamily.bold, textAlign: "center" },
+  trustValue: { fontSize: 18, lineHeight: 23, fontFamily: fontFamily.bold, fontVariant: ["tabular-nums"] },
+  trustLink: { fontFamily: fontFamily.regular, fontSize: 12, textDecorationLine: "underline" },
+  stars: { flexDirection: "row", gap: 1 },
+  hostRow: { minHeight: 80, flexDirection: "row", alignItems: "center", gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, paddingBottom: 20 },
+  hostName: { fontSize: 16, lineHeight: 22, fontFamily: fontFamily.semibold },
+  hostCaption: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20 },
+  underline: { textDecorationLine: "underline" },
+  pressed: { opacity: 0.72 },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  location: { flex: 1, fontSize: 14, lineHeight: 21, fontWeight: "600" },
+  location: { flex: 1, fontSize: 14, lineHeight: 21, fontFamily: fontFamily.semibold },
   priceRow: { flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" },
   price: {
     fontSize: 26,
     lineHeight: 32,
-    fontWeight: "800",
+    fontFamily: fontFamily.extrabold,
     fontVariant: ["tabular-nums"],
   },
-  priceUnit: { fontSize: 14, lineHeight: 20, fontWeight: "700" },
+  priceUnit: { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.bold },
   facts: { flexDirection: "row", gap: 10 },
   flex: { flex: 1, minWidth: 0 },
-  body: { fontSize: 15, lineHeight: 24 },
+  body: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 24 },
   amenitiesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -800,10 +828,10 @@ const styles = StyleSheet.create({
   ctaPrice: {
     fontSize: 17,
     lineHeight: 22,
-    fontWeight: "800",
+    fontFamily: fontFamily.extrabold,
     fontVariant: ["tabular-nums"],
   },
-  ctaUnit: { fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  ctaUnit: { fontSize: 12, lineHeight: 17, fontFamily: fontFamily.semibold },
   ctaButtonWrap: { minWidth: 148, maxWidth: "56%" },
   center: {
     flex: 1,
@@ -817,6 +845,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: "700",
+    fontFamily: fontFamily.bold,
   },
 });

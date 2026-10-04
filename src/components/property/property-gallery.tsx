@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from '@/components/ui/icons';
 import { useI18n } from '@/providers/i18n-context';
 
+import { fontFamily } from '@/constants/theme';
 type GalleryItem = { id: string; uri: string };
 type PropertyGalleryProps = { visible: boolean; images: string[]; title: string; initialIndex?: number; onClose: () => void };
 
@@ -68,8 +69,8 @@ export function PropertyGallery({ visible, images, title, initialIndex = 0, onCl
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#050505' },
   header: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12 },
-  title: { flex: 1, color: 'white', fontSize: 16, fontWeight: '800' },
+  title: { flex: 1, color: 'white', fontSize: 16, fontFamily: fontFamily.extrabold },
   close: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
   image: { flex: 1 },
-  counter: { color: 'white', textAlign: 'center', padding: 16, fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  counter: { color: 'white', textAlign: 'center', padding: 16, fontSize: 14, fontFamily: fontFamily.extrabold, fontVariant: ['tabular-nums'] },
 });

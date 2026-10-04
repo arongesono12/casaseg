@@ -1,19 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RouteScreen } from '@/components/route-screen';
-import { ArrowRight, Building2, Calendar, ChartLine, CreditCard, Crown, FileText, Plus, Sparkles } from '@/components/ui/icons';
-import { MetricCard, SectionTitle, StatusPill } from '@/components/ui/premium';
-import { actionGradient, type AppPalette, colors, radius, withAlpha } from '@/constants/theme';
-import { fetchPaymentOrders } from '@/features/payments/payments.api';
+import { StatusBarScrim } from '@/components/status-bar-scrim';
+import { ArrowLeft, Building2, Calendar, ChevronRight, CreditCard, Crown, FileText, Plus, ShieldCheck } from '@/components/ui/icons';
+import { CircleButton, LargeTitle, PremiumButton, StatusPill } from '@/components/ui/premium';
+import { UserAvatar } from '@/components/user-avatar';
+import { fontFamily, radius, spacing, type AppPalette } from '@/constants/theme';
 import { useProfileId } from '@/features/auth/use-profile-id';
-import { fetchOwnerVisitRequests, visitRequestKeys } from '@/features/properties/api/visit-requests';
+import { fetchOwnerVisitRequests, visitRequestKeys, type VisitRequest } from '@/features/properties/api/visit-requests';
 import { useOwnerProperties } from '@/features/owner/use-owner-properties';
+import { pressRipple } from '@/lib/press-feedback';
+import { useAuth } from '@/providers/auth-context';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
+import { formatDate, formatXaf } from '@/utils/formatters';
 
 const ownerHomeCopy = defineCopy({
   es: { propertiesDetail: 'Edita, publica y controla el estado de tus anuncios.', requestsDetail: 'Revisa y responde solicitudes de visita.', paymentsDetail: 'Consulta operaciones y cobros confirmados.', contractsDetail: 'Gestiona documentos, versiones y firmas.', subscriptionDetail: 'Mejora la visibilidad y tus herramientas.', professional: 'Profesional', properties: 'Propiedades', pendingVisits: 'Visitas pendientes', completedPayments: 'Pagos completados', newListing: 'NUEVA PUBLICACIÓN', createDetail: 'Crea un anuncio atractivo con fotos, características y precio.', hubTitle: 'Centro de gestión' },
@@ -21,95 +25,146 @@ const ownerHomeCopy = defineCopy({
   en: { propertiesDetail: 'Edit, publish and track the status of your listings.', requestsDetail: 'Review and answer visit requests.', paymentsDetail: 'See transactions and confirmed payouts.', contractsDetail: 'Manage documents, versions and signatures.', subscriptionDetail: 'Boost your visibility and tools.', professional: 'Professional', properties: 'Properties', pendingVisits: 'Pending visits', completedPayments: 'Completed payments', newListing: 'NEW LISTING', createDetail: 'Create an attractive listing with photos, features and price.', hubTitle: 'Management hub' },
 });
 
-type DashboardAction = {
-  label: string;
-  description: string;
-  href: Href;
-  icon: ReactNode;
-  tone: string;
-  badge?: string;
-};
+type ManageLink = { label: string; href: Href; icon: typeof Building2; badge?: string };
 
+const isPending = (request: VisitRequest) => request.status === 'pending';
+const isConfirmed = (request: VisitRequest) => request.status === 'accepted';
+
+/** Panel de propietario del rediseño B: saludo, solicitudes en carrusel, viviendas y accesos. */
 export default function OwnerHome() {
+  const { user } = useAuth();
   const { palette } = useAppTheme();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const copy = useCopy(ownerHomeCopy);
+  const insets = useSafeAreaInsets();
   const properties = useOwnerProperties();
   // visit_requests.owner_id guarda el uuid de public.users, no el id de Clerk.
   const profileId = useProfileId();
   const requests = useQuery({ queryKey: visitRequestKeys.owner(profileId ?? 'pending'), queryFn: () => fetchOwnerVisitRequests(profileId!), enabled: Boolean(profileId) });
-  const payments = useQuery({ queryKey: ['payment-orders'], queryFn: fetchPaymentOrders });
-  const pendingRequests = (requests.data ?? []).filter((request) => request.status === 'pending').length;
-  const completedPayments = (payments.data ?? []).filter((payment) => payment.status === 'completed').length;
+  const [view, setView] = useState<'pending' | 'confirmed'>('pending');
+  const pending = (requests.data ?? []).filter(isPending);
+  const confirmed = (requests.data ?? []).filter(isConfirmed);
+  const shown = view === 'pending' ? pending : confirmed;
+  const firstName = user?.name.trim().split(/\s+/)[0] ?? '';
 
-  const actions: DashboardAction[] = [
-    { label: t('myProperties'), description: copy.propertiesDetail, href: '/owner/properties', icon: <Building2 color={palette.brandIcon} size={22} />, tone: colors.brand },
-    { label: t('requests'), description: copy.requestsDetail, href: '/owner/requests' as Href, icon: <Calendar color={palette.brandIcon} size={22} />, tone: colors.primary },
-    { label: t('payments'), description: copy.paymentsDetail, href: '/owner/payments', icon: <CreditCard color="#D97706" size={22} />, tone: '#D97706' },
-    { label: t('contracts'), description: copy.contractsDetail, href: '/owner/contracts', icon: <FileText color={colors.success} size={22} />, tone: colors.success },
-    { label: t('subscription'), description: copy.subscriptionDetail, href: '/owner/subscription', icon: <Crown color={palette.brandIcon} size={22} />, tone: colors.primary, badge: copy.professional },
+  const links: ManageLink[] = [
+    { label: t('myProperties'), href: '/owner/properties', icon: Building2 },
+    { label: t('requests'), href: '/owner/requests' as Href, icon: Calendar },
+    { label: t('payments'), href: '/owner/payments', icon: CreditCard },
+    { label: t('contracts'), href: '/owner/contracts', icon: FileText },
+    { label: t('subscription'), href: '/owner/subscription', icon: Crown, badge: copy.professional },
   ];
 
   return (
-    <RouteScreen title={t('ownerPanel')} description={t('ownerPanelSubtitle')}>
-      <View style={styles.metrics}>
-        <MetricCard label={copy.properties} value={properties.isPending ? '—' : properties.data?.length ?? 0} icon={Building2} />
-        <MetricCard label={copy.pendingVisits} value={requests.isLoading ? '—' : pendingRequests} icon={Calendar} tone={colors.primary} />
-        <MetricCard label={copy.completedPayments} value={payments.isLoading ? '—' : completedPayments} icon={ChartLine} tone={colors.success} />
-      </View>
+    <SafeAreaView edges={['left', 'right']} style={[styles.safe, { backgroundColor: palette.background }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 }]}>
+        <View style={styles.page}>
+          <LargeTitle
+            title={firstName ? t('greeting', { name: firstName }) : t('ownerPanel')}
+            leading={<CircleButton label={t('back')} onPress={() => router.back()}><ArrowLeft color={palette.text} size={21} /></CircleButton>}
+            accessory={
+              <View style={styles.mode}>
+                <Text style={[styles.modeText, { color: palette.textSecondary }]}>{t('ownerMode')}</Text>
+                {user ? <UserAvatar name={user.name} uri={user.avatar} size={36} /> : null}
+              </View>
+            }
+          />
 
-      <Pressable accessibilityRole="button" onPress={() => router.push('/owner/property/create')} style={({ pressed }) => [styles.createCard, pressed && styles.pressed]}>
-        <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.createGradient}>
-          <View style={styles.createIcon}><Plus color="white" size={25} /></View>
-          <View style={styles.createCopy}>
-            <View style={styles.createEyebrow}><Sparkles color={colors.onBrandMuted} size={14} /><Text style={styles.createEyebrowText}>{copy.newListing}</Text></View>
-            <Text style={styles.createTitle}>{t('createProperty')}</Text>
-            <Text style={styles.createDescription}>{copy.createDetail}</Text>
+          <View accessibilityRole="tablist" style={styles.segments}>
+            {([['pending', t('pendingCount', { count: String(pending.length) })], ['confirmed', t('confirmedVisits')]] as const).map(([key, label]) => {
+              const selected = view === key;
+              return (
+                <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected }} android_ripple={pressRipple} onPress={() => setView(key)} style={({ pressed }) => [styles.segment, { borderColor: selected ? palette.brand : palette.border, backgroundColor: selected ? palette.brand : palette.surface }, pressed && styles.pressed]}>
+                  <Text style={[styles.segmentText, { color: selected ? 'white' : palette.text }]}>{label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
-          <ArrowRight color="white" size={23} />
-        </LinearGradient>
-      </Pressable>
+        </View>
 
-      <SectionTitle title={copy.hubTitle} />
-      <View style={styles.grid}>
-        {actions.map((action) => <DashboardCard key={String(action.href)} action={action} palette={palette} />)}
-      </View>
-    </RouteScreen>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cards}>
+          {shown.length ? shown.map((request) => (
+            <Pressable key={request.id} accessibilityRole="button" android_ripple={pressRipple} onPress={() => router.push('/owner/requests' as Href)} style={({ pressed }) => [styles.requestCard, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
+              <Text style={[styles.requestKind, { color: palette.brandText }]}>{isPending(request) ? t('visitRequestLabel') : t('visitConfirmedLabel')}</Text>
+              <Text numberOfLines={2} style={[styles.requestTitle, { color: palette.text }]}>{request.propertyTitle}</Text>
+              <Text style={[styles.caption, { color: palette.textSecondary }]}>{formatDate(request.proposedAt, locale)}</Text>
+            </Pressable>
+          )) : (
+            <View style={[styles.requestCard, styles.emptyCard, { borderColor: palette.border }]}>
+              <Text style={[styles.caption, { color: palette.textSecondary }]}>{requests.isLoading ? t('loading') : t('noVisitRequests')}</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.page}>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>{t('yourHomes')}</Text>
+          <View style={styles.homes}>
+            {(properties.data ?? []).map((property) => {
+              const verified = property.legalStatus === 'verified';
+              return (
+                <Pressable key={property.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/owner/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.home, pressed && styles.pressed]}>
+                  <Image source={{ uri: property.imageUrls[0] }} contentFit="cover" style={[styles.homeImage, { backgroundColor: palette.subtle }]} />
+                  <View style={styles.flex}>
+                    <Text numberOfLines={1} style={[styles.homeTitle, { color: palette.text }]}>{property.title}</Text>
+                    <View style={styles.homeStatus}>
+                      <ShieldCheck color={verified ? palette.brandIcon : palette.textSecondary} size={15} />
+                      <Text style={[styles.caption, { color: verified ? palette.brandText : palette.textSecondary }]}>{t(verified ? 'legalVerified' : property.legalStatus === 'pending' ? 'legalPending' : 'legalRestricted')}</Text>
+                    </View>
+                    <Text numberOfLines={1} style={[styles.caption, { color: palette.textSecondary }]}>{formatXaf(property.price, property.priceType, locale)}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+          <PremiumButton label={t('publishHome')} icon={Plus} variant="secondary" onPress={() => router.push('/owner/property/create')} />
+
+          <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>{copy.hubTitle}</Text>
+          <View style={[styles.links, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+            {links.map((link, index) => <ManageRow key={String(link.href)} link={link} palette={palette} first={index === 0} />)}
+          </View>
+        </View>
+      </ScrollView>
+      <StatusBarScrim />
+    </SafeAreaView>
   );
 }
 
-function DashboardCard({ action, palette }: { action: DashboardAction; palette: AppPalette }) {
+function ManageRow({ link, palette, first }: { link: ManageLink; palette: AppPalette; first: boolean }) {
+  const Icon = link.icon;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={action.label} onPress={() => router.push(action.href)} style={({ pressed }) => [styles.item, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
-      <View style={[styles.itemIcon, { backgroundColor: `${action.tone}14` }]}>{action.icon}</View>
-      <View style={styles.itemCopy}>
-        <View style={styles.itemTitleRow}>
-          <Text style={[styles.label, { color: palette.text }]}>{action.label}</Text>
-          {action.badge ? <StatusPill label={action.badge} tone={action.tone} /> : null}
-        </View>
-        <Text style={[styles.itemDescription, { color: palette.textSecondary }]}>{action.description}</Text>
-      </View>
-      <ArrowRight color={palette.muted} size={20} />
+    <Pressable accessibilityRole="button" accessibilityLabel={link.label} android_ripple={pressRipple} onPress={() => router.push(link.href)} style={({ pressed }) => [styles.link, !first && { borderTopColor: palette.border, borderTopWidth: StyleSheet.hairlineWidth }, pressed && { backgroundColor: palette.subtle }]}>
+      <Icon color={palette.text} size={22} />
+      <Text style={[styles.linkText, { color: palette.text }]}>{link.label}</Text>
+      {link.badge ? <StatusPill label={link.badge} tone={palette.brandIcon} /> : null}
+      <ChevronRight color={palette.textSecondary} size={20} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  createCard: { borderRadius: radius.xl, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 14px 30px ${withAlpha(colors.brand, 0.20)}` },
-  createGradient: { minHeight: 132, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  createIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  createCopy: { flex: 1, gap: 5 },
-  createEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  createEyebrowText: { color: colors.onBrandMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.9 },
-  createTitle: { color: 'white', fontSize: 20, fontWeight: '700' },
-  createDescription: { color: colors.onBrandMuted, fontSize: 12, lineHeight: 17 },
-  grid: { gap: 10 },
-  item: { minHeight: 92, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
-  itemIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  itemCopy: { flex: 1, minWidth: 0, gap: 5 },
-  itemTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
-  label: { fontSize: 16, fontWeight: '700' },
-  itemDescription: { fontSize: 12, lineHeight: 17 },
-  pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
+  safe: { flex: 1 },
+  content: { gap: spacing.xl },
+  page: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: spacing.xxl, gap: spacing.xl },
+  mode: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modeText: { fontSize: 14, fontFamily: fontFamily.semibold },
+  segments: { flexDirection: 'row', gap: 8 },
+  segment: { minHeight: 40, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 16, justifyContent: 'center', overflow: 'hidden' },
+  segmentText: { fontSize: 14, fontFamily: fontFamily.semibold },
+  cards: { gap: 12, paddingHorizontal: spacing.xxl },
+  requestCard: { width: 250, minHeight: 128, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', padding: 16, gap: 6, overflow: 'hidden', boxShadow: '0 4px 14px rgba(15,23,42,0.06)' },
+  emptyCard: { justifyContent: 'center', boxShadow: 'none', borderStyle: 'dashed', borderWidth: 1 },
+  requestKind: { fontSize: 13, fontFamily: fontFamily.bold },
+  requestTitle: { fontSize: 17, lineHeight: 22, fontFamily: fontFamily.bold },
+  caption: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20 },
+  sectionTitle: { fontSize: 22, lineHeight: 28, fontFamily: fontFamily.bold, marginTop: spacing.sm },
+  homes: { gap: spacing.lg },
+  home: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  homeImage: { width: 88, height: 88, borderRadius: radius.md },
+  homeTitle: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
+  homeStatus: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  links: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden' },
+  link: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  linkText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 16 },
+  flex: { flex: 1, minWidth: 0, gap: 3 },
+  pressed: { opacity: 0.76 },
 });

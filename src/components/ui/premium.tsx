@@ -2,10 +2,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { ArrowLeft, ArrowRight, RefreshCw, ShieldCheck, type IconProps } from '@/components/ui/icons';
-import { actionGradient, brand, colors, heroGradient, radius, touchTarget, withAlpha } from '@/constants/theme';
+import { CasasegLogo } from '@/components/ui/casaseg-logo';
+import { ArrowLeft, ArrowRight, Clock, RefreshCw, type IconProps } from '@/components/ui/icons';
+import { actionGradient, brand, colors, fontFamily, radius, typography, withAlpha } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
-import { onBrandRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
+import { iconRipple, onBrandRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -31,55 +32,39 @@ type HeroProps = {
   bleed?: HeroBleed;
 };
 
-export function PremiumHero({ title, description, eyebrow = 'CASASEG', icon: Icon = ShieldCheck, accessory, compact = false, bleed }: HeroProps) {
+/**
+ * Cabecera de pantalla. En el rediseño B ya no es una banda con degradado: es
+ * el título grande sobre el fondo del tema, con el botón circular de volver.
+ * Se mantiene la API (eyebrow, icon, bleed…) para no tocar cada pantalla.
+ */
+export function PremiumHero({ title, description, accessory, compact = false, bleed }: HeroProps) {
+  const { palette } = useAppTheme();
+  const back = bleed?.onBack
+    ? <CircleButton label={bleed.backLabel ?? ''} onPress={bleed.onBack}><ArrowLeft color={palette.text} size={21} /></CircleButton>
+    : undefined;
   const content = (
-    <>
-      <View style={styles.heroTopRow}>
-        <View style={styles.heroLead}>
-          {bleed?.onBack ? (
-            <Pressable accessibilityRole="button" accessibilityLabel={bleed.backLabel} hitSlop={8} android_ripple={onBrandRipple} onPress={bleed.onBack} style={styles.heroBack}>
-              <ArrowLeft color="white" size={21} />
-            </Pressable>
-          ) : null}
-          <View style={styles.eyebrowPill}>
-            <Icon color={colors.onBrandMuted} size={15} />
-            <Text numberOfLines={1} style={styles.eyebrow}>{eyebrow}</Text>
-          </View>
-        </View>
-        {accessory}
-      </View>
-      <View style={styles.heroCopy}>
-        <Text style={[styles.heroTitle, compact && styles.heroTitleCompact]}>{title}</Text>
-        <Text style={styles.heroDescription}>{description}</Text>
-      </View>
-    </>
+    <View style={styles.largeTitle}>
+      {back || accessory ? <View style={styles.largeTitleTop}>{back ?? <View />}{accessory}</View> : null}
+      <Text accessibilityRole="header" style={[typography.display, compact && styles.heroTitleCompact, { color: palette.text }]}>{title}</Text>
+      {description ? <Text style={[typography.body, { color: palette.textSecondary }]}>{description}</Text> : null}
+    </View>
   );
 
+  if (!bleed) return content;
   return (
-    <LinearGradient
-      colors={heroGradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.hero, compact && styles.heroCompact, bleed && [styles.heroBleed, { paddingTop: bleed.topInset + HERO_BLEED_GAP }]]}
-    >
-      <View pointerEvents="none" style={styles.heroOrbLarge} />
-      <View pointerEvents="none" style={styles.heroOrbSmall} />
-      {bleed ? <View style={[styles.heroBleedContent, { maxWidth: bleed.contentMaxWidth }]}>{content}</View> : content}
-    </LinearGradient>
+    <View style={[styles.heroBleed, { paddingTop: bleed.topInset + 12 }]}>
+      <View style={[styles.heroBleedContent, { maxWidth: bleed.contentMaxWidth }]}>{content}</View>
+    </View>
   );
 }
 
-const HERO_BLEED_GAP = 14;
-
-/**
- * Contador o estado dentro de la cabecera (accessory de PremiumHero). Sustituye
- * al SectionTitle que repetía el título de la pantalla solo para mostrar un total.
- */
+/** Contador o estado junto al título (accessory de PremiumHero). */
 export function HeroBadge({ label, icon: Icon }: { label: string; icon?: IconComponent }) {
+  const { palette } = useAppTheme();
   return (
-    <View style={styles.eyebrowPill}>
-      {Icon ? <Icon color="white" size={14} /> : null}
-      <Text style={styles.heroBadgeText}>{label}</Text>
+    <View style={[styles.heroBadge, { backgroundColor: palette.brandSoft }]}>
+      {Icon ? <Icon color={palette.brandIcon} size={14} /> : null}
+      <Text style={[styles.heroBadgeText, { color: palette.brandText }]}>{label}</Text>
     </View>
   );
 }
@@ -192,50 +177,78 @@ export function IconTile({ icon: Icon, tone = colors.brand, size = 44 }: { icon:
   return <View style={[styles.iconTile, { width: size, height: size, borderRadius: size / 2, backgroundColor: `${tone}14` }]}><Icon color={tone} size={Math.round(size * 0.48)} /></View>;
 }
 
+/** Cabecera de pantalla del rediseño B: título grande sobre el fondo, sin banda de degradado. */
+export function LargeTitle({ title, description, accessory, leading }: { title: string; description?: string; accessory?: ReactNode; leading?: ReactNode }) {
+  const { palette } = useAppTheme();
+  return (
+    <View style={styles.largeTitle}>
+      {leading || accessory ? <View style={styles.largeTitleTop}>{leading ?? <View />}{accessory}</View> : null}
+      <Text accessibilityRole="header" style={[typography.display, { color: palette.text }]}>{title}</Text>
+      {description ? <Text style={[typography.body, { color: palette.textSecondary }]}>{description}</Text> : null}
+    </View>
+  );
+}
+
+/** Botón circular flotante (volver, guardar, compartir) sobre fotos o cabeceras. */
+export function CircleButton({ label, onPress, children, disabled }: { label: string; onPress: () => void; children: ReactNode; disabled?: boolean }) {
+  const { palette } = useAppTheme();
+  return (
+    <Pressable accessibilityLabel={label} accessibilityRole="button" accessibilityState={{ disabled }} android_ripple={iconRipple(40)} disabled={disabled} hitSlop={4} onPress={onPress} style={({ pressed }) => [styles.circle, { backgroundColor: palette.surface }, (disabled || (pressed && !usesRipple)) && styles.buttonPressed]}>
+      {children}
+    </Pressable>
+  );
+}
+
+/** Píldora de estado legal que va sobre la foto de una propiedad. */
+export function LegalPill({ status, labels }: { status: 'verified' | 'pending' | 'restricted'; labels: { verified: string; pending: string; restricted: string } }) {
+  const verified = status === 'verified';
+  return (
+    <View style={[styles.legalPill, !verified && styles.legalPillMuted]}>
+      {verified ? <CasasegLogo width={17} /> : <Clock color={status === 'restricted' ? colors.error : colors.textSecondary} size={14} />}
+      <Text style={[styles.legalPillText, !verified && { color: colors.textSecondary }]}>{labels[status]}</Text>
+    </View>
+  );
+}
+
 export function SurfaceCard({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { palette } = useAppTheme();
   return <View style={[styles.surface, { backgroundColor: palette.surface, borderColor: palette.border }, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
-  hero: { minHeight: 198, borderRadius: radius.hero, borderCurve: 'continuous', padding: 22, justifyContent: 'space-between', overflow: 'hidden', boxShadow: `0 16px 34px ${withAlpha(brand.blue[900], 0.22)}` },
-  heroCompact: { minHeight: 164, padding: 19 },
-  heroBleed: { borderTopLeftRadius: 0, borderTopRightRadius: 0, paddingBottom: 26 },
-  heroBleedContent: { width: '100%', alignSelf: 'center', flexGrow: 1, justifyContent: 'space-between', gap: 22 },
-  heroLead: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  heroBack: { width: touchTarget, height: touchTarget, borderRadius: touchTarget / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.22)' },
-  heroOrbLarge: { position: 'absolute', width: 190, height: 190, borderRadius: 95, right: -65, top: -80, backgroundColor: 'rgba(255,255,255,0.08)' },
-  heroOrbSmall: { position: 'absolute', width: 80, height: 80, borderRadius: 40, right: 72, bottom: -35, backgroundColor: withAlpha(brand.logo.sky, 0.18) },
-  heroTopRow: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  eyebrowPill: { minHeight: 30, borderRadius: radius.pill, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
-  eyebrow: { color: colors.onBrandMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.1 },
-  heroBadgeText: { color: 'white', fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  heroCopy: { maxWidth: 540, gap: 8 },
-  heroTitle: { color: 'white', fontSize: 30, lineHeight: 35, fontWeight: '800', letterSpacing: -0.8 },
-  heroTitleCompact: { fontSize: 25, lineHeight: 30 },
-  heroDescription: { color: colors.onBrandMuted, fontSize: 15, lineHeight: 22, fontWeight: '500' },
-  buttonShell: { minHeight: 54, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 8px 18px ${withAlpha(colors.brand, 0.18)}` },
-  buttonGradient: { minHeight: 54, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  secondaryButton: { minHeight: 54, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: 'none' },
+  heroBleed: { width: '100%', paddingHorizontal: 24 },
+  heroBleedContent: { width: '100%', alignSelf: 'center' },
+  heroTitleCompact: { fontSize: 26, lineHeight: 32 },
+  heroBadge: { minHeight: 30, borderRadius: radius.pill, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  heroBadgeText: { fontSize: 12, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
+  buttonShell: { minHeight: 52, borderRadius: radius.sm, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 8px 18px ${withAlpha(colors.brand, 0.18)}` },
+  buttonGradient: { minHeight: 52, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  secondaryButton: { minHeight: 52, borderWidth: 1, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: 'none' },
   buttonPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
   buttonFocused: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.38)}` },
-  buttonLabel: { color: 'white', fontSize: 15, fontWeight: '700' },
+  buttonLabel: { color: 'white', fontSize: 16, fontFamily: fontFamily.bold },
   emptyCard: { minHeight: 300, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 28, alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 12px 30px rgba(15,23,42,0.06)' },
   emptyIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 5 },
-  emptyTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', textAlign: 'center' },
-  emptyDescription: { maxWidth: 380, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  emptyTitle: { fontSize: 20, lineHeight: 26, fontFamily: fontFamily.bold, textAlign: 'center' },
+  emptyDescription: { fontFamily: fontFamily.regular, maxWidth: 380, fontSize: 14, lineHeight: 21, textAlign: 'center' },
   emptyAction: { width: '100%', maxWidth: 280, marginTop: 10 },
   sectionHeading: { minHeight: 44, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 },
   sectionCopy: { flex: 1, gap: 3 },
-  sectionTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3 },
-  sectionDetail: { fontSize: 13, lineHeight: 18 },
+  sectionTitle: { fontSize: 20, lineHeight: 26, fontFamily: fontFamily.bold, letterSpacing: -0.3 },
+  sectionDetail: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18 },
   metric: { flex: 1, minWidth: 104, minHeight: 128, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, justifyContent: 'space-between', boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   metricIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  metricValue: { fontSize: 24, lineHeight: 28, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  metricLabel: { fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  metricValue: { fontSize: 24, lineHeight: 28, fontFamily: fontFamily.extrabold, fontVariant: ['tabular-nums'] },
+  metricLabel: { fontSize: 12, lineHeight: 16, fontFamily: fontFamily.bold },
   status: { alignSelf: 'flex-start', minHeight: 28, borderRadius: radius.pill, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusLabel: { fontSize: 11, lineHeight: 14, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.25 },
+  statusLabel: { fontSize: 11, lineHeight: 14, fontFamily: fontFamily.bold, textTransform: 'uppercase', letterSpacing: 0.25 },
   iconTile: { alignItems: 'center', justifyContent: 'center' },
+  largeTitle: { gap: 6, paddingTop: 4 },
+  largeTitleTop: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  circle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(15,23,42,0.16)' },
+  legalPill: { height: 30, borderRadius: radius.pill, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surface, boxShadow: '0 2px 6px rgba(15,23,42,0.14)' },
+  legalPillMuted: { backgroundColor: 'rgba(255,255,255,0.92)' },
+  legalPillText: { color: colors.text, fontSize: 13, fontFamily: fontFamily.bold },
   surface: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' },
 });

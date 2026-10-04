@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 
 import { Compass, Heart, MessageCircle, UserRound } from '@/components/ui/icons';
-import { colors } from '@/constants/theme';
+import { colors, fontFamily } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useNotifications } from '@/providers/notification-context';
@@ -18,8 +18,8 @@ export default function WebTabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
-        tabBarInactiveTintColor: palette.muted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+        tabBarInactiveTintColor: palette.textSecondary,
+        tabBarLabelStyle: { fontSize: 11, fontFamily: fontFamily.bold },
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
           minHeight: 68,

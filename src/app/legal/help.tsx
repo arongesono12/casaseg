@@ -4,7 +4,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { ChevronDown, ChevronUp, HelpCircle, Mail, MessageCircle, ShieldCheck } from '@/components/ui/icons';
 import { IconTile, PremiumButton, SectionTitle } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { defineCopy, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -84,16 +84,16 @@ export default function Help() {
 const styles = StyleSheet.create({
   supportCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 20, alignItems: 'center', gap: 10, boxShadow: '0 12px 30px rgba(15,23,42,0.07)' },
   supportCopy: { alignItems: 'center', gap: 5 },
-  supportTitle: { fontSize: 19, fontWeight: '700', textAlign: 'center' },
-  supportText: { maxWidth: 420, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  supportTitle: { fontSize: 19, fontFamily: fontFamily.bold, textAlign: 'center' },
+  supportText: { fontFamily: fontFamily.regular, maxWidth: 420, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   supportButton: { width: '100%', maxWidth: 320, marginTop: 7 },
   security: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  securityText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  securityText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
   faqList: { gap: 9 },
   faq: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', paddingHorizontal: 15, overflow: 'hidden' },
   faqHeader: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11 },
   faqIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  question: { flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '700' },
-  answer: { borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 14, fontSize: 13, lineHeight: 20 },
+  question: { flex: 1, fontSize: 14, lineHeight: 19, fontFamily: fontFamily.bold },
+  answer: { fontFamily: fontFamily.regular, borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 14, fontSize: 13, lineHeight: 20 },
   pressed: { opacity: 0.78 },
 });

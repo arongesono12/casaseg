@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { FallbackFormField } from './form-field-base';
 import type { FormFieldProps } from './form-field.types';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { useAppTheme } from '@/providers/theme-context';
 
 /**
@@ -64,7 +64,7 @@ export function FormField({ error, inputRef, label, rightAccessory, ...inputProp
           onChangeText={inputProps.onChangeText}
           onSubmitEditing={(submittedValue) => inputProps.onSubmitEditing?.({ nativeEvent: { text: submittedValue } } as never)}
           style={{ width: '100%', height: inputProps.multiline ? 112 : 54, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderRadius: radius.md, borderColor: error ? colors.error : focused ? colors.brand : palette.border, backgroundColor: palette.surface }}
-          textStyle={{ color: palette.text, fontSize: 16 }}
+          textStyle={{ fontFamily: fontFamily.regular, color: palette.text, fontSize: 16 }}
         />
       </Host>
       {error && <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{error}</Text>}
@@ -74,7 +74,7 @@ export function FormField({ error, inputRef, label, rightAccessory, ...inputProp
 
 const styles = StyleSheet.create({
   group: { gap: 7 },
-  label: { fontSize: 13, fontWeight: '800' },
+  label: { fontSize: 13, fontFamily: fontFamily.extrabold },
   host: { width: '100%' },
-  error: { fontSize: 13 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13 },
 });

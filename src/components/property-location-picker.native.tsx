@@ -1,6 +1,6 @@
 import MapView, { Marker } from 'react-native-maps';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import type { PropertyLocationPickerProps } from './property-location-picker';
@@ -24,7 +24,7 @@ export function PropertyLocationPicker({ value, onChange }: PropertyLocationPick
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
-  hint: { fontSize: 13, lineHeight: 19 },
+  hint: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   map: { width: '100%', height: 260, borderRadius: radius.md },
-  status: { color: colors.brandDark, fontSize: 13, fontWeight: '700' },
+  status: { color: colors.brandDark, fontSize: 13, fontFamily: fontFamily.bold },
 });

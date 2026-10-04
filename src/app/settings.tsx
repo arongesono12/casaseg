@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
-import { radius } from '@/constants/theme';
+import { fontFamily, radius } from '@/constants/theme';
 import { saveUserSettings } from '@/features/auth/user-settings';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n, type Locale } from '@/providers/i18n-context';
@@ -37,7 +37,7 @@ export default function SettingsScreen() {
       <OptionGroup title={t('theme')} values={[['light', t('light')], ['dark', t('dark')], ['system', t('system')]]} selected={mode} onSelect={changeTheme} />
       <OptionGroup title={t('language')} values={[['es', 'Español'], ['fr', 'Français'], ['en', 'English']]} selected={locale} onSelect={changeLocale} />
       {syncError && <Text selectable accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{syncError}</Text>}
-      <Text selectable style={{ color: palette.textSecondary, fontSize: 13, lineHeight: 19 }}>{t('settingsSecurityNote')}</Text>
+      <Text selectable style={{ fontFamily: fontFamily.regular, color: palette.textSecondary, fontSize: 13, lineHeight: 19 }}>{t('settingsSecurityNote')}</Text>
     </RouteScreen>
   );
 }
@@ -56,7 +56,7 @@ function OptionGroup({ title, values, selected, onSelect }: { title: string; val
             onPress={() => onSelect(value)}
             style={[styles.option, { borderColor: selected === value ? palette.brand : palette.border, backgroundColor: selected === value ? palette.subtle : palette.surface }]}
           >
-            <Text style={{ color: palette.text, fontWeight: '700' }}>{label}</Text>
+            <Text style={{ color: palette.text, fontFamily: fontFamily.bold }}>{label}</Text>
           </Pressable>
         ))}
       </View>
@@ -66,8 +66,8 @@ function OptionGroup({ title, values, selected, onSelect }: { title: string; val
 
 const styles = StyleSheet.create({
   group: { gap: 10 },
-  label: { fontSize: 17, fontWeight: '700' },
+  label: { fontSize: 17, fontFamily: fontFamily.bold },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   option: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1 },
-  error: { fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  error: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.bold },
 });

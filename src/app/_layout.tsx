@@ -10,6 +10,7 @@ import { onlineManager, QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import * as Network from 'expo-network';
 import { Stack } from 'expo-router';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, useFonts } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { type PropsWithChildren, useEffect } from 'react';
@@ -67,7 +68,11 @@ onlineManager.setEventListener((setOnline) => {
 });
 
 function RootNavigator() {
-  const { isAuthenticated, isLoading, role } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, role } = useAuth();
+  // Inter es la tipografía de toda la interfaz: el splash nativo se mantiene
+  // hasta tenerla, para no pintar un primer fotograma con la fuente del sistema.
+  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold });
+  const isLoading = isAuthLoading || (!fontsLoaded && !fontError);
   const { resolvedMode, palette } = useAppTheme();
 
   useEffect(() => {

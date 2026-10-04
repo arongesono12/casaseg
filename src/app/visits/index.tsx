@@ -13,6 +13,7 @@ import { useVisitStatusMutation } from '@/features/visits/use-visit-status-mutat
 import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
+import { fontFamily } from '@/constants/theme';
 const myVisitsCopy = defineCopy({
   es: { title: 'Mis visitas', subtitle: 'Sigue el estado de las visitas que has solicitado.', upcoming: 'Próximas', upcomingDetail: 'Pendientes de respuesta o ya confirmadas.', history: 'Historial', historyDetail: 'Visitas pasadas, rechazadas o canceladas.', loadingTitle: 'Cargando tus visitas', loadingBody: 'Estamos consultando tus solicitudes.', errorTitle: 'No pudimos cargar tus visitas', errorBody: 'Comprueba tu conexión y vuelve a intentarlo.', emptyTitle: 'Aún no has pedido ninguna visita', emptyBody: 'Abre una vivienda y pulsa «Reservar visita» para proponer día y hora.', explore: 'Explorar viviendas', cancel: 'Cancelar visita', updateError: 'No se pudo cancelar la visita: {message}' },
   fr: { title: 'Mes visites', subtitle: 'Suivez l’état des visites que vous avez demandées.', upcoming: 'À venir', upcomingDetail: 'En attente de réponse ou déjà confirmées.', history: 'Historique', historyDetail: 'Visites passées, refusées ou annulées.', loadingTitle: 'Chargement de vos visites', loadingBody: 'Nous consultons vos demandes.', errorTitle: 'Impossible de charger vos visites', errorBody: 'Vérifiez votre connexion et réessayez.', emptyTitle: 'Aucune visite demandée', emptyBody: 'Ouvrez un logement et touchez « Réserver une visite » pour proposer une date.', explore: 'Explorer les logements', cancel: 'Annuler la visite', updateError: 'Impossible d’annuler la visite : {message}' },
@@ -85,5 +86,5 @@ export default function MyVisitsScreen() {
 const styles = StyleSheet.create({
   group: { gap: 12 },
   list: { gap: 12 },
-  error: { fontSize: 13, lineHeight: 19, fontWeight: '600', textAlign: 'center' },
+  error: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.semibold, textAlign: 'center' },
 });

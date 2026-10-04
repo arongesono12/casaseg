@@ -5,7 +5,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, ExternalLink, FileText, Inbox, Lock } from '@/components/ui/icons';
 import { HeroBadge, IconTile, PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { fetchContracts, openContractPdf, signContract, type LeaseContract } from '@/features/contracts/contracts.api';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -90,10 +90,10 @@ const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 16, gap: 15, boxShadow: '0 10px 26px rgba(15,23,42,0.06)' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   copy: { flex: 1, minWidth: 0, gap: 8 },
-  title: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
+  title: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  signedAt: { fontSize: 12, fontWeight: '600' },
+  signedAt: { fontSize: 12, fontFamily: fontFamily.semibold },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
   action: { flex: 1, minWidth: 190 },
-  error: { fontSize: 13, lineHeight: 18 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18 },
 });

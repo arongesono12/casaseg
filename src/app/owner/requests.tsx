@@ -13,6 +13,7 @@ import { useVisitStatusMutation } from '@/features/visits/use-visit-status-mutat
 import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
+import { fontFamily } from '@/constants/theme';
 const requestsCopy = defineCopy({
   es: { title: 'Solicitudes de visita', subtitle: 'Confirma o rechaza cada visita para que el cliente sepa a qué atenerse.', pendingCount: '{count} pendientes', loadingTitle: 'Preparando tu agenda', loadingBody: 'Estamos sincronizando las solicitudes de visita.', errorTitle: 'No pudimos abrir las solicitudes', errorBody: 'Comprueba tu conexión y vuelve a intentarlo.', emptyTitle: 'No hay solicitudes todavía', emptyBody: 'Cuando un cliente solicite visitar una propiedad, aparecerá aquí con la fecha propuesta.', accept: 'Confirmar', reject: 'Rechazar', complete: 'Marcar realizada', cancel: 'Cancelar visita', updateError: 'No se pudo actualizar la solicitud: {message}' },
   fr: { title: 'Demandes de visite', subtitle: 'Confirmez ou refusez chaque visite pour que le client sache à quoi s’en tenir.', pendingCount: '{count} en attente', loadingTitle: 'Préparation de votre agenda', loadingBody: 'Nous synchronisons les demandes de visite.', errorTitle: 'Impossible d’ouvrir les demandes', errorBody: 'Vérifiez votre connexion et réessayez.', emptyTitle: 'Aucune demande pour le moment', emptyBody: 'Lorsqu’un client demandera à visiter un logement, la demande apparaîtra ici avec la date proposée.', accept: 'Confirmer', reject: 'Refuser', complete: 'Marquer effectuée', cancel: 'Annuler la visite', updateError: 'Impossible de mettre à jour la demande : {message}' },
@@ -74,5 +75,5 @@ export default function OwnerRequests() {
 
 const styles = StyleSheet.create({
   list: { gap: 12 },
-  error: { fontSize: 13, lineHeight: 19, fontWeight: '600', textAlign: 'center' },
+  error: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.semibold, textAlign: 'center' },
 });

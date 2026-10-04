@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors, radius } from '@/constants/theme';
+import { colors, fontFamily, radius } from '@/constants/theme';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import type { PropertyCoordinates, PropertyLocationPickerProps } from './property-location-picker';
@@ -34,8 +34,8 @@ export function PropertyLocationPicker({ value, onChange }: PropertyLocationPick
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
-  hint: { fontSize: 13, lineHeight: 19 },
+  hint: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   row: { flexDirection: 'row', gap: 8 },
   input: { flex: 1, minHeight: 50, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12 },
-  status: { color: colors.brandDark, fontSize: 13, fontWeight: '700' },
+  status: { color: colors.brandDark, fontSize: 13, fontFamily: fontFamily.bold },
 });
