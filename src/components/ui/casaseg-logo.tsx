@@ -1,18 +1,20 @@
-import Svg, { Defs, Ellipse, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Defs, Ellipse, LinearGradient, type NumberProp, Path, RadialGradient, Stop } from 'react-native-svg';
+import { LOGO_ASPECT_RATIO } from '@/lib/auth-logo-size';
 
 // Generado a partir de public/logo/logo.svg: si cambia el logo, se regenera
 // este archivo en lugar de editar los trazados a mano.
 
 interface Props {
-  width?: number;
-  height?: number;
+  // Un porcentaje ("100%") hace que el logo llene a su contenedor, que es quien
+  // decide el tamaño (p. ej. uno animado).
+  width?: NumberProp;
+  height?: NumberProp;
 }
 
-const ASPECT_RATIO = 779.14 / 648.88;
-
-export function CasasegLogo({ width = 138, height = Math.round(width / ASPECT_RATIO) }: Props) {
+export function CasasegLogo({ width = 138, height }: Props) {
+  const resolvedHeight = height ?? (typeof width === 'number' ? Math.round(width / LOGO_ASPECT_RATIO) : width);
   return (
-    <Svg width={width} height={height} viewBox="0 0 779.14 648.88">
+    <Svg width={width} height={resolvedHeight} viewBox="0 0 779.14 648.88">
       <Defs>
         <LinearGradient id="casasegLogo1" x1="660.89" y1="602.55" x2="383.89" y2="135.85" gradientUnits="userSpaceOnUse">
           <Stop offset="0.45" stopColor="#009FE3" />
