@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { memo, useCallback, useMemo, useRef } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -120,7 +120,7 @@ export default function MessagesScreen() {
     return (
       <SafeAreaView edges={['left', 'right']} style={[styles.safe, { backgroundColor: palette.background }]}>
         <HeroStatusBar pastHero={false} />
-        <ScrollView contentContainerStyle={styles.guestScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.guestScroll, Platform.OS === 'android' && styles.androidScrollEnd]} showsVerticalScrollIndicator={false}>
           <PremiumHero title={t('messages')} description={t('messagesSubtitle')} eyebrow={t('messagesEyebrow')} icon={Lock} bleed={{ topInset: insets.top }} />
           <View style={styles.guestContent}>
             <PremiumEmptyState icon={MessageCircle} title={t('messagesGuestTitle')} description={t('messagesGuestBody')} actionLabel={t('signIn')} onAction={() => router.push('/(auth)/login')} />
@@ -136,7 +136,7 @@ export default function MessagesScreen() {
       <FlatList
         data={conversations.isLoading || conversations.isError ? [] : conversations.data}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, Platform.OS === 'android' && styles.androidScrollEnd]}
         onScroll={onScroll}
         scrollEventThrottle={16}
         renderItem={renderConversation}
@@ -158,6 +158,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   list: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 130 },
   guestScroll: { flexGrow: 1, paddingBottom: 100 },
+  // NativeTabs ya reserva el área segura de la barra inferior en Android.
+  androidScrollEnd: { paddingBottom: 24 },
   guestContent: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', padding: 16, paddingTop: 20, gap: 20 },
   // A sangre: anula el padding lateral de la lista para ocupar todo el ancho.
   header: { marginHorizontal: -16, paddingBottom: 18 },

@@ -35,6 +35,7 @@ import {
     ChevronRight,
     Clock,
     Heart,
+    Home,
     MapPin,
     Share2,
     Star,
@@ -62,11 +63,7 @@ const blockGap = 28;
 const sheetOverlap = 28;
 
 const blurhash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
-const fallbackImage =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=82";
-
-function normalizeImageUrl(value?: string) {
-  if (!value?.trim()) return fallbackImage;
+function normalizeImageUrl(value: string) {
   if (value.startsWith("//")) return `https:${value}`;
   return value.replace(/^http:/, "https:");
 }
@@ -137,7 +134,6 @@ export default function PropertyDetailScreen() {
   );
   // Misma proporción que styles.hero / styles.heroWide.
   const heroHeight = Math.round(heroWidth / (wide ? 16 / 10 : 1.05));
-  const [guestFavorite, setGuestFavorite] = useState(false);
   const favoritesUserId = useFavoritesUserId();
   const favorites = useQuery({
     queryKey: propertyKeys.favorites(favoritesUserId ?? "guest"),
@@ -147,9 +143,9 @@ export default function PropertyDetailScreen() {
   const favoriteMutation = useFavoriteMutation(favoritesUserId ?? "guest");
   const images = useMemo(() => {
     const uniqueImages = Array.from(
-      new Set((property?.imageUrls ?? []).map(normalizeImageUrl)),
+      new Set((property?.imageUrls ?? []).filter((uri) => uri.trim()).map(normalizeImageUrl)),
     );
-    return uniqueImages.length ? uniqueImages : [fallbackImage];
+    return uniqueImages;
   }, [property?.imageUrls]);
   const openGalleryAt = useCallback((index: number) => {
     setGalleryIndex(index);
@@ -196,9 +192,7 @@ export default function PropertyDetailScreen() {
     );
   }
 
-  const isFavorite = isAuthenticated
-    ? (favorites.data?.includes(property.id) ?? false)
-    : guestFavorite;
+  const isFavorite = isAuthenticated && (favorites.data?.includes(property.id) ?? false);
   const isOwnProperty = Boolean(profileId) && profileId === property.ownerId;
   const numberLocale =
     locale === "fr" ? "fr-FR" : locale === "en" ? "en-US" : "es-GQ";
@@ -262,12 +256,15 @@ export default function PropertyDetailScreen() {
   };
 
   const toggleFavorite = () => {
+    if (!isAuthenticated) {
+      router.push('/(auth)/login');
+      return;
+    }
     // Misma respuesta táctil que la tarjeta de propiedad: marcar favorito se
     // sentía distinto según se hiciera desde el listado o desde el detalle.
     const next = !isFavorite;
     haptics.toggle(next);
-    if (!isAuthenticated) setGuestFavorite(next);
-    else favoriteMutation.mutate({ propertyId: property.id, favorite: next });
+    favoriteMutation.mutate({ propertyId: property.id, favorite: next });
   };
 
   const shareProperty = () => {
@@ -332,46 +329,57 @@ export default function PropertyDetailScreen() {
                 style={[
                   styles.hero,
                   wide && styles.heroWide,
-                  { backgroundColor: palette.subtle },
+                  { backgroundColor: images.length ? palette.subtle : colors.brandDark },
                 ]}
               >
-                <FlatList
-                  data={images}
-                  style={StyleSheet.absoluteFill}
-                  horizontal
-                  pagingEnabled
-                  bounces={false}
-                  keyExtractor={(image) => image}
-                  showsHorizontalScrollIndicator={false}
-                  onMomentumScrollEnd={updateHeroIndex}
-                  getItemLayout={(_, index) => ({
-                    length: heroWidth,
-                    offset: heroWidth * index,
-                    index,
-                  })}
-                  renderItem={renderHeroImage}
-                />
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={["rgba(15,23,42,0.42)", "transparent"]}
-                  style={styles.topShade}
-                />
+                {images.length ? (
+                  <FlatList
+                    data={images}
+                    style={StyleSheet.absoluteFill}
+                    horizontal
+                    pagingEnabled
+                    bounces={false}
+                    keyExtractor={(image) => image}
+                    showsHorizontalScrollIndicator={false}
+                    onMomentumScrollEnd={updateHeroIndex}
+                    getItemLayout={(_, index) => ({
+                      length: heroWidth,
+                      offset: heroWidth * index,
+                      index,
+                    })}
+                    renderItem={renderHeroImage}
+                  />
+                ) : (
+                  <View style={styles.noPhoto}>
+                    <Home color={colors.onBrand} size={38} />
+                    <Text style={styles.noPhotoText}>{t('noPhotos')}</Text>
+                  </View>
+                )}
+                {images.length > 0 && (
+                  <LinearGradient
+                    pointerEvents="none"
+                    colors={["rgba(15,23,42,0.42)", "transparent"]}
+                    style={styles.topShade}
+                  />
+                )}
                 <HeroControls
                   top={wide ? 14 : insets.top + 8}
                   favorite={isFavorite}
                   favoritePending={favoriteMutation.isPending}
                   backLabel={t("back")}
                   shareLabel={copy.share}
-                  favoriteLabel={isFavorite ? t("removeFavorite") : t("saveProperty")}
+                  favoriteLabel={!isAuthenticated ? `${t('saveProperty')}. ${t('signIn')}` : isFavorite ? t("removeFavorite") : t("saveProperty")}
                   onBack={() => router.back()}
                   onShare={shareProperty}
                   onFavorite={toggleFavorite}
                 />
-                <View pointerEvents="none" style={[styles.imageCounter, !wide && styles.imageCounterOverSheet]}>
-                  <Text style={styles.imageCounterText}>
-                    {galleryIndex + 1} / {images.length}
-                  </Text>
-                </View>
+                {images.length > 0 && (
+                  <View pointerEvents="none" style={[styles.imageCounter, !wide && styles.imageCounterOverSheet]}>
+                    <Text style={styles.imageCounterText}>
+                      {galleryIndex + 1} / {images.length}
+                    </Text>
+                  </View>
+                )}
                 {images.length > 1 && (
                   <View pointerEvents="none" style={[styles.dots, !wide && styles.dotsOverSheet]}>
                     {images.map((image, index) => (
@@ -703,6 +711,8 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
   },
   heroImage: { width: "100%", height: "100%" },
+  noPhoto: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  noPhotoText: { color: colors.onBrand, fontFamily: fontFamily.semibold, fontSize: 15 },
   topShade: { position: "absolute", top: 0, left: 0, right: 0, height: 120 },
   controls: {
     position: "absolute",
@@ -714,9 +724,9 @@ const styles = StyleSheet.create({
   },
   controlsEnd: { flexDirection: "row", alignItems: "center", gap: 10 },
   glassButton: {
-    width: touchTarget - 4,
-    height: touchTarget - 4,
-    borderRadius: (touchTarget - 4) / 2,
+    width: touchTarget,
+    height: touchTarget,
+    borderRadius: touchTarget / 2,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.94)",

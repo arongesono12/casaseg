@@ -17,6 +17,7 @@ export default function TabsLayout() {
 
   return (
     <NativeTabs
+      backBehavior="history"
       backgroundColor={process.env.EXPO_OS === 'ios' ? undefined : palette.surface}
       badgeBackgroundColor={colors.error}
       badgeTextColor="white"

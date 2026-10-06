@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, type Href } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FormField } from '@/components/form-field';
@@ -49,6 +49,7 @@ export default function ProfileScreen() {
       showBack={false}
       showHero={false}
       maxWidth={PROFILE_MAX_WIDTH}
+      bottomInsetHandled={Platform.OS === 'android'}
       topContent={(
         <ProfileHeaderCard
           name={user.name}
@@ -125,7 +126,7 @@ export default function ProfileScreen() {
         <LogOut color={colors.error} size={21} />
         <Text style={[styles.signOutText, { color: palette.errorText }]}>{t('signOut')}</Text>
       </Pressable>
-      <View style={styles.tabSpacer} />
+      {Platform.OS !== 'android' && <View style={styles.tabSpacer} />}
     </RouteScreen>
   );
 }

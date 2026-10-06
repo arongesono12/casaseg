@@ -26,6 +26,8 @@ type RouteScreenProps = {
   topContent?: ReactNode;
   /** Posición vertical del contenido dentro del scroll (debajo de la cabecera), para hacer scrollTo a secciones. */
   onContentOffset?: (y: number) => void;
+  /** NativeTabs ya aplica el inset inferior en la pestaña Android. */
+  bottomInsetHandled?: boolean;
 };
 
 /**
@@ -33,7 +35,7 @@ type RouteScreenProps = {
  * sobre el fondo del tema, sin banda de degradado. El contenido pasa por detrás
  * de la barra de estado y el velo la mantiene legible.
  */
-export function RouteScreen({ title, description, children, showBack = true, showHero = true, headerContent, maxWidth = 720, scrollRef, topContent, onContentOffset }: RouteScreenProps) {
+export function RouteScreen({ title, description, children, showBack = true, showHero = true, headerContent, maxWidth = 720, scrollRef, topContent, onContentOffset, bottomInsetHandled = false }: RouteScreenProps) {
   const router = useRouter();
   const { palette } = useAppTheme();
   const { t } = useI18n();
@@ -47,7 +49,7 @@ export function RouteScreen({ title, description, children, showBack = true, sho
       <ScrollView
         ref={scrollRef}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.container, { paddingBottom: CONTENT_PADDING + insets.bottom }, !topContent && { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[styles.container, { paddingBottom: CONTENT_PADDING + (bottomInsetHandled ? 0 : insets.bottom) }, !topContent && { paddingTop: insets.top + 12 }]}
       >
         {topContent}
         <View style={[styles.content, { maxWidth }, compact && styles.contentCompact]}>

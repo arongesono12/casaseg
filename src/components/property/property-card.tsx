@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Heart, Star } from '@/components/ui/icons';
+import { Heart, Home, Star } from '@/components/ui/icons';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { FlatList, type ListRenderItem, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -14,11 +14,9 @@ import type { Property } from '@/types';
 import { formatXaf } from '@/utils/formatters';
 
 const blurhash = 'LEHV6nWB2yk8pyo0adR*.7kCMdnj';
-const fallbackImage = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=80';
 const MAX_DOTS = 5;
 
-function normalizeImageUrl(value?: string) {
-  if (!value?.trim()) return fallbackImage;
+function normalizeImageUrl(value: string) {
   if (value.startsWith('//')) return `https:${value}`;
   return value.replace(/^http:/, 'https:');
 }
@@ -46,15 +44,14 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
   const router = useRouter();
   const { palette } = useAppTheme();
   const { locale, t } = useI18n();
-  const [localSaved, setLocalSaved] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [frame, setFrame] = useState({ width: 0, height: 0 });
   const images = useMemo<PropertyImageItem[]>(() => {
-    const uniqueUrls = Array.from(new Set(property.imageUrls.length ? property.imageUrls : [fallbackImage]));
+    const uniqueUrls = Array.from(new Set(property.imageUrls.filter((uri) => uri.trim())));
     return uniqueUrls.map((uri) => ({ id: uri, uri }));
   }, [property.imageUrls]);
 
-  const isSaved = isFavorite ?? localSaved;
+  const isSaved = isFavorite ?? false;
   const amount = formatXaf(property.price, undefined, locale);
   const unit = formatXaf(property.price, property.priceType, locale).slice(amount.length);
 
@@ -64,11 +61,14 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
   }, [frame.width]);
 
   const toggleSaved = useCallback(() => {
+    if (!onFavoriteChange) {
+      router.push('/(auth)/login');
+      return;
+    }
     const next = !isSaved;
     haptics.toggle(next);
-    if (isFavorite === undefined) setLocalSaved(next);
-    onFavoriteChange?.(property.id, next);
-  }, [isFavorite, isSaved, onFavoriteChange, property.id]);
+    onFavoriteChange(property.id, next);
+  }, [isSaved, onFavoriteChange, property.id, router]);
 
   const renderImage = useCallback<ListRenderItem<PropertyImageItem>>(
     ({ item }) => <PropertyCardImage image={item} width={frame.width} height={frame.height} title={property.title} />,
@@ -89,7 +89,12 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
           style={[styles.imageFrame, compact && styles.imageFrameCompact, { backgroundColor: palette.subtle }]}
           onLayout={(event) => setFrame({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
         >
-          {frame.width > 0 && (
+          {images.length === 0 ? (
+            <View style={styles.noPhoto} accessibilityLabel={t('noPhotos')}>
+              <Home color={palette.brandIcon} size={32} />
+              <Text style={[styles.noPhotoText, { color: palette.textSecondary }]}>{t('noPhotos')}</Text>
+            </View>
+          ) : frame.width > 0 && (
             <FlatList
               data={images}
               style={StyleSheet.absoluteFill}
@@ -116,7 +121,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
 
         <View style={styles.summary}>
           <View style={styles.titleRow}>
-            <Text numberOfLines={1} style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{property.title}</Text>
+            <Text numberOfLines={2} style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{property.title}</Text>
             <View style={styles.rating}>
               <Star color={palette.text} fill={palette.text} size={13} />
               <Text style={[styles.meta, compact && styles.metaCompact, { color: palette.text }]}>{property.rating.toFixed(1)}{property.reviewCount ? ` (${property.reviewCount})` : ''}</Text>
@@ -133,7 +138,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={isSaved ? t('removeFavorite') : t('saveProperty')}
+        accessibilityLabel={!onFavoriteChange ? `${t('saveProperty')}. ${t('signIn')}` : isSaved ? t('removeFavorite') : t('saveProperty')}
         accessibilityState={{ selected: isSaved }}
         android_ripple={iconRipple(48)}
         onPress={toggleSaved}
@@ -153,6 +158,8 @@ const styles = StyleSheet.create({
   card: { gap: 12 },
   imageFrame: { width: '100%', aspectRatio: 20 / 19, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden' },
   imageFrameCompact: { aspectRatio: 1 },
+  noPhoto: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  noPhotoText: { fontSize: 13, fontFamily: fontFamily.medium },
   pill: { position: 'absolute', left: 12, top: 12 },
   favorite: { position: 'absolute', right: 4, top: 4, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   dots: { position: 'absolute', alignSelf: 'center', bottom: 12, flexDirection: 'row', gap: 5 },

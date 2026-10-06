@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { FlatList, ScrollView, StyleSheet, useWindowDimensions, View, type ListRenderItem } from 'react-native';
+import { FlatList, Platform, ScrollView, StyleSheet, useWindowDimensions, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeroStatusBar, useHeroScroll } from '@/components/hero-status-bar';
@@ -73,7 +73,7 @@ export default function SavedScreen() {
     return (
       <SafeAreaView edges={['left', 'right']} style={[styles.safe, { backgroundColor: palette.background }]}>
         <HeroStatusBar pastHero={false} />
-        <ScrollView contentContainerStyle={styles.guestScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.guestScroll, Platform.OS === 'android' && styles.androidScrollEnd]} showsVerticalScrollIndicator={false}>
           <PremiumHero title={t('saved')} description={t('savedSubtitle')} eyebrow={t('savedEyebrow')} icon={Heart} bleed={{ topInset: insets.top }} />
           <View style={styles.guestContent}>
             <PremiumEmptyState icon={Heart} title={t('savedGuestTitle')} description={t('savedGuestBody')} actionLabel={t('signIn')} onAction={() => router.push('/(auth)/login')} />
@@ -95,7 +95,7 @@ export default function SavedScreen() {
         keyExtractor={(item) => item.id}
         numColumns={columns}
         columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, Platform.OS === 'android' && styles.androidScrollEnd]}
         onScroll={onScroll}
         scrollEventThrottle={16}
         renderItem={renderProperty}
@@ -117,6 +117,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   list: { flexGrow: 1, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center', paddingHorizontal: LIST_PADDING, paddingBottom: 130, gap: 0 },
   guestScroll: { flexGrow: 1, paddingBottom: 100 },
+  // NativeTabs ya reserva el área segura de la barra inferior en Android.
+  androidScrollEnd: { paddingBottom: 24 },
   guestContent: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', padding: 16, paddingTop: 20, gap: 20 },
   // A sangre: anula el padding lateral de la lista para ocupar todo el ancho.
   header: { marginHorizontal: -LIST_PADDING, paddingBottom: 20 },

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type ListRenderItem } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ExploreMenu } from '@/components/explore-menu';
@@ -45,12 +45,13 @@ const CategoryTab = memo(function CategoryTab({ category, label, selected, palet
   return (
     <Pressable
       accessibilityRole="tab"
+      accessibilityLabel={label}
       accessibilityState={{ selected }}
       android_ripple={pressRipple}
       onPress={handlePress}
       style={({ pressed }) => [styles.category, { borderBottomColor: selected ? palette.brandIcon : 'transparent' }, pressed && !usesRipple && styles.pressed]}>
       <Icon color={selected ? palette.text : palette.textSecondary} size={24} />
-      <Text numberOfLines={1} style={[styles.categoryText, { color: selected ? palette.text : palette.textSecondary }, selected && styles.categoryTextSelected]}>{label}</Text>
+      <Text style={[styles.categoryText, { color: selected ? palette.text : palette.textSecondary }, selected && styles.categoryTextSelected]}>{label}</Text>
     </Pressable>
   );
 });
@@ -160,11 +161,11 @@ export default function ExploreScreen() {
               <Menu color={palette.text} size={21} />
             </Pressable>
           </View>
-          <View accessibilityRole="tablist" style={styles.categories}>
+          <ScrollView accessibilityRole="tablist" contentContainerStyle={styles.categories} horizontal showsHorizontalScrollIndicator={false}>
             {categoryKeys.map((category) => (
               <CategoryTab key={category} category={category} label={categoryLabels[category]} selected={category === filters.category} palette={palette} onSelect={setCategory} />
             ))}
-          </View>
+          </ScrollView>
         </View>
       </View>
 
@@ -181,7 +182,7 @@ export default function ExploreScreen() {
             ? <PremiumErrorState title={t('exploreErrorTitle')} description={t('propertyLoadError')} onRetry={() => void propertyQuery.refetch()} />
             : <PremiumEmptyState icon={Home} title={t('exploreEmptyTitle')} description={t('noPropertyResults')} actionLabel={t('changeFilters')} onAction={() => sheetRef.current?.present()} />}
         ListFooterComponent={propertyQuery.isFetchingNextPage ? <View style={styles.pageLoader}><ActivityIndicator color={palette.brandIcon} /><Text style={[styles.pageLoaderText, { color: palette.textSecondary }]}>{t('loadingMoreProperties')}</Text></View> : null}
-        contentContainerStyle={[styles.listContent, { backgroundColor: palette.surface }]}
+        contentContainerStyle={[styles.listContent, { backgroundColor: palette.surface, paddingBottom: Platform.OS === 'android' ? 88 : 140 }]}
         columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
         contentInsetAdjustmentBehavior="automatic"
         onEndReached={loadNextPage}
@@ -217,12 +218,12 @@ const styles = StyleSheet.create({
   // Mismo rojo que la insignia de la pestaña Mensajes.
   badge: { position: 'absolute', top: -2, right: -4, minWidth: 20, height: 20, borderRadius: 10, borderWidth: 2, paddingHorizontal: 4, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: colors.onBrand, fontSize: 11, lineHeight: 13, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
-  categories: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 12 },
-  // Cada pestaña crece desde el ancho de su etiqueta: con cuartos iguales «Apartamentos» se cortaba.
-  category: { flexGrow: 1, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 6, paddingBottom: 10, borderBottomWidth: 2, overflow: 'hidden' },
+  categories: { flexGrow: 1, flexDirection: 'row', justifyContent: 'space-around', paddingTop: 12 },
+  // El desplazamiento horizontal conserva las etiquetas completas con texto grande y en francés.
+  category: { flexGrow: 1, minWidth: 88, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 10, borderBottomWidth: 2, overflow: 'hidden' },
   categoryText: { fontSize: 12, fontFamily: fontFamily.medium },
   categoryTextSelected: { fontFamily: fontFamily.bold },
-  listContent: { flexGrow: 1, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center', paddingHorizontal: LIST_PADDING, paddingTop: 20, paddingBottom: 140 },
+  listContent: { flexGrow: 1, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center', paddingHorizontal: LIST_PADDING, paddingTop: 20 },
   gridRow: { gap: GRID_GAP },
   gridItem: { minWidth: 0 },
   separator: { height: 28 },
