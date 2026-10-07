@@ -35,7 +35,7 @@ const LIST_PADDING = 20;
 const GRID_GAP = 16;
 
 /** Pestaña de categoría del rediseño B: icono sobre la etiqueta y subrayado de marca. */
-const CategoryTab = memo(function CategoryTab({ category, label, selected, palette, onSelect }: { category: CategoryKey; label: string; selected: boolean; palette: AppPalette; onSelect: (category: CategoryKey) => void }) {
+const CategoryTab = memo(function CategoryTab({ category, label, accessibilityLabel, selected, palette, onSelect, narrow }: { category: CategoryKey; label: string; accessibilityLabel: string; selected: boolean; palette: AppPalette; onSelect: (category: CategoryKey) => void; narrow: boolean }) {
   const Icon = categoryIcons[category];
   const handlePress = () => {
     haptics.selection();
@@ -45,21 +45,22 @@ const CategoryTab = memo(function CategoryTab({ category, label, selected, palet
   return (
     <Pressable
       accessibilityRole="tab"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected }}
+      aria-selected={selected}
       android_ripple={pressRipple}
       onPress={handlePress}
-      style={({ pressed }) => [styles.category, { borderBottomColor: selected ? palette.brandIcon : 'transparent' }, pressed && !usesRipple && styles.pressed]}>
+      style={({ pressed }) => [styles.category, narrow && styles.categoryNarrow, { borderBottomColor: selected ? palette.brandIcon : 'transparent' }, pressed && !usesRipple && styles.pressed]}>
       <Icon color={selected ? palette.text : palette.textSecondary} size={24} />
       <Text style={[styles.categoryText, { color: selected ? palette.text : palette.textSecondary }, selected && styles.categoryTextSelected]}>{label}</Text>
     </Pressable>
   );
 });
 
-const PropertyGridCard = memo(function PropertyGridCard({ property, compact, favorite, itemWidth, onFavoriteChange }: { property: Property; compact: boolean; favorite: boolean; itemWidth: number; onFavoriteChange?: (propertyId: string, favorite: boolean) => void }) {
+const PropertyGridCard = memo(function PropertyGridCard({ property, compact, shortViewport, favorite, itemWidth, onFavoriteChange }: { property: Property; compact: boolean; shortViewport: boolean; favorite: boolean; itemWidth: number; onFavoriteChange?: (propertyId: string, favorite: boolean) => void }) {
   return (
     <View style={[styles.gridItem, { width: itemWidth }]}>
-      <PropertyCard compact={compact} property={property} isFavorite={favorite} onFavoriteChange={onFavoriteChange} />
+      <PropertyCard compact={compact} shortViewport={shortViewport} property={property} isFavorite={favorite} onFavoriteChange={onFavoriteChange} />
     </View>
   );
 });
@@ -75,7 +76,10 @@ export default function ExploreScreen() {
   const { user } = useAuth();
   const { palette } = useAppTheme();
   const { t } = useI18n();
-  const { width, fontScale } = useWindowDimensions();
+  const { width, height, fontScale } = useWindowDimensions();
+  const narrowViewport = width <= 360;
+  const shortViewport = height <= 640;
+  const dockMapInHeader = narrowViewport || shortViewport;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { messageUnreadCount } = useNotifications();
   const unreadLabel = messageUnreadCount > 99 ? '99+' : String(messageUnreadCount);
@@ -94,14 +98,14 @@ export default function ExploreScreen() {
   const properties = useMemo(() => propertyQuery.data?.pages.flatMap((page) => page.items) ?? [], [propertyQuery.data?.pages]);
 
   const categoryLabels = useMemo<Record<CategoryKey, string>>(
-    () => ({ Todos: t('all'), Apartamentos: t('apartments'), Casas: t('houses'), Estudios: t('studios') }),
-    [t],
+    () => ({ Todos: t('all'), Apartamentos: narrowViewport ? t('apartmentsShort') : t('apartments'), Casas: t('houses'), Estudios: t('studios') }),
+    [narrowViewport, t],
   );
   const favoriteIds = useMemo(() => new Set(favoritesQuery.data ?? []), [favoritesQuery.data]);
   const handleFavoriteChange = useCallback((propertyId: string, favorite: boolean) => favoriteMutation.mutate({ propertyId, favorite }), [favoriteMutation]);
   const renderProperty = useCallback<ListRenderItem<Property>>(
-    ({ item }) => <PropertyGridCard property={item} compact={useCompactCards} favorite={favoriteIds.has(item.id)} itemWidth={itemWidth} onFavoriteChange={user ? handleFavoriteChange : undefined} />,
-    [favoriteIds, handleFavoriteChange, itemWidth, useCompactCards, user],
+    ({ item }) => <PropertyGridCard property={item} compact={useCompactCards} shortViewport={shortViewport && columns === 1} favorite={favoriteIds.has(item.id)} itemWidth={itemWidth} onFavoriteChange={user ? handleFavoriteChange : undefined} />,
+    [columns, favoriteIds, handleFavoriteChange, itemWidth, shortViewport, useCompactCards, user],
   );
   const openMap = useCallback(() => {
     setViewMode('map');
@@ -130,13 +134,21 @@ export default function ExploreScreen() {
             >
               <Search color={palette.text} size={20} />
               <View style={styles.searchCopy}>
-                <Text numberOfLines={1} style={[styles.searchTitle, { color: palette.text }]}>{searchSummary || t('whereToLive')}</Text>
+                <Text numberOfLines={1} style={[styles.searchTitle, { color: palette.text }]}>{searchSummary || (narrowViewport ? t('searchTitle') : t('whereToLive'))}</Text>
                 <Text numberOfLines={1} style={[styles.searchDetail, { color: palette.textSecondary }]}>
-                  {count === undefined ? t('searchSubtitle') : `${count} ${t('properties')} · ${t('sort')}`}
+                  {count === undefined ? t('searchSubtitle') : `${count} ${t('properties')}${narrowViewport ? '' : ` · ${t('sort')}`}`}
                 </Text>
               </View>
             </Pressable>
-            <Pressable
+            {dockMapInHeader ? <Pressable
+              accessibilityLabel={t('map')}
+              accessibilityRole="button"
+              android_ripple={iconRipple(48)}
+              onPress={openMap}
+              style={({ pressed }) => [styles.menuButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
+            >
+              <Map color={palette.text} size={21} />
+            </Pressable> : <Pressable
               accessibilityLabel={messageUnreadCount > 0 ? `${t('messages')}, ${t('unreadCount', { count: unreadLabel })}` : t('messages')}
               accessibilityRole="button"
               android_ripple={iconRipple(48)}
@@ -149,7 +161,7 @@ export default function ExploreScreen() {
                   <Text style={styles.badgeText}>{unreadLabel}</Text>
                 </View>
               ) : null}
-            </Pressable>
+            </Pressable>}
             <Pressable
               accessibilityLabel={t('menu')}
               accessibilityRole="button"
@@ -161,9 +173,9 @@ export default function ExploreScreen() {
               <Menu color={palette.text} size={21} />
             </Pressable>
           </View>
-          <ScrollView accessibilityRole="tablist" contentContainerStyle={styles.categories} horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView accessibilityRole="tablist" contentContainerStyle={[styles.categories, narrowViewport && styles.categoriesNarrow]} horizontal showsHorizontalScrollIndicator={narrowViewport}>
             {categoryKeys.map((category) => (
-              <CategoryTab key={category} category={category} label={categoryLabels[category]} selected={category === filters.category} palette={palette} onSelect={setCategory} />
+              <CategoryTab key={category} category={category} label={categoryLabels[category]} accessibilityLabel={category === 'Apartamentos' ? t('apartments') : categoryLabels[category]} selected={category === filters.category} palette={palette} onSelect={setCategory} narrow={narrowViewport} />
             ))}
           </ScrollView>
         </View>
@@ -192,12 +204,12 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      <Pressable accessibilityLabel={t('map')} accessibilityRole="button" android_ripple={onBrandRipple} onPress={openMap} style={({ pressed }) => [styles.mapButton, { bottom: mapBottom }, pressed && !usesRipple && styles.pressed]}>
+      {!dockMapInHeader && properties.length > 0 ? <Pressable accessibilityLabel={t('map')} accessibilityRole="button" android_ripple={onBrandRipple} onPress={openMap} style={({ pressed }) => [styles.mapButton, { bottom: mapBottom }, pressed && !usesRipple && styles.pressed]}>
         <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mapGradient}>
           <Text style={styles.mapText}>{t('map')}</Text>
           <Map color={colors.onBrand} size={18} />
         </LinearGradient>
-      </Pressable>
+      </Pressable> : null}
 
       <FilterSheet ref={sheetRef} />
       <ExploreMenu onClose={() => setIsMenuOpen(false)} visible={isMenuOpen} />
@@ -219,8 +231,10 @@ const styles = StyleSheet.create({
   badge: { position: 'absolute', top: -2, right: -4, minWidth: 20, height: 20, borderRadius: 10, borderWidth: 2, paddingHorizontal: 4, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: colors.onBrand, fontSize: 11, lineHeight: 13, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
   categories: { flexGrow: 1, flexDirection: 'row', justifyContent: 'space-around', paddingTop: 12 },
+  categoriesNarrow: { justifyContent: 'space-around' },
   // El desplazamiento horizontal conserva las etiquetas completas con texto grande y en francés.
   category: { flexGrow: 1, minWidth: 88, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 10, borderBottomWidth: 2, overflow: 'hidden' },
+  categoryNarrow: { minWidth: 68, paddingHorizontal: 8 },
   categoryText: { fontSize: 12, fontFamily: fontFamily.medium },
   categoryTextSelected: { fontFamily: fontFamily.bold },
   listContent: { flexGrow: 1, width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center', paddingHorizontal: LIST_PADDING, paddingTop: 20 },

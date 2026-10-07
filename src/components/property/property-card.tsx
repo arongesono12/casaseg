@@ -21,7 +21,7 @@ function normalizeImageUrl(value: string) {
   return value.replace(/^http:/, 'https:');
 }
 
-type PropertyCardProps = { property: Property; compact?: boolean; isFavorite?: boolean; onFavoriteChange?: (propertyId: string, favorite: boolean) => void };
+type PropertyCardProps = { property: Property; compact?: boolean; shortViewport?: boolean; isFavorite?: boolean; onFavoriteChange?: (propertyId: string, favorite: boolean) => void };
 type PropertyImageItem = { id: string; uri: string };
 
 const PropertyCardImage = memo(function PropertyCardImage({ image, width, height, title }: { image: PropertyImageItem; width: number; height: number; title: string }) {
@@ -40,7 +40,7 @@ const PropertyCardImage = memo(function PropertyCardImage({ image, width, height
 });
 
 /** Tarjeta del rediseño B: la foto manda, el texto va debajo sin caja. */
-function PropertyCardComponent({ property, compact = false, isFavorite, onFavoriteChange }: PropertyCardProps) {
+function PropertyCardComponent({ property, compact = false, shortViewport = false, isFavorite, onFavoriteChange }: PropertyCardProps) {
   const router = useRouter();
   const { palette } = useAppTheme();
   const { locale, t } = useI18n();
@@ -86,7 +86,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
         style={({ pressed }) => [styles.card, { opacity: pressed ? 0.92 : 1 }]}
       >
         <View
-          style={[styles.imageFrame, compact && styles.imageFrameCompact, { backgroundColor: palette.subtle }]}
+          style={[styles.imageFrame, compact && styles.imageFrameCompact, shortViewport && styles.imageFrameShort, { backgroundColor: palette.subtle }]}
           onLayout={(event) => setFrame({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
         >
           {images.length === 0 ? (
@@ -124,7 +124,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
             <Text numberOfLines={2} style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{property.title}</Text>
             <View style={styles.rating}>
               <Star color={palette.text} fill={palette.text} size={13} />
-              <Text style={[styles.meta, compact && styles.metaCompact, { color: palette.text }]}>{property.rating.toFixed(1)}{property.reviewCount ? ` (${property.reviewCount})` : ''}</Text>
+              <Text style={[styles.meta, compact && styles.metaCompact, { color: palette.text }]}>{property.reviewCount > 0 ? property.rating.toFixed(1) : '—'}{property.reviewCount ? ` (${property.reviewCount})` : ''}</Text>
             </View>
           </View>
           <Text numberOfLines={1} style={[styles.meta, compact && styles.metaCompact, { color: palette.textSecondary }]}>
@@ -145,7 +145,7 @@ function PropertyCardComponent({ property, compact = false, isFavorite, onFavori
         style={({ pressed }) => [styles.favorite, { opacity: pressed && !usesRipple ? 0.7 : 1 }]}
       >
         {/* Corazón blanco con relleno translúcido: se lee sobre fotos claras y oscuras. */}
-        <Heart color="white" fill={isSaved ? colors.favorite : 'rgba(15,23,42,0.38)'} size={27} strokeWidth={2} />
+        <Heart color="white" fill={isSaved ? colors.favorite : 'rgba(15,23,42,0.38)'} filled={isSaved} size={27} strokeWidth={2} />
       </Pressable>
     </View>
   );
@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
   card: { gap: 12 },
   imageFrame: { width: '100%', aspectRatio: 20 / 19, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden' },
   imageFrameCompact: { aspectRatio: 1 },
+  imageFrameShort: { aspectRatio: 1.6 },
   noPhoto: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   noPhotoText: { fontSize: 13, fontFamily: fontFamily.medium },
   pill: { position: 'absolute', left: 12, top: 12 },

@@ -3,12 +3,26 @@ import { number, stringArray, text } from './validate.ts';
 
 const priceTypes = new Set(['per_month', 'per_night', 'sale']);
 
+type FeeAmounts = {
+  serviceFeeAmount: number;
+  cleaningFeeAmount: number;
+  taxAmount: number;
+  securityDepositAmount: number;
+};
+
+function feeAmount(value: unknown, label: string): number {
+  const amount = number(value, label, 0, 10_000_000_000);
+  if (!Number.isSafeInteger(amount)) throw new InputError(`${label} debe ser un importe entero en FCFA.`);
+  return amount;
+}
+
 export type CreatePropertyInput = {
   title: string;
   description: string;
   location: string;
   coordinates: { latitude: number; longitude: number };
   price: number;
+  fees: FeeAmounts;
   priceType: 'per_month' | 'per_night' | 'sale';
   bedrooms: number;
   bathrooms: number;
@@ -18,6 +32,7 @@ export type CreatePropertyInput = {
 
 export type UpdatePropertyInput = Pick<CreatePropertyInput, 'title' | 'description' | 'price'> & {
   propertyId: string;
+  fees: Partial<FeeAmounts>;
 };
 
 export function parseCreatePropertyInput(body: Record<string, unknown>): CreatePropertyInput {
@@ -39,6 +54,12 @@ export function parseCreatePropertyInput(body: Record<string, unknown>): CreateP
     location: text(body.location, 'Ubicación', 2, 240),
     coordinates: { latitude: point.latitude, longitude: point.longitude },
     price: number(body.price, 'Precio', 1, 10_000_000_000),
+    fees: {
+      serviceFeeAmount: feeAmount(body.service_fee_amount ?? 0, 'Servicio'),
+      cleaningFeeAmount: feeAmount(body.cleaning_fee_amount ?? 0, 'Limpieza'),
+      taxAmount: feeAmount(body.tax_amount ?? 0, 'Impuestos'),
+      securityDepositAmount: feeAmount(body.security_deposit_amount ?? 0, 'Depósito/fianza'),
+    },
     priceType: priceType as CreatePropertyInput['priceType'],
     bedrooms: number(body.bedrooms, 'Dormitorios', 0, 50),
     bathrooms: number(body.bathrooms, 'Baños', 0, 50),
@@ -53,5 +74,11 @@ export function parseUpdatePropertyInput(body: Record<string, unknown>): UpdateP
     title: text(body.title, 'Título', 3, 140),
     description: text(body.description, 'Descripción', 10, 5000),
     price: number(body.price, 'Precio', 1, 10_000_000_000),
+    fees: {
+      ...(body.service_fee_amount !== undefined && { serviceFeeAmount: feeAmount(body.service_fee_amount, 'Servicio') }),
+      ...(body.cleaning_fee_amount !== undefined && { cleaningFeeAmount: feeAmount(body.cleaning_fee_amount, 'Limpieza') }),
+      ...(body.tax_amount !== undefined && { taxAmount: feeAmount(body.tax_amount, 'Impuestos') }),
+      ...(body.security_deposit_amount !== undefined && { securityDepositAmount: feeAmount(body.security_deposit_amount, 'Depósito/fianza') }),
+    },
   };
 }

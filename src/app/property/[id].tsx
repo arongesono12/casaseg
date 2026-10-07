@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams, type Href } from "expo-router";
-import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -29,6 +29,7 @@ import {
 } from "@/components/property/detail/detail-parts";
 import { detailCopy } from "@/components/property/detail/detail-copy";
 import { ReservationCard } from "@/components/property/detail/reservation-card";
+import { VerifiedReviews } from "@/components/property/detail/verified-reviews";
 import { CasasegLogo } from "@/components/ui/casaseg-logo";
 import {
     ArrowLeft,
@@ -50,6 +51,7 @@ import { amenityLabel } from "@/features/properties/amenities";
 import { useFavoriteMutation } from "@/features/properties/hooks/use-favorite-mutation";
 import { useFavoritesUserId } from "@/features/properties/hooks/use-favorites-user-id";
 import { useProperty } from "@/features/properties/hooks/use-properties";
+import { trackPropertyView } from "@/features/properties/property-views";
 import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-context";
 import { useI18n } from "@/providers/i18n-context";
@@ -118,7 +120,7 @@ export default function PropertyDetailScreen() {
   }>();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { palette } = useAppTheme();
+  const { palette, resolvedMode } = useAppTheme();
   const { t, locale } = useI18n();
   const copy = detailCopy[locale];
   const { isAuthenticated } = useAuth();
@@ -126,6 +128,12 @@ export default function PropertyDetailScreen() {
   const profileId = useProfileId();
   const propertyQuery = useProperty(id);
   const property = propertyQuery.data;
+  const propertyOwnerId = property?.ownerId;
+  // Cuenta la visita en property_views igual que la web, una vez al día por visitante.
+  useEffect(() => {
+    if (!id || !propertyOwnerId) return;
+    void trackPropertyView({ propertyId: id, ownerId: propertyOwnerId, viewerId: profileId });
+  }, [id, profileId, propertyOwnerId]);
   const wide = width >= 900;
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -197,6 +205,7 @@ export default function PropertyDetailScreen() {
   const numberLocale =
     locale === "fr" ? "fr-FR" : locale === "en" ? "en-US" : "es-GQ";
   const price = formatXaf(property.price, undefined, numberLocale);
+  const narrowCta = width <= 360;
   const priceUnit =
     property.priceType === "per_month"
       ? copy.perMonth
@@ -301,6 +310,8 @@ export default function PropertyDetailScreen() {
       palette={palette}
       price={price}
       priceUnit={priceUnit}
+      property={property}
+      showActions={wide}
       actionLabel={actionLabel}
       contactLabel={contactLabel}
       copy={copy}
@@ -434,10 +445,14 @@ export default function PropertyDetailScreen() {
                           ? `${colors.warning}20`
                           : `${colors.success}1C`
                       }
-                      textColor={property.isOccupied ? "#92400E" : "#047857"}
+                      textColor={property.isOccupied
+                        ? (resolvedMode === 'dark' ? '#FCD34D' : '#92400E')
+                        : (resolvedMode === 'dark' ? '#6EE7B7' : '#047857')}
                     />
                   </View>
                 </View>
+
+                {!wide && reservationCard}
 
                 {/* Bloque de confianza del rediseño B: verificación, valoración y reseñas. */}
                 <View style={[styles.trustSummary, { borderColor: palette.border }]}>
@@ -456,7 +471,7 @@ export default function PropertyDetailScreen() {
                   <View style={[styles.trustDivider, { backgroundColor: palette.border }]} />
                   <View style={styles.trustCell}>
                     <Text style={[styles.trustValue, { color: palette.text }]}>
-                      {property.rating.toFixed(1)}
+                      {property.reviewCount > 0 ? property.rating.toFixed(1) : '—'}
                     </Text>
                     <View style={styles.stars}>
                       {[0, 1, 2, 3, 4].map((star) => (
@@ -479,6 +494,8 @@ export default function PropertyDetailScreen() {
                     </Text>
                   </View>
                 </View>
+
+                <VerifiedReviews propertyId={property.id} />
 
                 {/* Sin sello de "verificado": la app no guarda la verificación del propietario. */}
                 <Pressable
@@ -565,10 +582,10 @@ export default function PropertyDetailScreen() {
               numberOfLines={1}
               style={[styles.ctaPrice, styles.underline, { color: palette.text }]}
             >
-              {price}
+              {narrowCta ? price.replace(/ FCFA$/, "") : price}
             </Text>
             <Text style={[styles.ctaUnit, { color: palette.textSecondary }]}>
-              {priceUnit}
+              {narrowCta ? `FCFA · ${priceUnit}` : priceUnit}
             </Text>
           </View>
           <View style={styles.ctaButtonWrap}>

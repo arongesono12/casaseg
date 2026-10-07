@@ -8,7 +8,15 @@ Deno.serve(serveJson(async (request) => {
 
   const { data, error } = await supabase
     .from('properties')
-    .update({ title: input.title, description: input.description, price: input.price })
+    .update({
+      title: input.title,
+      description: input.description,
+      price: input.price,
+      ...(input.fees.serviceFeeAmount !== undefined && { service_fee_amount: input.fees.serviceFeeAmount }),
+      ...(input.fees.cleaningFeeAmount !== undefined && { cleaning_fee_amount: input.fees.cleaningFeeAmount }),
+      ...(input.fees.taxAmount !== undefined && { tax_amount: input.fees.taxAmount }),
+      ...(input.fees.securityDepositAmount !== undefined && { security_deposit_amount: input.fees.securityDepositAmount }),
+    })
     .eq('id', input.propertyId)
     .select('id')
     .maybeSingle();

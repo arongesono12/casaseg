@@ -1,5 +1,8 @@
 import { HugeiconsIcon, type HugeiconsProps, type IconSvgElement } from '@hugeicons/react-native';
 import { createElement } from 'react';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { View } from 'react-native';
+import { materialIconName, type AppIconName } from './material-icon-map';
 import Add01Icon from '@hugeicons/core-free-icons/Add01Icon';
 import AlertCircleIcon from '@hugeicons/core-free-icons/AlertCircleIcon';
 import AppleIcon from '@hugeicons/core-free-icons/AppleIcon';
@@ -88,16 +91,28 @@ import WindIcon from '@hugeicons/core-free-icons/WindIcon';
 export type IconProps = Omit<HugeiconsProps, 'icon' | 'altIcon' | 'showAlt'> & {
   /** Relleno del trazo cerrado (corazón, estrella…); 'none' y 'transparent' lo dejan en contorno. */
   fill?: string;
+  /** Estado semántico para Material cuando el relleno SVG es decorativo. */
+  filled?: boolean;
 };
 
 export type AppIcon = (props: IconProps) => ReturnType<typeof createElement>;
 
-// Una sola familia de iconos (Hugeicons, contorno redondeado) para toda la app.
-// Los glifos solo traen trazo, así que "relleno" se resuelve con el atributo
-// fill del SVG: los paths no lo fijan y lo heredan.
-function createIcon(icon: IconSvgElement, displayName: string): AppIcon {
-  function ProjectIcon({ fill, ...props }: IconProps) {
+// Android uses Material; iOS and web keep Hugeicons. Screens share this API.
+function createIcon(icon: IconSvgElement, displayName: AppIconName): AppIcon {
+  function ProjectIcon({ fill, filled, ...props }: IconProps) {
     const isFilled = Boolean(fill && fill !== 'none' && fill !== 'transparent');
+
+    if (process.env.EXPO_OS === 'android') {
+      const materialFilled = filled ?? isFilled;
+      return createElement(View, { style: props.style }, createElement(MaterialIcons, {
+        name: materialIconName(displayName, materialFilled),
+        size: typeof props.size === 'number' ? props.size : Number(props.size ?? 24),
+        color: materialFilled ? fill ?? props.color : props.color,
+        accessibilityLabel: props.accessibilityLabel,
+        accessible: props.accessible,
+        testID: props.testID,
+      }));
+    }
 
     return createElement(HugeiconsIcon, { ...props, icon, ...(isFilled ? { fill } : null) });
   }

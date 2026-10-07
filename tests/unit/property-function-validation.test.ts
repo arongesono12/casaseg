@@ -18,10 +18,20 @@ const validCreate = {
 
 describe('property Edge Function validation', () => {
   test('normalizes valid create input', () => {
-    const result = parseCreatePropertyInput(validCreate);
+    const result = parseCreatePropertyInput({ ...validCreate, service_fee_amount: 5000, cleaning_fee_amount: 2500, tax_amount: 1000, security_deposit_amount: 30000 });
     expect(result.priceType).toBe('per_month');
     expect(result.amenities.length).toBe(2);
     expect(result.coordinates.latitude).toBe(3.7504);
+    expect(result.fees).toEqual({ serviceFeeAmount: 5000, cleaningFeeAmount: 2500, taxAmount: 1000, securityDepositAmount: 30000 });
+  });
+
+  test('los clientes anteriores siguen creando con cargos cero', () => {
+    expect(parseCreatePropertyInput(validCreate).fees).toEqual({ serviceFeeAmount: 0, cleaningFeeAmount: 0, taxAmount: 0, securityDepositAmount: 0 });
+  });
+
+  test('rechaza cargos negativos y fraccionarios', () => {
+    expect(() => parseCreatePropertyInput({ ...validCreate, service_fee_amount: -1 })).toThrow();
+    expect(() => parseCreatePropertyInput({ ...validCreate, cleaning_fee_amount: 1.5 })).toThrow('importe entero');
   });
 
   test('rejects unsupported price modes', () => {
@@ -52,5 +62,11 @@ describe('property Edge Function validation', () => {
       error = cause;
     }
     expect(error instanceof InputError).toBe(true);
+  });
+
+  test('la actualización antigua no borra cargos y la nueva acepta importes', () => {
+    const base = { property_id: 'property-id', title: 'Título válido', description: 'Descripción suficientemente larga.', price: 450000 };
+    expect(parseUpdatePropertyInput(base).fees).toEqual({});
+    expect(parseUpdatePropertyInput({ ...base, security_deposit_amount: 30000 }).fees).toEqual({ securityDepositAmount: 30000 });
   });
 });

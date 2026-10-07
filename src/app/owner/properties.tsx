@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
-import { ArrowRight, Building2, CheckCircle2, Clock, MapPin, Plus } from '@/components/ui/icons';
+import { ArrowRight, Building2, CheckCircle2, Clock, FileText, MapPin, Plus } from '@/components/ui/icons';
 import { HeroBadge, PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius } from '@/constants/theme';
 import { useOwnerProperties } from '@/features/owner/use-owner-properties';
@@ -12,9 +12,9 @@ import { useAppTheme } from '@/providers/theme-context';
 import { formatXaf } from '@/utils/formatters';
 
 const ownerPropertiesCopy = defineCopy({
-  es: { count: '{count} propiedades', loadingTitle: 'Cargando propiedades', loadingBody: 'Estamos preparando tu cartera de publicaciones.', errorTitle: 'No pudimos cargar tus propiedades', errorBody: 'Comprueba la conexión y vuelve a intentarlo.', emptyTitle: 'Tu primera propiedad empieza aquí', emptyBody: 'Crea una publicación completa con fotos, precio y características para llegar a nuevos clientes.', editLabel: 'Editar {title}', verified: 'Verificada', inReview: 'En revisión' },
-  fr: { count: '{count} logements', loadingTitle: 'Chargement des logements', loadingBody: 'Nous préparons votre portefeuille d’annonces.', errorTitle: 'Impossible de charger vos logements', errorBody: 'Vérifiez la connexion et réessayez.', emptyTitle: 'Votre premier logement commence ici', emptyBody: 'Créez une annonce complète avec photos, prix et caractéristiques pour toucher de nouveaux clients.', editLabel: 'Modifier {title}', verified: 'Vérifié', inReview: 'En cours de vérification' },
-  en: { count: '{count} properties', loadingTitle: 'Loading properties', loadingBody: 'We are preparing your listing portfolio.', errorTitle: 'We could not load your properties', errorBody: 'Check your connection and try again.', emptyTitle: 'Your first property starts here', emptyBody: 'Create a complete listing with photos, price and features to reach new clients.', editLabel: 'Edit {title}', verified: 'Verified', inReview: 'Under review' },
+  es: { count: '{count} propiedades', loadingTitle: 'Cargando propiedades', loadingBody: 'Estamos preparando tu cartera de publicaciones.', errorTitle: 'No pudimos cargar tus propiedades', errorBody: 'Comprueba la conexión y vuelve a intentarlo.', emptyTitle: 'Tu primera propiedad empieza aquí', emptyBody: 'Crea una publicación completa con fotos, precio y características para llegar a nuevos clientes.', editLabel: 'Editar {title}', verified: 'Verificada', inReview: 'En revisión', template: 'Plantilla de contrato' },
+  fr: { count: '{count} logements', loadingTitle: 'Chargement des logements', loadingBody: 'Nous préparons votre portefeuille d’annonces.', errorTitle: 'Impossible de charger vos logements', errorBody: 'Vérifiez la connexion et réessayez.', emptyTitle: 'Votre premier logement commence ici', emptyBody: 'Créez une annonce complète avec photos, prix et caractéristiques pour toucher de nouveaux clients.', editLabel: 'Modifier {title}', verified: 'Vérifié', inReview: 'En cours de vérification', template: 'Modèle de contrat' },
+  en: { count: '{count} properties', loadingTitle: 'Loading properties', loadingBody: 'We are preparing your listing portfolio.', errorTitle: 'We could not load your properties', errorBody: 'Check your connection and try again.', emptyTitle: 'Your first property starts here', emptyBody: 'Create a complete listing with photos, price and features to reach new clients.', editLabel: 'Edit {title}', verified: 'Verified', inReview: 'Under review', template: 'Contract template' },
 });
 
 export default function OwnerProperties() {
@@ -39,7 +39,8 @@ export default function OwnerProperties() {
         {properties.data?.map((property) => {
           const verified = property.legalStatus === 'verified';
           return (
-            <Pressable key={property.id} accessibilityRole="button" accessibilityLabel={interpolate(copy.editLabel, { title: property.title })} onPress={() => router.push({ pathname: '/owner/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
+            <View key={property.id} style={styles.item}>
+            <Pressable accessibilityRole="button" accessibilityLabel={interpolate(copy.editLabel, { title: property.title })} onPress={() => router.push({ pathname: '/owner/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
               <View style={[styles.imageWrap, { backgroundColor: palette.subtle }]}>
                 {property.imageUrls[0] ? (
                   <Image source={{ uri: property.imageUrls[0] }} contentFit="cover" cachePolicy="disk" transition={180} style={styles.image} />
@@ -58,6 +59,8 @@ export default function OwnerProperties() {
                 <View style={styles.editRow}><Text style={[styles.edit, { color: palette.brandText }]}>{t('editPublication')}</Text><ArrowRight color={palette.brandIcon} size={18} /></View>
               </View>
             </Pressable>
+            <PremiumButton variant="secondary" icon={FileText} label={copy.template} onPress={() => router.push(`/owner/contract-template/${property.id}` as Href)} />
+            </View>
           );
         })}
       </View>
@@ -67,6 +70,7 @@ export default function OwnerProperties() {
 
 const styles = StyleSheet.create({
   list: { gap: 12 },
+  item: { gap: 8 },
   card: { minHeight: 134, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 10, flexDirection: 'row', gap: 13, boxShadow: '0 10px 26px rgba(15,23,42,0.06)' },
   imageWrap: { width: 126, minHeight: 112, borderRadius: radius.md, overflow: 'hidden' },
   image: { width: '100%', height: '100%' },

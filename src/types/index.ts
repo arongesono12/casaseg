@@ -28,6 +28,10 @@ export type Property = {
   area: number;
   price: number;
   priceType: PriceType;
+  serviceFeeAmount?: number;
+  cleaningFeeAmount?: number;
+  taxAmount?: number;
+  securityDepositAmount?: number;
   rating: number;
   reviewCount: number;
   category: 'Apartamentos' | 'Casas' | 'Estudios';

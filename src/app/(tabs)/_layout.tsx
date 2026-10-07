@@ -38,7 +38,8 @@ export default function TabsLayout() {
     >
       <NativeTabs.Trigger name="explore">
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'safari', selected: 'safari.fill' }}
+          src={{ default: require('../../../assets/icons/hugeicons/explore.png'), selected: require('../../../assets/icons/hugeicons/explore-selected.png') }}
+          renderingMode="template"
           md="explore"
         />
         <NativeTabs.Trigger.Label>{t('homeTab')}</NativeTabs.Trigger.Label>
@@ -46,7 +47,8 @@ export default function TabsLayout() {
 
       <NativeTabs.Trigger name="saved">
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'heart', selected: 'heart.fill' }}
+          src={{ default: require('../../../assets/icons/hugeicons/saved.png'), selected: require('../../../assets/icons/hugeicons/saved-selected.png') }}
+          renderingMode="template"
           md="favorite"
         />
         <NativeTabs.Trigger.Label>{t('saved')}</NativeTabs.Trigger.Label>
@@ -54,7 +56,8 @@ export default function TabsLayout() {
 
       <NativeTabs.Trigger name="messages">
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'bubble.left.and.bubble.right', selected: 'bubble.left.and.bubble.right.fill' }}
+          src={{ default: require('../../../assets/icons/hugeicons/messages.png'), selected: require('../../../assets/icons/hugeicons/messages-selected.png') }}
+          renderingMode="template"
           md="chat"
         />
         <NativeTabs.Trigger.Label>{t('messages')}</NativeTabs.Trigger.Label>
@@ -63,7 +66,8 @@ export default function TabsLayout() {
 
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Icon
-          sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
+          src={{ default: require('../../../assets/icons/hugeicons/profile.png'), selected: require('../../../assets/icons/hugeicons/profile-selected.png') }}
+          renderingMode="template"
           md="account_circle"
         />
         <NativeTabs.Trigger.Label>{isAuthenticated ? t('profile') : t('accessShort')}</NativeTabs.Trigger.Label>

@@ -13,14 +13,14 @@ La aplicación Expo usa el proyecto Supabase existente. No contiene `service_rol
 
 Los roles administrativos deben resolverse mediante claims no editables o una función `security definer` auditada, nunca mediante un booleano del cliente. Las tablas usadas por filtros, paginación y Realtime deben tener índices por estado, propietario, participantes, fecha y claves foráneas.
 
-## Edge Functions esperadas
+## Edge Functions y RPC
 
-- `create-property`: valida MIME real, tamaño, propiedad de los objetos y usa `auth.uid()`.
-- `create-payment-order`: calcula importe, exige clave idempotente y crea la intención con secretos del proveedor.
-- `get-payment-order-status`: devuelve el estado confirmado por webhook.
-- `sign-contract`: exige versión esperada, confirmación, sesión reciente/MFA y registra fecha, firmante, versión e IP cuando aplique.
-- `create-contract-signed-url`: URL temporal para PDF privado generado server-side.
-- función de push: envía notificaciones desde servidor y genera deep links a chat/propiedad.
+Expo usa el mismo backend que la web (ver `docs/BackendUnit-paridad-expo.md`):
+
+- Propias de este repositorio: `create-property` (valida MIME, tamaño, propiedad de las imágenes y cupo del plan con `get_owner_entitlements`), `update-property` y `clerk-user-webhook`.
+- De la web: `rental-payment-initiate` (orden idempotente y aceptación de cargos), `account-deletion`, `notify-message-owner`. Identifican al llamante con `_shared/caller.ts`, que acepta tokens de Supabase Auth y de Clerk.
+- RPC compartidos: `sign_lease_contract` (firma por parte y auditoría), `submit_bank_transfer_proof`, `record_compliance_acceptance`, `create_verified_property_review`, `set_current_user_presence`.
+- Pendiente: función de push que envíe notificaciones desde servidor con deep links a chat/propiedad.
 
 Todas deben limitar CORS, aplicar rate limiting, validar JWT, registrar auditoría y verificar webhooks.
 

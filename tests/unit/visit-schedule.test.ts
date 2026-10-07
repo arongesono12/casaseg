@@ -50,18 +50,18 @@ describe('estados de una solicitud de visita', () => {
   test('el propietario acepta o rechaza lo pendiente', () => {
     expect(canTransition('owner', 'pending', 'accepted')).toBe(true);
     expect(canTransition('owner', 'pending', 'rejected')).toBe(true);
-    expect(canTransition('owner', 'accepted', 'completed')).toBe(true);
+    expect(canTransition('owner', 'accepted', 'cancelled')).toBe(true);
   });
 
   test('quien solicita solo puede cancelar', () => {
     expect(canTransition('requester', 'pending', 'cancelled')).toBe(true);
     expect(canTransition('requester', 'accepted', 'cancelled')).toBe(true);
     expect(canTransition('requester', 'pending', 'accepted')).toBe(false);
-    expect(canTransition('requester', 'pending', 'completed')).toBe(false);
+    expect(canTransition('requester', 'pending', 'rejected')).toBe(false);
   });
 
   test('los estados finales no cambian', () => {
-    for (const status of ['rejected', 'cancelled', 'completed'] as const) {
+    for (const status of ['rejected', 'cancelled'] as const) {
       expect(canTransition('owner', status, 'accepted')).toBe(false);
       expect(canTransition('requester', status, 'cancelled')).toBe(false);
     }

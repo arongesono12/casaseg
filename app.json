@@ -4,11 +4,11 @@
     "slug": "casaseg",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/splash-icon.png",
     "scheme": "casaseg",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/splash-icon.png"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +20,7 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/images/splash-icon.png",
       "manifest": {
         "display": "standalone",
         "background_color": "#1D66A3",

@@ -1,8 +1,14 @@
 // Reglas de agenda y de estado de las solicitudes de visita. Sin dependencias de
-// React ni de Supabase para poder probarlas solas; la migración
-// 20260827120000 aplica las mismas transiciones en la base de datos.
+// React ni de Supabase para poder probarlas solas.
+//
+// Una visita es un acuerdo de reunión de public.agreements, el mismo que crea la
+// web: el cliente propone (client_confirmed), el propietario confirma
+// (fully_confirmed, requisito para generar el contrato) o cualquiera de los dos
+// lo rechaza (rejected). `cancelled` es la intención de quien se retira; en la
+// tabla se guarda como `rejected`, igual que en la web.
 
-export type VisitRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'completed';
+export type VisitRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
+export type AgreementStatus = 'pending' | 'client_confirmed' | 'owner_confirmed' | 'fully_confirmed' | 'rejected';
 export type VisitActor = 'owner' | 'requester';
 
 /** Días que se ofrecen en el selector, contando hoy. */
@@ -33,10 +39,10 @@ export function dayHasAvailableSlots(day: Date, now: Date): boolean {
 }
 
 const transitions: Record<VisitActor, Partial<Record<VisitRequestStatus, readonly VisitRequestStatus[]>>> = {
-  // El propietario responde a lo pendiente y cierra lo que ya aceptó.
+  // El propietario responde a lo pendiente y puede anular lo que ya aceptó.
   owner: {
     pending: ['accepted', 'rejected'],
-    accepted: ['completed', 'cancelled'],
+    accepted: ['cancelled'],
   },
   // Quien solicita solo puede retirarse antes de que ocurra la visita.
   requester: {
@@ -50,5 +56,35 @@ export function canTransition(actor: VisitActor, from: VisitRequestStatus, to: V
 }
 
 export function isVisitRequestStatus(value: unknown): value is VisitRequestStatus {
-  return value === 'pending' || value === 'accepted' || value === 'rejected' || value === 'cancelled' || value === 'completed';
+  return value === 'pending' || value === 'accepted' || value === 'rejected' || value === 'cancelled';
+}
+
+/** Estado visible de un acuerdo: confirmado solo cuando lo han aceptado las dos partes. */
+export function visitStatusFromAgreement(status: unknown): VisitRequestStatus {
+  if (status === 'fully_confirmed') return 'accepted';
+  if (status === 'rejected') return 'rejected';
+  return 'pending';
+}
+
+function pad(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+/**
+ * agreements guarda fecha (date) y hora (time) sin zona, en hora local, como la
+ * web. Se convierte con la hora local del dispositivo en los dos sentidos.
+ */
+export function toMeetingDateTime(slot: Date): { meetingDate: string; meetingTime: string } {
+  return {
+    meetingDate: `${slot.getFullYear()}-${pad(slot.getMonth() + 1)}-${pad(slot.getDate())}`,
+    meetingTime: `${pad(slot.getHours())}:${pad(slot.getMinutes())}`,
+  };
+}
+
+export function fromMeetingDateTime(meetingDate: unknown, meetingTime: unknown): Date | null {
+  if (typeof meetingDate !== 'string') return null;
+  const [year, month, day] = meetingDate.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const [hours = 0, minutes = 0] = typeof meetingTime === 'string' ? meetingTime.split(':').map(Number) : [];
+  return new Date(year, month - 1, day, hours || 0, minutes || 0, 0, 0);
 }

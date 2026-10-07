@@ -9,9 +9,9 @@ import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 const statusCopy = defineCopy({
-  es: { pending: 'Pendiente', accepted: 'Confirmada', rejected: 'Rechazada', cancelled: 'Cancelada', completed: 'Realizada', note: 'Mensaje' },
-  fr: { pending: 'En attente', accepted: 'Confirmée', rejected: 'Refusée', cancelled: 'Annulée', completed: 'Effectuée', note: 'Message' },
-  en: { pending: 'Pending', accepted: 'Confirmed', rejected: 'Declined', cancelled: 'Cancelled', completed: 'Completed', note: 'Message' },
+  es: { pending: 'Pendiente', accepted: 'Confirmada', rejected: 'Rechazada', cancelled: 'Cancelada', note: 'Mensaje' },
+  fr: { pending: 'En attente', accepted: 'Confirmée', rejected: 'Refusée', cancelled: 'Annulée', note: 'Message' },
+  en: { pending: 'Pending', accepted: 'Confirmed', rejected: 'Declined', cancelled: 'Cancelled', note: 'Message' },
 });
 
 const statusTone: Record<VisitRequestStatus, { tone: string; icon: typeof Clock }> = {
@@ -19,7 +19,6 @@ const statusTone: Record<VisitRequestStatus, { tone: string; icon: typeof Clock 
   accepted: { tone: colors.success, icon: CheckCircle2 },
   rejected: { tone: colors.error, icon: XCircle },
   cancelled: { tone: colors.muted, icon: XCircle },
-  completed: { tone: colors.brand, icon: CheckCircle2 },
 };
 
 export type VisitRequestAction = {

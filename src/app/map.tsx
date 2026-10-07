@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ArrowLeft, List, LocateFixed, Search } from '@/components/ui/icons';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FilterSheet, type FilterSheetHandle } from '@/components/filter-sheet';
 import { PropertyMap } from '@/components/property-map';
@@ -45,6 +45,13 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <PropertyMap properties={properties} onSelect={(property) => setSelectedId(property.id)} userLocation={userLocation} />
+      {Platform.OS === 'web' && <SafeAreaView pointerEvents="box-none" style={styles.webOverlay}>
+        <View style={styles.webHeader}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('back')} android_ripple={pressRipple} onPress={goBack} style={({ pressed }) => [styles.iconButton, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}><ArrowLeft color={palette.text} size={22} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('viewList')} android_ripple={pressRipple} onPress={openList} style={({ pressed }) => [styles.webListButton, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}><List color={palette.brandIcon} size={20} /><Text style={[styles.webListText, { color: palette.brandText }]}>{t('viewList')}</Text></Pressable>
+        </View>
+      </SafeAreaView>}
+      {Platform.OS !== 'web' &&
       <SafeAreaView pointerEvents="box-none" style={styles.overlay}>
         <View style={styles.top}>
           <View style={styles.header}>
@@ -62,6 +69,7 @@ export default function MapScreen() {
           {selected && <Pressable accessibilityRole="button" accessibilityLabel={t('viewProperty', { title: selected.title })} android_ripple={pressRipple} onPress={() => router.push({ pathname: '/property/[id]', params: { id: selected.id } })} style={({ pressed }) => [styles.selected, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}><Image source={{ uri: selected.imageUrls[0] }} cachePolicy="disk" contentFit="cover" style={styles.thumb} /><View style={styles.selectedCopy}><Text numberOfLines={1} style={[styles.selectedTitle, { color: palette.text }]}>{selected.title}</Text><Text style={[styles.selectedLocation, { color: palette.textSecondary }]}>{selected.location}</Text><Text style={[styles.selectedPrice, { color: colors.brandDark }]}>{formatXaf(selected.price, undefined, locale)}</Text></View></Pressable>}
         </View>
       </SafeAreaView>
+      }
       <FilterSheet ref={filterRef} />
     </View>
   );
@@ -70,6 +78,10 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'space-between' },
+  webOverlay: { position: 'absolute', top: 0, right: 0, left: 0 },
+  webHeader: { paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  webListButton: { minHeight: 48, borderRadius: radius.pill, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  webListText: { fontSize: 14, fontFamily: fontFamily.bold },
   top: { gap: 10 },
   header: { paddingHorizontal: 16, flexDirection: 'row', gap: 8, alignItems: 'center' },
   iconButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },

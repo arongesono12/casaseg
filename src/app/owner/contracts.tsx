@@ -2,28 +2,34 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
+import { StayReviewForm } from '@/components/contracts/stay-review-form';
 import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, ExternalLink, FileText, Inbox, Lock } from '@/components/ui/icons';
 import { HeroBadge, IconTile, PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius } from '@/constants/theme';
-import { fetchContracts, openContractPdf, signContract, type LeaseContract } from '@/features/contracts/contracts.api';
+import { useCurrentProfile } from '@/features/auth/use-current-profile';
+import { useProfileId } from '@/features/auth/use-profile-id';
+import { fetchReviewedContractIds, getReviewEligibility } from '@/features/compliance/compliance.api';
+import { contractKeys, fetchContracts, openContractDocument, signContract, type LeaseContract } from '@/features/contracts/contracts.api';
+import { needsSignatureFrom } from '@/features/contracts/lease-contract.model';
+import { fetchPaymentOrders, paymentKeys } from '@/features/payments/payments.api';
+import { useAuth } from '@/providers/auth-context';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import { formatDate } from '@/utils/formatters';
 
-const key = ['lease-contracts'] as const;
-
 const contractsCopy = defineCopy({
-  es: { signed: 'Firmado', awaitingSignature: 'Firma pendiente', draft: 'Borrador', signConfirm: 'La firma requerirá confirmación segura.', toSign: '{count} por firmar', loadingTitle: 'Cargando contratos', loadingBody: 'Estamos verificando las versiones disponibles.', errorTitle: 'No pudimos cargar los contratos', errorBody: 'Comprueba la conexión y vuelve a intentarlo.', emptyTitle: 'Aún no tienes contratos', emptyBody: 'Los contratos vinculados a tus propiedades aparecerán aquí cuando estén listos.', signedOn: 'Firmado el {date}' },
-  fr: { signed: 'Signé', awaitingSignature: 'Signature en attente', draft: 'Brouillon', signConfirm: 'La signature nécessitera une confirmation sécurisée.', toSign: '{count} à signer', loadingTitle: 'Chargement des contrats', loadingBody: 'Nous vérifions les versions disponibles.', errorTitle: 'Impossible de charger les contrats', errorBody: 'Vérifiez la connexion et réessayez.', emptyTitle: 'Vous n’avez pas encore de contrat', emptyBody: 'Les contrats liés à vos logements apparaîtront ici dès qu’ils seront prêts.', signedOn: 'Signé le {date}' },
-  en: { signed: 'Signed', awaitingSignature: 'Awaiting signature', draft: 'Draft', signConfirm: 'Signing will require secure confirmation.', toSign: '{count} to sign', loadingTitle: 'Loading contracts', loadingBody: 'We are verifying the available versions.', errorTitle: 'We could not load the contracts', errorBody: 'Check your connection and try again.', emptyTitle: 'You have no contracts yet', emptyBody: 'Contracts linked to your properties will appear here once they are ready.', signedOn: 'Signed on {date}' },
+  es: { signed: 'Firmado', awaitingSignature: 'Firmas pendientes', partiallySigned: 'Firmado por una parte', cancelled: 'Cancelado', signConfirm: 'La firma requerirá confirmación segura.', toSign: '{count} por firmar', loadingTitle: 'Cargando contratos', loadingBody: 'Estamos verificando las versiones disponibles.', errorTitle: 'No pudimos cargar los contratos', errorBody: 'Comprueba la conexión y vuelve a intentarlo.', emptyTitle: 'Aún no tienes contratos', emptyBody: 'Los contratos vinculados a tus propiedades aparecerán aquí cuando estén listos.', signedOn: 'Firmado el {date}' },
+  fr: { signed: 'Signé', awaitingSignature: 'Signatures en attente', partiallySigned: 'Signé par une partie', cancelled: 'Annulé', signConfirm: 'La signature nécessitera une confirmation sécurisée.', toSign: '{count} à signer', loadingTitle: 'Chargement des contrats', loadingBody: 'Nous vérifions les versions disponibles.', errorTitle: 'Impossible de charger les contrats', errorBody: 'Vérifiez la connexion et réessayez.', emptyTitle: 'Vous n’avez pas encore de contrat', emptyBody: 'Les contrats liés à vos logements apparaîtront ici dès qu’ils seront prêts.', signedOn: 'Signé le {date}' },
+  en: { signed: 'Signed', awaitingSignature: 'Awaiting signatures', partiallySigned: 'Signed by one party', cancelled: 'Cancelled', signConfirm: 'Signing will require secure confirmation.', toSign: '{count} to sign', loadingTitle: 'Loading contracts', loadingBody: 'We are verifying the available versions.', errorTitle: 'We could not load the contracts', errorBody: 'Check your connection and try again.', emptyTitle: 'You have no contracts yet', emptyBody: 'Contracts linked to your properties will appear here once they are ready.', signedOn: 'Signed on {date}' },
 });
 type ContractsCopy = (typeof contractsCopy)['es'];
 
 function contractStatus(contract: LeaseContract, copy: ContractsCopy) {
   if (contract.status === 'signed') return { label: copy.signed, tone: colors.success, icon: CheckCircle2 };
-  if (contract.status === 'awaiting_signature') return { label: copy.awaitingSignature, tone: colors.warning, icon: Lock };
-  return { label: copy.draft, tone: colors.muted, icon: FileText };
+  if (contract.status === 'partially_signed') return { label: copy.partiallySigned, tone: colors.warning, icon: Lock };
+  if (contract.status === 'cancelled') return { label: copy.cancelled, tone: colors.muted, icon: FileText };
+  return { label: copy.awaitingSignature, tone: colors.warning, icon: Lock };
 }
 
 export default function Contracts() {
@@ -31,17 +37,31 @@ export default function Contracts() {
   const { locale, t } = useI18n();
   const copy = useCopy(contractsCopy);
   const client = useQueryClient();
-  const contracts = useQuery({ queryKey: key, queryFn: fetchContracts });
-  const sign = useMutation({ mutationFn: (contract: LeaseContract) => signContract(contract.id, contract.version), onSuccess: () => client.invalidateQueries({ queryKey: key }) });
+  const { user, role } = useAuth();
+  const profileId = useProfileId();
+  const profile = useCurrentProfile();
+  const contracts = useQuery({ queryKey: contractKeys.all, queryFn: fetchContracts });
+  // Datos de la regla de reseñas de la web: contrato firmado, pagado y sin reseña previa.
+  const orders = useQuery({ queryKey: paymentKeys.all, queryFn: fetchPaymentOrders });
+  const reviewedKey = ['property-reviews', 'mine', profileId ?? 'none'] as const;
+  const reviewed = useQuery({ queryKey: reviewedKey, queryFn: () => fetchReviewedContractIds(profileId!), enabled: Boolean(profileId) });
+  const paidContractIds = new Set((orders.data ?? []).filter((order) => order.status === 'completed').map((order) => order.contractId));
+  const canReview = (contract: LeaseContract) => Boolean(profileId && role && reviewed.data) && getReviewEligibility({
+    viewer: { id: profileId!, role: role! },
+    contract,
+    paidContractIds,
+    reviewedContractIds: reviewed.data ?? new Set(),
+  }).canReview;
+  const sign = useMutation({ mutationFn: (contract: LeaseContract) => signContract(contract.id, profile.data?.name ?? user?.name), onSuccess: () => client.invalidateQueries({ queryKey: contractKeys.all }) });
   const [openingContractId, setOpeningContractId] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<Error | null>(null);
-  const pendingCount = (contracts.data ?? []).filter((contract) => contract.status === 'awaiting_signature').length;
-  const confirm = (contract: LeaseContract) => Alert.alert(t('confirm'), `${t('version', { count: String(contract.version) })} · ${copy.signConfirm}`, [{ text: t('cancel'), style: 'cancel' }, { text: t('confirm'), onPress: () => sign.mutate(contract) }]);
-  const handleOpenPdf = async (contractId: string) => {
+  const pendingCount = (contracts.data ?? []).filter((contract) => needsSignatureFrom(contract, profileId)).length;
+  const confirm = (contract: LeaseContract) => Alert.alert(t('confirm'), `${t('version', { count: String(contract.templateVersion) })} · ${copy.signConfirm}`, [{ text: t('cancel'), style: 'cancel' }, { text: t('confirm'), onPress: () => sign.mutate(contract) }]);
+  const handleOpenPdf = async (contract: LeaseContract) => {
     try {
       setPdfError(null);
-      setOpeningContractId(contractId);
-      await openContractPdf(contractId);
+      setOpeningContractId(contract.id);
+      await openContractDocument(contract, profileId);
     } catch (error) {
       setPdfError(error instanceof Error ? error : new Error(t('connectionError')));
     } finally {
@@ -68,14 +88,15 @@ export default function Contracts() {
                 <IconTile icon={FileText} tone={status.tone} size={48} />
                 <View style={styles.copy}>
                   <Text style={[styles.title, { color: palette.text }]}>{contract.propertyTitle}</Text>
-                  <View style={styles.badges}><StatusPill label={t('version', { count: String(contract.version) })} tone={colors.brand} /><StatusPill label={status.label} tone={status.tone} icon={status.icon} /></View>
+                  <View style={styles.badges}><StatusPill label={t('version', { count: String(contract.templateVersion) })} tone={colors.brand} /><StatusPill label={status.label} tone={status.tone} icon={status.icon} /></View>
                 </View>
               </View>
               {contract.signedAt ? <Text selectable style={[styles.signedAt, { color: palette.textSecondary }]}>{interpolate(copy.signedOn, { date: formatDate(contract.signedAt, locale) })}</Text> : null}
               <View style={styles.actions}>
-                <PremiumButton variant="secondary" label={t('openPdf')} icon={ExternalLink} loading={openingContractId === contract.id} onPress={() => void handleOpenPdf(contract.id)} style={styles.action} />
-                {contract.status === 'awaiting_signature' ? <PremiumButton label={t('signMfa')} icon={Lock} loading={sign.isPending && sign.variables?.id === contract.id} onPress={() => confirm(contract)} style={styles.action} /> : null}
+                <PremiumButton variant="secondary" label={t('openPdf')} icon={ExternalLink} loading={openingContractId === contract.id} onPress={() => void handleOpenPdf(contract)} style={styles.action} />
+                {needsSignatureFrom(contract, profileId) ? <PremiumButton label={t('signMfa')} icon={Lock} loading={sign.isPending && sign.variables?.id === contract.id} onPress={() => confirm(contract)} style={styles.action} /> : null}
               </View>
+              {canReview(contract) ? <StayReviewForm contractId={contract.id} reviewQueryKey={reviewedKey} /> : null}
             </View>
           );
         })}

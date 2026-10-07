@@ -84,6 +84,19 @@ export async function fetchAdminProperties() {
   } satisfies AdminProperty));
 }
 
+export type ModerationStatus = 'active' | 'suspended' | 'pending';
+
+/**
+ * Publica, suspende o devuelve a revisión una vivienda. admin_set_property_status
+ * comprueba en el servidor que quien llama es administrador y avisa al
+ * propietario; es la misma función que puede usar el panel web.
+ */
+export async function setAdminPropertyStatus(propertyId: string, status: ModerationStatus): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('La moderación requiere conexión con el servidor de CasaSeg.');
+  const { error } = await supabase.rpc('admin_set_property_status', { p_property_id: propertyId, p_status: status });
+  if (error) throw error;
+}
+
 export async function fetchAdminOverview() {
   const [usersResult, propertiesResult] = await Promise.allSettled([fetchAdminUsers(), fetchAdminProperties()]);
   const users = usersResult.status === 'fulfilled' ? usersResult.value : [];

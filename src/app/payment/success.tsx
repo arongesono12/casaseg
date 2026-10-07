@@ -6,7 +6,7 @@ import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, Clock, CreditCard, RefreshCw, ShieldCheck } from '@/components/ui/icons';
 import { IconTile, PremiumButton, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius } from '@/constants/theme';
-import { confirmPaymentOrder } from '@/features/payments/payments.api';
+import { fetchPaymentOrder, isOpenPaymentStatus, paymentKeys } from '@/features/payments/payments.api';
 import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -17,12 +17,14 @@ const successCopy = defineCopy({
 });
 
 export default function PaymentSuccess() {
-  const { orderId } = useLocalSearchParams<{ orderId?: string }>();
+  // rental-payment-initiate devuelve `order` en la URL de retorno; las rutas internas usan `orderId`.
+  const params = useLocalSearchParams<{ orderId?: string; order?: string }>();
+  const orderId = params.orderId ?? params.order;
   const { palette } = useAppTheme();
   const copy = useCopy(successCopy);
-  const verification = useQuery({ queryKey: ['payment-order', orderId], queryFn: () => confirmPaymentOrder(orderId!), enabled: Boolean(orderId), refetchInterval: (query) => query.state.data?.status === 'pending' || query.state.data?.status === 'processing' ? 3000 : false });
+  const verification = useQuery({ queryKey: paymentKeys.order(orderId ?? 'none'), queryFn: () => fetchPaymentOrder(orderId!), enabled: Boolean(orderId), refetchInterval: (query) => query.state.data && isOpenPaymentStatus(query.state.data.status) ? 3000 : false });
   const completed = verification.data?.status === 'completed';
-  const failed = verification.data?.status === 'failed' || verification.data?.status === 'cancelled';
+  const failed = verification.data?.status === 'failed' || verification.data?.status === 'cancelled' || verification.data?.status === 'expired';
   const title = completed ? copy.confirmedTitle : failed ? copy.failedTitle : copy.checkingTitle;
   const description = completed ? copy.confirmedBody : failed ? copy.failedBody : copy.checkingBody;
   const Icon = completed ? CheckCircle2 : failed ? CreditCard : Clock;

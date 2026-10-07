@@ -8,7 +8,7 @@ import { StatusBarScrim } from '@/components/status-bar-scrim';
 import { Bell, CheckCircle2 } from '@/components/ui/icons';
 import { HeroBadge, PremiumHero } from '@/components/ui/premium';
 import { colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
-import { fetchNotifications, markNotificationsRead, type AppNotification } from '@/features/notifications/notifications.api';
+import { fetchNotifications, markNotificationRead, markNotificationsRead, type AppNotification } from '@/features/notifications/notifications.api';
 import { useAuth } from '@/providers/auth-context';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useNotifications } from '@/providers/notification-context';
@@ -23,6 +23,8 @@ const notificationsCopy = defineCopy({
 
 const NotificationRow = memo(function NotificationRow({ notification, palette }: { notification: AppNotification; palette: AppPalette }) {
   const openTarget = () => {
+    // Si falla, la notificación sigue sin leer en la lista y se puede reintentar: no debe bloquear la navegación.
+    if (!notification.read) void markNotificationRead(notification.id).catch(() => undefined);
     if (notification.conversationId) router.push({ pathname: '/chat/[conversationId]', params: { conversationId: notification.conversationId } });
     else if (notification.propertyId) router.push({ pathname: '/property/[id]', params: { id: notification.propertyId } });
   };

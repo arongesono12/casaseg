@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -6,18 +6,18 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
 import { ArrowRight, Building2, CheckCircle2, Clock, MapPin, ShieldCheck, XCircle } from '@/components/ui/icons';
-import { HeroBadge, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
+import { HeroBadge, PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius } from '@/constants/theme';
-import { fetchAdminProperties, type AdminProperty } from '@/features/admin/admin.api';
+import { fetchAdminProperties, setAdminPropertyStatus, type AdminProperty, type ModerationStatus } from '@/features/admin/admin.api';
 import { adminCopy, statusLabel } from '@/features/admin/admin-copy';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 type LegalFilter = 'all' | AdminProperty['legalStatus'];
 const propertiesCopy = defineCopy({
-  es: { all: 'Todas', pending: 'Pendientes', verified: 'Verificadas', restricted: 'Restringidas', verifiedOne: 'Verificada', restrictedOne: 'Restringida', pendingOne: 'Pendiente', title: 'Supervisión de propiedades', subtitle: 'Consulta el estado operativo y de verificación de las publicaciones.', loadingTitle: 'Cargando propiedades', loadingBody: 'Estamos consultando las publicaciones disponibles para administración.', errorTitle: 'No pudimos cargar las propiedades', emptyTitle: 'No hay propiedades en este estado', emptyBody: 'Selecciona otro filtro para consultar el resto de publicaciones.', reviewLabel: 'Revisar {title}' },
-  fr: { all: 'Toutes', pending: 'En attente', verified: 'Vérifiées', restricted: 'Restreintes', verifiedOne: 'Vérifiée', restrictedOne: 'Restreinte', pendingOne: 'En attente', title: 'Supervision des logements', subtitle: 'Consultez le statut opérationnel et de vérification des annonces.', loadingTitle: 'Chargement des logements', loadingBody: 'Nous consultons les annonces disponibles pour l’administration.', errorTitle: 'Impossible de charger les logements', emptyTitle: 'Aucun logement dans ce statut', emptyBody: 'Choisissez un autre filtre pour voir les autres annonces.', reviewLabel: 'Examiner {title}' },
-  en: { all: 'All', pending: 'Pending', verified: 'Verified', restricted: 'Restricted', verifiedOne: 'Verified', restrictedOne: 'Restricted', pendingOne: 'Pending', title: 'Property oversight', subtitle: 'Check the operational and verification status of listings.', loadingTitle: 'Loading properties', loadingBody: 'We are fetching the listings available to administrators.', errorTitle: 'We could not load the properties', emptyTitle: 'No properties with this status', emptyBody: 'Pick another filter to see the rest of the listings.', reviewLabel: 'Review {title}' },
+  es: { all: 'Todas', pending: 'Pendientes', verified: 'Verificadas', restricted: 'Restringidas', verifiedOne: 'Verificada', restrictedOne: 'Restringida', pendingOne: 'Pendiente', title: 'Supervisión de propiedades', subtitle: 'Consulta el estado operativo y de verificación de las publicaciones.', loadingTitle: 'Cargando propiedades', loadingBody: 'Estamos consultando las publicaciones disponibles para administración.', errorTitle: 'No pudimos cargar las propiedades', emptyTitle: 'No hay propiedades en este estado', emptyBody: 'Selecciona otro filtro para consultar el resto de publicaciones.', reviewLabel: 'Revisar {title}', publish: 'Publicar', suspend: 'Suspender', moderationError: 'No se pudo cambiar el estado: {message}' },
+  fr: { all: 'Toutes', pending: 'En attente', verified: 'Vérifiées', restricted: 'Restreintes', verifiedOne: 'Vérifiée', restrictedOne: 'Restreinte', pendingOne: 'En attente', title: 'Supervision des logements', subtitle: 'Consultez le statut opérationnel et de vérification des annonces.', loadingTitle: 'Chargement des logements', loadingBody: 'Nous consultons les annonces disponibles pour l’administration.', errorTitle: 'Impossible de charger les logements', emptyTitle: 'Aucun logement dans ce statut', emptyBody: 'Choisissez un autre filtre pour voir les autres annonces.', reviewLabel: 'Examiner {title}', publish: 'Publier', suspend: 'Suspendre', moderationError: 'Impossible de changer le statut : {message}' },
+  en: { all: 'All', pending: 'Pending', verified: 'Verified', restricted: 'Restricted', verifiedOne: 'Verified', restrictedOne: 'Restricted', pendingOne: 'Pending', title: 'Property oversight', subtitle: 'Check the operational and verification status of listings.', loadingTitle: 'Loading properties', loadingBody: 'We are fetching the listings available to administrators.', errorTitle: 'We could not load the properties', emptyTitle: 'No properties with this status', emptyBody: 'Pick another filter to see the rest of the listings.', reviewLabel: 'Review {title}', publish: 'Publish', suspend: 'Suspend', moderationError: 'The status could not be changed: {message}' },
 });
 type PropertiesCopy = (typeof propertiesCopy)['es'];
 const filters: LegalFilter[] = ['all', 'pending', 'verified', 'restricted'];
@@ -35,6 +35,12 @@ export default function AdminProperties() {
   const shared = useCopy(adminCopy);
   const properties = useQuery({ queryKey: ['admin', 'properties'], queryFn: fetchAdminProperties });
   const [filter, setFilter] = useState<LegalFilter>('pending');
+  const queryClient = useQueryClient();
+  // Moderación en servidor: admin_set_property_status valida el rol y avisa al propietario.
+  const moderation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: ModerationStatus }) => setAdminPropertyStatus(id, status),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] }),
+  });
   const filteredProperties = useMemo(() => (properties.data ?? []).filter((property) => filter === 'all' || property.legalStatus === filter), [filter, properties.data]);
 
   return (
@@ -53,12 +59,14 @@ export default function AdminProperties() {
       {properties.isLoading ? <PremiumEmptyState icon={Building2} title={copy.loadingTitle} description={copy.loadingBody} loading /> : null}
       {properties.isError ? <PremiumErrorState title={copy.errorTitle} description={shared.retryBody} onRetry={() => void properties.refetch()} /> : null}
       {!properties.isLoading && !properties.isError && !filteredProperties.length ? <PremiumEmptyState icon={ShieldCheck} title={copy.emptyTitle} description={copy.emptyBody} /> : null}
+      {moderation.error ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{interpolate(copy.moderationError, { message: moderation.error.message })}</Text> : null}
 
       <View style={styles.list}>
         {filteredProperties.map((property) => {
           const legal = legalPresentation(property.legalStatus, copy);
           return (
-            <Pressable key={property.id} accessibilityRole="button" accessibilityLabel={interpolate(copy.reviewLabel, { title: property.title })} onPress={() => router.push({ pathname: '/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
+            <View key={property.id} style={styles.item}>
+            <Pressable accessibilityRole="button" accessibilityLabel={interpolate(copy.reviewLabel, { title: property.title })} onPress={() => router.push({ pathname: '/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
               <View style={[styles.imageWrap, { backgroundColor: palette.subtle }]}>{property.imageUrl ? <Image source={{ uri: property.imageUrl }} contentFit="cover" cachePolicy="disk" style={styles.image} /> : <Building2 color={palette.muted} size={28} />}</View>
               <View style={styles.copy}>
                 <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>{property.title}</Text>
@@ -67,6 +75,11 @@ export default function AdminProperties() {
               </View>
               <ArrowRight color={palette.muted} size={20} />
             </Pressable>
+            <View style={styles.actions}>
+              {property.status !== 'active' ? <PremiumButton label={copy.publish} icon={CheckCircle2} loading={moderation.isPending && moderation.variables?.id === property.id && moderation.variables.status === 'active'} disabled={moderation.isPending} onPress={() => moderation.mutate({ id: property.id, status: 'active' })} style={styles.action} /> : null}
+              {property.status !== 'suspended' ? <PremiumButton variant="secondary" label={copy.suspend} icon={XCircle} loading={moderation.isPending && moderation.variables?.id === property.id && moderation.variables.status === 'suspended'} disabled={moderation.isPending} onPress={() => moderation.mutate({ id: property.id, status: 'suspended' })} style={styles.action} /> : null}
+            </View>
+            </View>
           );
         })}
       </View>
@@ -79,6 +92,10 @@ const styles = StyleSheet.create({
   filter: { minHeight: 44, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   filterText: { fontSize: 12, fontFamily: fontFamily.extrabold },
   list: { gap: 10 },
+  item: { gap: 8 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  action: { flex: 1, minWidth: 140 },
+  error: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18 },
   card: { minHeight: 104, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   imageWrap: { width: 88, height: 82, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   image: { width: '100%', height: '100%' },

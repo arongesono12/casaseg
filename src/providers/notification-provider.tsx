@@ -6,6 +6,8 @@ import { registerPushDevice } from '@/features/notifications/push-notifications'
 import { useQuery } from '@tanstack/react-query';
 import { fetchConversations } from '@/features/messaging/messaging.api';
 import { conversationKeys, useConversationSummaryRealtime } from '@/features/messaging/use-messaging-realtime';
+import { usePresenceHeartbeat } from '@/features/messaging/presence';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
@@ -32,6 +34,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   });
   const profileId = useProfileId();
   useConversationSummaryRealtime(user?.id, profileId);
+  // Misma señal de presencia que la web: el servidor la usa para avisar por correo a quien no está conectado.
+  usePresenceHeartbeat(isAuthenticated && isSupabaseConfigured && Boolean(profileId));
   const messageUnreadCount = isAuthenticated
     ? (conversations.data ?? []).reduce((total, conversation) => total + conversation.unreadCount, 0)
     : 0;

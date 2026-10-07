@@ -15,3 +15,5 @@ export async function fetchNotifications() {
   return (data as NotificationRow[]).map((row) => ({ id: String(row.id), title: String(row.title ?? ''), body: String(row.message ?? ''), read: Boolean(row.read), createdAt: String(row.created_at), propertyId: metadataId(row.metadata, 'propertyId'), conversationId: metadataId(row.metadata, 'chatId') }));
 }
 export async function markNotificationsRead() { if (!isSupabaseConfigured) return; const { error } = await supabase.from('notifications').update({ read: true }).eq('read', false); if (error) throw error; }
+/** Marca una sola notificación al abrir su destino, como markNotificationRead de la web. */
+export async function markNotificationRead(id: string) { if (!isSupabaseConfigured) return; const { error } = await supabase.from('notifications').update({ read: true }).eq('id', id); if (error) throw error; }

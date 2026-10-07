@@ -103,6 +103,19 @@ export async function deleteChatForMe(chatId: string) {
   if (error) throw error;
 }
 
+/**
+ * Pide al servidor que avise por correo al propietario si no está conectado,
+ * como notifyOfflineOwner en la web. La función decide con user_presence; un
+ * fallo aquí no debe deshacer un mensaje que ya se entregó.
+ */
+async function notifyOfflineOwner(messageId: string) {
+  try {
+    await supabase.functions.invoke('notify-message-owner', { body: { messageId } });
+  } catch {
+    // El mensaje ya está guardado; el correo es un aviso de cortesía.
+  }
+}
+
 /** Envía en un chat existente o, sin chat todavía, abre uno con el propietario de la vivienda. */
 export async function sendMessage(target: { chatId: string | null; propertyId?: string }, content: string, demoSenderId = 'local-user'): Promise<ChatMessage> {
   if (!isSupabaseConfigured) return { id: `local-${Date.now()}`, conversationId: target.chatId ?? 'demo-conversation', senderId: demoSenderId, content, createdAt: new Date().toISOString(), status: 'sent' };
@@ -114,6 +127,7 @@ export async function sendMessage(target: { chatId: string | null; propertyId?: 
   if (error) throw error;
   const row = (Array.isArray(data) ? data[0] : data) as { message_id: string; chat_id: string; sender_id: string; content: string; created_at: string } | undefined;
   if (!row) throw new Error('send_chat_message no devolvió el mensaje');
+  void notifyOfflineOwner(String(row.message_id));
   return { id: String(row.message_id), conversationId: String(row.chat_id), senderId: String(row.sender_id), content: String(row.content), createdAt: String(row.created_at), status: 'sent' };
 }
 

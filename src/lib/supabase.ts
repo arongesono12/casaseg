@@ -32,6 +32,19 @@ async function tokenDeClerk() {
   }
 }
 
+/**
+ * Fuerza un token de Clerk nuevo. Tras el registro, el primer token se emite
+ * antes de que clerk-user-webhook escriba `external_id`, así que no identifica
+ * a nadie en Supabase hasta que se renueva.
+ */
+export async function refreshClerkToken() {
+  try {
+    await getClerkInstance().session?.getToken({ skipCache: true });
+  } catch {
+    // Sin sesión de Clerk no hay nada que renovar; la consulta seguirá anónima.
+  }
+}
+
 export const supabase = createClient(
   url ?? 'https://not-configured.supabase.co',
   publishableKey ?? 'publishable-key-not-configured',
