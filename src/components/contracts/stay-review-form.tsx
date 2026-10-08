@@ -57,5 +57,5 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontFamily: fontFamily.bold },
   stars: { flexDirection: 'row', gap: 10 },
   body: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
-  input: { fontFamily: fontFamily.regular, minHeight: 80, borderRadius: radius.md, borderWidth: 1, padding: 12, fontSize: 15, textAlignVertical: 'top' },
+  input: { fontFamily: fontFamily.regular, minHeight: 80, borderRadius: radius.xl, borderWidth: 1, padding: 12, fontSize: 15, textAlignVertical: 'top' },
 });

@@ -1,4 +1,3 @@
-import * as Print from 'expo-print';
 import { Platform } from 'react-native';
 
 import {
@@ -11,6 +10,7 @@ import {
   type LeaseContractRow,
   type LeaseContractTerms,
 } from '@/features/contracts/lease-contract.model';
+import { loadPrint } from '@/lib/optional-native-modules';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type { LeaseContract, LeaseContractStatus } from '@/features/contracts/lease-contract.model';
@@ -57,6 +57,7 @@ export async function signContract(contractId: string, signerName: string | unde
  * impedir ver el contrato: si falla, se informa al llamante después de abrirlo.
  */
 export async function openContractDocument(contract: LeaseContract, actorId: string | undefined): Promise<void> {
+  const Print = await loadPrint();
   await Print.printAsync({ html: buildLeaseContractHtml(contract) });
   if (!isSupabaseConfigured || !actorId) return;
   const { error } = await supabase.from('contract_audit_events').insert({

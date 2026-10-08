@@ -235,7 +235,7 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
 const styles = StyleSheet.create({
   accountCard: {
     alignItems: 'center',
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   menuContent: { gap: 24, paddingBottom: 24 },
   menuEyebrow: { fontSize: 10, fontFamily: fontFamily.bold, letterSpacing: 1.2 },
   menuHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 20 },
-  menuRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 54 },
+  menuRow: { alignItems: 'center', borderRadius: radius.pill, flexDirection: 'row', gap: 12, minHeight: 54, overflow: 'hidden' },
   menuTitle: { fontSize: 27, fontFamily: fontFamily.extrabold, lineHeight: 32 },
   overlay: { alignItems: 'flex-end', flex: 1 },
   panel: {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import * as DocumentPicker from 'expo-document-picker';
+import type { DocumentPickerResult } from 'expo-document-picker';
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -20,6 +20,7 @@ import {
   type OwnerUpgradePaymentMethod,
   type PickedPdf,
 } from '@/features/owner/owner-upgrade.api';
+import { loadDocumentPicker } from '@/lib/optional-native-modules';
 import { useAuth } from '@/providers/auth-context';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -81,7 +82,14 @@ export default function OwnerOnboarding() {
   );
 
   const pickPdf = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+    setStepError(null);
+    let result: DocumentPickerResult;
+    try {
+      const DocumentPicker = await loadDocumentPicker();
+      result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+    } catch (error) {
+      return setStepError(error instanceof Error ? error.message : copy.pickPdf);
+    }
     if (result.canceled) return;
     const asset = result.assets[0];
     setTitlePdf({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType ?? undefined, size: asset.size ?? undefined });
@@ -182,9 +190,9 @@ const styles = StyleSheet.create({
   group: { gap: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   label: { fontSize: 17, fontFamily: fontFamily.bold },
-  option: { minHeight: touchTarget, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10, justifyContent: 'center', gap: 2 },
+  option: { minHeight: touchTarget, borderWidth: 1, borderRadius: radius.xl, paddingHorizontal: 14, paddingVertical: 10, justifyContent: 'center', gap: 2 },
   optionLabel: { fontSize: 14, fontFamily: fontFamily.bold },
-  input: { fontFamily: fontFamily.regular, minHeight: 52, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 16, fontSize: 16 },
+  input: { fontFamily: fontFamily.regular, minHeight: 52, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 16, fontSize: 16 },
   hint: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   consent: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 10 },
   checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5 },

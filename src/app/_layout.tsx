@@ -86,7 +86,7 @@ function RootNavigator() {
   return (
     <>
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.background } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.background }, keyboardHandlingEnabled: Platform.OS !== 'web' }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding/index" />
         <Stack.Screen name="(tabs)" />

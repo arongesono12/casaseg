@@ -40,7 +40,6 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon
           src={{ default: require('../../../assets/icons/hugeicons/explore.png'), selected: require('../../../assets/icons/hugeicons/explore-selected.png') }}
           renderingMode="template"
-          md="explore"
         />
         <NativeTabs.Trigger.Label>{t('homeTab')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
@@ -49,7 +48,6 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon
           src={{ default: require('../../../assets/icons/hugeicons/saved.png'), selected: require('../../../assets/icons/hugeicons/saved-selected.png') }}
           renderingMode="template"
-          md="favorite"
         />
         <NativeTabs.Trigger.Label>{t('saved')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
@@ -58,7 +56,6 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon
           src={{ default: require('../../../assets/icons/hugeicons/messages.png'), selected: require('../../../assets/icons/hugeicons/messages-selected.png') }}
           renderingMode="template"
-          md="chat"
         />
         <NativeTabs.Trigger.Label>{t('messages')}</NativeTabs.Trigger.Label>
         {messageBadge ? <NativeTabs.Trigger.Badge>{messageBadge}</NativeTabs.Trigger.Badge> : null}
@@ -68,7 +65,6 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon
           src={{ default: require('../../../assets/icons/hugeicons/profile.png'), selected: require('../../../assets/icons/hugeicons/profile-selected.png') }}
           renderingMode="template"
-          md="account_circle"
         />
         <NativeTabs.Trigger.Label>{isAuthenticated ? t('profile') : t('accessShort')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>

@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { Star } from '@/components/ui/icons';
 import { PremiumButton } from '@/components/ui/premium';
-import { typography } from '@/constants/theme';
+import { radius, typography } from '@/constants/theme';
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -91,6 +91,6 @@ export function PropertyRatingForm({ property }: { property: Property }) {
 const styles = StyleSheet.create({
   card: { padding: 16, gap: 14, borderWidth: 1, borderRadius: 20 },
   stars: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  star: { minWidth: 44, minHeight: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 12 },
-  input: { minHeight: 100, padding: 12, borderWidth: 1, borderRadius: 12, textAlignVertical: 'top' },
+  star: { minWidth: 44, minHeight: 48, justifyContent: 'center', alignItems: 'center', borderRadius: radius.pill },
+  input: { minHeight: 100, padding: 16, borderWidth: 1, borderRadius: radius.xl, textAlignVertical: 'top' },
 });

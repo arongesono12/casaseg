@@ -14,6 +14,7 @@ mock.module('react-native', () => ({ Platform: { OS: 'android', Version: 34 } })
 mock.module('expo-crypto', () => ({ randomUUID: () => '11111111-1111-4111-8111-111111111111' }));
 mock.module('expo-linking', () => ({ createURL: (path: string) => `casaseg://${path.replace(/^\//, '')}` }));
 mock.module('expo-web-browser', () => ({ openBrowserAsync: async () => ({ type: 'dismiss' }) }));
+mock.module('expo', () => ({ requireOptionalNativeModule: () => ({}) }));
 mock.module('expo-print', () => ({ printAsync: async () => undefined }));
 mock.module('@/lib/read-local-file', () => ({ readLocalFile: async () => new ArrayBuffer(2048) }));
 mock.module('@/lib/local-storage', () => ({

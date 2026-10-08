@@ -38,6 +38,7 @@ export const brand = {
     50: '#F7FAFC',
     100: '#EDF3F8',
     200: '#DCE5EC',
+    300: '#C3CDD5',
     400: '#7A8084',
     500: '#61676A',
     700: '#3C3F3F',
@@ -90,6 +91,7 @@ export const colors = {
   success: '#059669',
   warning: '#F59E0B',
   error: '#EF4444',
+  errorDark: '#DC2626',
   favorite: '#F43F5E',
 } as const;
 

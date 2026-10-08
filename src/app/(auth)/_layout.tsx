@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router/stack';
+import { Platform } from 'react-native';
 
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -13,6 +14,7 @@ export default function AuthLayout() {
         fullScreenGestureEnabled: process.env.EXPO_OS === 'ios',
         gestureEnabled: true,
         headerShown: false,
+        keyboardHandlingEnabled: Platform.OS !== 'web',
       }}
     />
   );

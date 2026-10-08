@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const sharp = require(process.env.CASASEG_SHARP_MODULE || 'sharp');
 const destination = path.join(__dirname, '..', 'assets', 'icons', 'hugeicons');
-const icons = { explore: 'Compass01Icon', saved: 'FavouriteIcon', messages: 'Message02Icon', profile: 'UserCircleIcon' };
+const icons = { explore: 'Navigation05Icon', saved: 'FavouriteIcon', messages: 'Message02Icon', profile: 'UserCircleIcon' };
 
 (async () => {
   fs.mkdirSync(destination, { recursive: true });

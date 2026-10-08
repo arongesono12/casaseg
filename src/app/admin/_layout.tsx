@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
 
 import { canAccessAdminPanel } from '@/lib/access-control';
 import { useAuth } from '@/providers/auth-context';
@@ -7,7 +8,7 @@ export default function AdminLayout() {
   const { isAuthenticated, role } = useAuth();
   const adminAccess = isAuthenticated && canAccessAdminPanel(role);
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, keyboardHandlingEnabled: Platform.OS !== 'web' }}>
       <Stack.Protected guard={adminAccess}>
         <Stack.Screen name="index" />
         <Stack.Screen name="users" />

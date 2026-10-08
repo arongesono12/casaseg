@@ -33,6 +33,7 @@ yarn-error.*
 # local env files
 .env
 .env*.local
+/.codex/config.toml
 
 # Supabase CLI local link/cache
 supabase/.temp/

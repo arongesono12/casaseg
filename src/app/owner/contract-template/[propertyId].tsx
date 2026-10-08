@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
   form: { gap: 12 },
   field: { gap: 6 },
   label: { fontFamily: fontFamily.semibold, fontSize: 13, lineHeight: 18 },
-  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
-  multiline: { minHeight: 88, paddingTop: 12, textAlignVertical: 'top' },
+  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
+  multiline: { minHeight: 88, borderRadius: radius.xl, paddingTop: 12, textAlignVertical: 'top' },
   toggle: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 10 },
   checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5 },
 });

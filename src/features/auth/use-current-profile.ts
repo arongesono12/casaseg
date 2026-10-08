@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 import { useProfileId } from '@/features/auth/use-profile-id';
+import { appStorage } from '@/lib/local-storage';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/auth-context';
 
 export type CurrentProfile = {
   id: string;
@@ -31,17 +34,31 @@ function text(value: string | null) {
   return value?.trim() || undefined;
 }
 
+const profileDetailsKey = (id: string) => ['profile', 'details', id] as const;
+const demoPhoneKey = (id: string) => `casaseg.demo-profile-phone.${id}`;
+
 /**
  * Ficha del usuario en public.users. Clerk solo conoce nombre, correo y foto;
  * el avatar migrado, el teléfono, la bio y la antigüedad viven aquí.
  */
 export function useCurrentProfile() {
+  const { user } = useAuth();
   const profileId = useProfileId();
+  const queryId = isSupabaseConfigured ? profileId : user ? `demo:${user.id}` : undefined;
 
   return useQuery({
-    queryKey: ['profile', 'details', profileId ?? 'pending'],
-    enabled: Boolean(profileId) && isSupabaseConfigured,
+    queryKey: profileDetailsKey(queryId ?? 'pending'),
+    enabled: Boolean(user && queryId),
     queryFn: async (): Promise<CurrentProfile | null> => {
+      if (!isSupabaseConfigured) {
+        return user ? {
+          id: user.id,
+          name: user.name,
+          phone: appStorage.getItem(demoPhoneKey(user.id)) || undefined,
+          emailVerified: true,
+          phoneVerified: false,
+        } : null;
+      }
       const { data, error } = await supabase
         .from('users')
         .select('id, name, avatar, cover_picture, phone, about, email_verified, phone_verified, created_at')
@@ -63,4 +80,41 @@ export function useCurrentProfile() {
       };
     },
   });
+}
+
+/** Guarda el teléfono en public.users; la base de datos revoca la verificación al cambiarlo. */
+export function useUpdateProfilePhone() {
+  const { user } = useAuth();
+  const profileId = useProfileId();
+  const queryClient = useQueryClient();
+
+  return useCallback(async (phone: string | null) => {
+    if (!user) throw new Error('No hay una sesión activa.');
+
+    if (!isSupabaseConfigured) {
+      if (phone) appStorage.setItem(demoPhoneKey(user.id), phone);
+      else appStorage.removeItem(demoPhoneKey(user.id));
+      queryClient.setQueryData<CurrentProfile | null>(profileDetailsKey(`demo:${user.id}`), (current) => ({
+        ...(current ?? { id: user.id, emailVerified: true, phoneVerified: false }),
+        phone: phone ?? undefined,
+        phoneVerified: false,
+      }));
+      return;
+    }
+
+    if (!profileId) throw new Error('El perfil todavía no está disponible.');
+    const { data, error } = await supabase
+      .from('users')
+      .update({ phone })
+      .eq('id', profileId)
+      .select('phone, phone_verified')
+      .single();
+    if (error) throw error;
+    queryClient.setQueryData<CurrentProfile | null>(profileDetailsKey(profileId), (current) => current ? {
+      ...current,
+      phone: text(data.phone),
+      phoneVerified: Boolean(data.phone_verified),
+    } : current);
+    await queryClient.invalidateQueries({ queryKey: profileDetailsKey(profileId) });
+  }, [profileId, queryClient, user]);
 }

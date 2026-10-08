@@ -1,11 +1,12 @@
 import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
 import { canAccessOwnerPanel } from '@/lib/access-control';
 import { useAuth } from '@/providers/auth-context';
 
 export default function OwnerLayout() {
   const { isAuthenticated, role } = useAuth();
   const ownerAccess = isAuthenticated && canAccessOwnerPanel(role);
-  return <Stack screenOptions={{ headerShown: false }}>
+  return <Stack screenOptions={{ headerShown: false, keyboardHandlingEnabled: Platform.OS !== 'web' }}>
     <Stack.Protected guard={ownerAccess}>
       <Stack.Screen name="index" />
       <Stack.Screen name="properties" />

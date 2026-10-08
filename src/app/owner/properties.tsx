@@ -71,7 +71,7 @@ export default function OwnerProperties() {
 const styles = StyleSheet.create({
   list: { gap: 12 },
   item: { gap: 8 },
-  card: { minHeight: 134, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 10, flexDirection: 'row', gap: 13, boxShadow: '0 10px 26px rgba(15,23,42,0.06)' },
+  card: { minHeight: 134, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 10, flexDirection: 'row', gap: 13, boxShadow: '0 10px 26px rgba(15,23,42,0.06)' },
   imageWrap: { width: 126, minHeight: 112, borderRadius: radius.md, overflow: 'hidden' },
   image: { width: '100%', height: '100%' },
   noPhoto: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5 },

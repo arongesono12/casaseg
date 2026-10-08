@@ -6,18 +6,17 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { z } from 'zod';
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
-import { AuthLogo } from '@/components/auth-logo';
+import { AuthBrand } from '@/components/auth-brand';
 import { FormField } from '@/components/form-field';
 import { NativeActionButton } from '@/components/native-action-button';
-import { ArrowLeft, Building2, Check, Eye, EyeOff, ShieldCheck, UserRound } from '@/components/ui/icons';
-import { brand, colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
+import { ArrowLeft, Check, Eye, EyeOff, ShieldCheck } from '@/components/ui/icons';
+import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { registerSchema } from '@/features/auth/auth.schemas';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 type RegisterValues = z.infer<typeof registerSchema>;
-type AccountRole = RegisterValues['role'];
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
@@ -30,7 +29,6 @@ export default function RegisterScreen() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const { height, width } = useWindowDimensions();
   const compact = height < 760 || width < 380;
-  const narrow = width < 430;
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: '', email: emailInicial ?? '', password: '', role: 'client' },
@@ -48,11 +46,6 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
-      <View pointerEvents="none" style={styles.decor}>
-        <View style={styles.orbTop} />
-        <View style={styles.orbBottom} />
-      </View>
-
       <AdaptiveKeyboardView style={styles.safe}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
@@ -64,46 +57,35 @@ export default function RegisterScreen() {
               accessibilityRole="button"
               accessibilityLabel={t('back')}
               hitSlop={8}
-              onPress={() => router.back()}
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'))}
               style={({ pressed }) => [styles.backButton, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}
             >
               <ArrowLeft color={palette.text} size={21} />
             </Pressable>
-            <View style={[styles.securePill, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <ShieldCheck color={colors.success} size={16} />
-              <Text style={[styles.securePillText, { color: palette.textSecondary }]}>{t('secureRegistration')}</Text>
-            </View>
+            <AuthBrand />
           </View>
 
           <View style={styles.heading}>
-            <AuthLogo compact={compact} />
             <Text style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{t('registerTitle')}</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('registerSubtitle')}</Text>
           </View>
 
           <View style={styles.roleSection}>
-            <View style={styles.sectionHeading}>
-              <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('accountType')}</Text>
-              <Text style={[styles.sectionHint, { color: palette.textSecondary }]}>{t('accountTypeHint')}</Text>
-            </View>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('accountType')}</Text>
             <Controller
               control={control}
               name="role"
               render={({ field }) => (
                 <View accessibilityRole="radiogroup" style={styles.roles}>
                   <RoleCard
-                    compact={narrow}
                     description={t('clientRoleDescription')}
-                    icon="client"
                     label={t('client')}
                     onPress={() => field.onChange('client')}
                     palette={palette}
                     selected={field.value === 'client'}
                   />
                   <RoleCard
-                    compact={narrow}
                     description={t('ownerRoleDescription')}
-                    icon="owner"
                     label={t('owner')}
                     onPress={() => field.onChange('owner')}
                     palette={palette}
@@ -114,7 +96,7 @@ export default function RegisterScreen() {
             />
           </View>
 
-          <View style={[styles.formCard, compact && styles.formCardCompact, { backgroundColor: palette.elevated, borderColor: palette.border }]}>
+          <View style={styles.formFields}>
             <Controller
               control={control}
               name="name"
@@ -198,20 +180,15 @@ export default function RegisterScreen() {
             style={styles.primaryShadow}
           />
 
-          <View style={[styles.trustNote, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <ShieldCheck color={palette.brandIcon} size={19} />
-            <Text style={[styles.trustText, { color: palette.textSecondary }]}>{t('registrationSecurity')}</Text>
-          </View>
-
           <View style={styles.signInRow}>
             <Text style={[styles.signInPrompt, { color: palette.textSecondary }]}>{t('alreadyHaveAccount')}</Text>
-            <Pressable onPress={() => router.replace('/(auth)/login')}><Text style={[styles.signInLink, { color: palette.brandText }]}>{t('signIn')}</Text></Pressable>
+            <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.replace('/(auth)/login')}><Text style={[styles.signInLink, { color: palette.brandText }]}>{t('signIn')}</Text></Pressable>
           </View>
 
           <View style={styles.legalLinks}>
-            <Pressable onPress={() => router.push('/legal/terms')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('termsAndConditions')}</Text></Pressable>
+            <Pressable accessibilityRole="link" hitSlop={12} onPress={() => router.push('/legal/terms')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('termsAndConditions')}</Text></Pressable>
             <Text style={{ color: palette.muted }}>·</Text>
-            <Pressable onPress={() => router.push('/legal/privacy')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('privacy')}</Text></Pressable>
+            <Pressable accessibilityRole="link" hitSlop={12} onPress={() => router.push('/legal/privacy')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('privacy')}</Text></Pressable>
           </View>
         </ScrollView>
       </AdaptiveKeyboardView>
@@ -219,16 +196,13 @@ export default function RegisterScreen() {
   );
 }
 
-function RoleCard({ compact, description, icon, label, onPress, palette, selected }: {
-  compact: boolean;
+function RoleCard({ description, label, onPress, palette, selected }: {
   description: string;
-  icon: AccountRole;
   label: string;
   onPress: () => void;
   palette: ReturnType<typeof useAppTheme>['palette'];
   selected: boolean;
 }) {
-  const Icon = icon === 'client' ? UserRound : Building2;
   return (
     <Pressable
       accessibilityRole="radio"
@@ -237,68 +211,46 @@ function RoleCard({ compact, description, icon, label, onPress, palette, selecte
       onPress={onPress}
       style={({ pressed }) => [
         styles.role,
-        compact && styles.roleCompact,
         { backgroundColor: selected ? withAlpha(colors.brand, 0.09) : palette.surface, borderColor: selected ? colors.brand : palette.border },
-        selected && styles.roleSelected,
         pressed && styles.pressed,
       ]}
     >
       <View style={styles.roleTop}>
-        <View style={[styles.roleIcon, { backgroundColor: selected ? colors.brand : palette.subtle }]}>
-          <Icon color={selected ? 'white' : palette.textSecondary} size={23} />
-        </View>
+        <Text style={[styles.roleTitle, { color: palette.text }]}>{label}</Text>
         <View style={[styles.roleCheck, { borderColor: selected ? colors.brand : palette.border, backgroundColor: selected ? colors.brand : 'transparent' }]}>
-          {selected && <Check color="white" size={14} />}
+          {selected && <Check color="white" size={12} />}
         </View>
       </View>
-      <Text style={[styles.roleTitle, { color: palette.text }]}>{label}</Text>
-      <Text style={[styles.roleDescription, { color: palette.textSecondary }]}>{description}</Text>
+      <Text numberOfLines={2} style={[styles.roleDescription, { color: palette.textSecondary }]}>{description}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  decor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
-  orbTop: { position: 'absolute', width: 280, height: 280, borderRadius: 140, top: -150, right: -115, backgroundColor: withAlpha(colors.primary, 0.10) },
-  orbBottom: { position: 'absolute', width: 220, height: 220, borderRadius: 110, bottom: -130, left: -100, backgroundColor: withAlpha(brand.logo.sky, 0.08) },
-  content: { flexGrow: 1, width: '100%', maxWidth: 600, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 32, gap: 18 },
-  contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 24, gap: 15 },
+  content: { flexGrow: 1, width: '100%', maxWidth: 560, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 18, gap: 12 },
+  contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingVertical: 8, gap: 6 },
   topBar: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  backButton: { width: touchTarget, height: touchTarget, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  securePill: { minHeight: 36, maxWidth: '75%', borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  securePillText: { flexShrink: 1, fontSize: 12, fontFamily: fontFamily.extrabold },
-  heading: { gap: 8, marginBottom: 2 },
+  backButton: { width: touchTarget, height: touchTarget, borderWidth: 1, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  heading: { gap: 5, marginBottom: 2 },
   title: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.6 },
   titleCompact: { fontSize: 26, lineHeight: 31 },
-  subtitle: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24 },
-  roleSection: { gap: 12 },
-  sectionHeading: { gap: 3 },
-  sectionTitle: { fontSize: 16, lineHeight: 22, fontFamily: fontFamily.bold },
-  sectionHint: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
-  roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  role: { flex: 1, minWidth: 150, minHeight: 148, borderWidth: 1.5, borderRadius: radius.lg, padding: 15 },
-  roleCompact: { minWidth: '100%' },
-  roleSelected: { boxShadow: `0 6px 14px ${withAlpha(colors.brand, 0.16)}` },
+  subtitle: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21 },
+  roleSection: { gap: 6 },
+  sectionTitle: { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.bold },
+  roles: { flexDirection: 'row', gap: 9 },
+  role: { flex: 1, minWidth: 0, minHeight: 72, borderWidth: 1.5, borderRadius: radius.xl, paddingHorizontal: 12, paddingVertical: 9 },
   roleTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  roleIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  roleCheck: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  roleTitle: { marginTop: 12, fontSize: 16, fontFamily: fontFamily.bold },
-  roleDescription: { fontFamily: fontFamily.regular, marginTop: 5, fontSize: 12.5, lineHeight: 18 },
-  formCard: { borderWidth: 1, borderRadius: radius.lg, padding: 18, gap: 15, boxShadow: '0 8px 18px rgba(15,23,42,0.06)' },
-  formCardCompact: { padding: 15 },
-  eyeButton: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
-  passwordHint: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: -3 },
+  roleCheck: { width: 18, height: 18, borderWidth: 1.5, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  roleTitle: { flex: 1, fontSize: 14, lineHeight: 19, fontFamily: fontFamily.bold },
+  roleDescription: { fontFamily: fontFamily.regular, marginTop: 3, fontSize: 11, lineHeight: 15 },
+  formFields: { gap: 10 },
+  eyeButton: { width: touchTarget, height: touchTarget, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  passwordHint: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: -2 },
   passwordHintText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
   errorBanner: { borderWidth: 1, borderColor: 'rgba(239,68,68,0.24)', borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 11, backgroundColor: 'rgba(239,68,68,0.08)' },
   errorText: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.bold },
-  primaryShadow: { borderRadius: radius.md, boxShadow: `0 8px 16px ${withAlpha(colors.brand, 0.28)}` },
-  primary: { minHeight: 56, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  primaryText: { color: 'white', fontSize: 16, fontFamily: fontFamily.bold },
-  primaryPressed: { opacity: 0.9, transform: [{ scale: 0.995 }] },
-  disabled: { opacity: 0.68 },
-  trustNote: { minHeight: 54, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  trustText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12.5, lineHeight: 18 },
+  primaryShadow: { borderRadius: radius.pill, boxShadow: `0 8px 16px ${withAlpha(colors.brand, 0.28)}` },
   signInRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 2 },
   signInPrompt: { fontFamily: fontFamily.regular, fontSize: 14 },
   signInLink: { color: colors.brandDark, fontSize: 14, fontFamily: fontFamily.bold, paddingVertical: 6 },

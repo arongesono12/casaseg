@@ -26,7 +26,6 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -34,32 +33,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UserAvatar } from '@/components/user-avatar';
 import { CasasegLogo } from '@/components/ui/casaseg-logo';
-import { ArrowRight, Home, Layers3, Star, UsersRound } from '@/components/ui/icons';
-import { LegalPill, PremiumButton } from '@/components/ui/premium';
-import { colors, fontFamily, radius, spacing, typography, withAlpha } from '@/constants/theme';
+import { ArrowRight, Home, Layers3, UsersRound } from '@/components/ui/icons';
+import { PremiumButton } from '@/components/ui/premium';
+import { brand, colors, fontFamily, radius, spacing, typography, withAlpha } from '@/constants/theme';
+import { fetchOwnerPlans, ownerPlanKeys } from '@/features/owner/owner-plan.api';
 import {
   fetchOnboardingCommunity,
-  fetchOnboardingProperty,
   onboardingKeys,
   type OnboardingCommunity,
 } from '@/features/onboarding/onboarding.queries';
 import { appStorage } from '@/lib/local-storage';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
-import type { Property } from '@/types';
-import { formatXaf } from '@/utils/formatters';
-
-const getStartedArtwork = require('../../../assets/images/onboarding/onboarding-get-started.png');
-/** Alto / ancho de la ilustración de "Empezar" (768 × 674). */
-const ARTWORK_RATIO = 674 / 768;
+const discoverArtworkLight = require('../../../assets/images/onboarding/onboarding-discover-stitch-blue.png');
+const discoverArtworkDark = require('../../../assets/images/onboarding/onboarding-discover-stitch-dark.png');
+const getStartedArtworkLight = require('../../../assets/images/onboarding/onboarding-get-started-stitch-blue.png');
+const getStartedArtworkDark = require('../../../assets/images/onboarding/onboarding-get-started-stitch-dark.png');
 
 /**
  * Estructura y reglas de datos del diseño de Stitch (stitch/casaseg-splash-screen):
- * splash → descubrir → comunidad → empezar, con vivienda y cifras reales de
- * Supabase. Lenguaje visual del rediseño B (design-demos/direction-approved.md):
- * fondo liso del tema, título grande, foto protagonista y botón con degradado de
- * acción. El onboarding ya no tiene paleta propia: usa la del ThemeProvider, así
- * que su modo oscuro coincide con el del resto de la app.
+ * splash → descubrir → comunidad → empezar. Las ilustraciones y la composición
+ * siguen las revisiones azules de Stitch, con ilustraciones propias para claro
+ * y oscuro. Las cifras y los avatares se consultan en Supabase.
  */
 
 const slides = [
@@ -123,11 +118,13 @@ function MotionBlock({ active, children, delay = 0, distance = 18, style }: Moti
 }
 
 function Brand({ centered = false, large = false }: { centered?: boolean; large?: boolean }) {
-  const { palette } = useAppTheme();
+  const { palette, resolvedMode } = useAppTheme();
   return (
     <View style={[styles.brand, centered && styles.brandCentered]}>
       <CasasegLogo width={large ? 56 : 26} height={large ? 46 : 21} />
-      <Text style={[large ? styles.brandNameLarge : styles.brandName, { color: palette.text }]}>CasaSeg</Text>
+      <Text style={[large ? styles.brandNameLarge : styles.brandName, { color: resolvedMode === 'dark' ? palette.text : brand.blue[900] }]}>
+        CASASEG
+      </Text>
     </View>
   );
 }
@@ -159,6 +156,13 @@ function SplashScreenView() {
 
   return (
     <View style={[styles.splash, { backgroundColor: palette.background }]}>
+      <LinearGradient
+        colors={resolvedMode === 'dark'
+          ? [brand.dark.background, brand.dark.surface]
+          : [brand.neutral[0], brand.blue[50], brand.blue[100]]}
+        locations={[0, 0.56, 1]}
+        style={StyleSheet.absoluteFill}
+      />
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <MotionBlock active delay={80} distance={10} style={styles.splashCenter}>
         <Brand large />
@@ -209,9 +213,9 @@ function TextAction({ label, onPress, strong }: { label: string; onPress: () => 
   const { palette } = useAppTheme();
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}>
-      <Text style={[styles.textActionLabel, { color: palette.text }]}>
+      <Text style={[styles.textActionLabel, { color: strong ? palette.text : palette.brandText }]}>
         {strong ? `${label} ` : label}
-        {strong ? <Text style={styles.textActionStrong}>{strong}</Text> : null}
+        {strong ? <Text style={[styles.textActionStrong, { color: palette.brandText }]}>{strong}</Text> : null}
       </Text>
     </Pressable>
   );
@@ -222,116 +226,23 @@ function finishOnboarding() {
   router.replace('/(tabs)/explore');
 }
 
-function AnimatedPropertyImage({ active, property }: { active: boolean; property: Property }) {
-  const { t } = useI18n();
-  const reduceMotion = useReducedMotion();
-  const scale = useSharedValue(1);
-
-  useEffect(() => {
-    cancelAnimation(scale);
-    scale.value = 1;
-    if (!active || reduceMotion) return;
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.035, { duration: 3200, easing: Easing.inOut(Easing.quad) }),
-        withTiming(1, { duration: 3200, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-      false,
-    );
-    return () => cancelAnimation(scale);
-  }, [active, reduceMotion, scale]);
-
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  return (
-    <Animated.View style={[styles.fill, animatedStyle]}>
-      <Image
-        accessibilityLabel={t('onboardingPropertyAccessibility', { location: property.location, title: property.title })}
-        cachePolicy="disk"
-        contentFit="cover"
-        source={{ uri: property.imageUrls[0] }}
-        style={styles.fill}
-        transition={250}
-      />
-    </Animated.View>
-  );
-}
-
-/** La vivienda real de Supabase, presentada igual que una tarjeta de Explorar. */
-function PropertyVisual({ active, error, loading, onRetry, property }: { active: boolean; error: boolean; loading: boolean; onRetry: () => void; property: Property | null }) {
-  const { t } = useI18n();
-  const { palette } = useAppTheme();
-
-  if (loading) {
-    return (
-      <View style={[styles.propertyFrame, styles.propertyState, { backgroundColor: palette.subtle }]}>
-        <ActivityIndicator color={palette.brandIcon} size="large" />
-        <Text style={[styles.stateText, { color: palette.textSecondary }]}>{t('onboardingPropertyLoading')}</Text>
-      </View>
-    );
-  }
-
-  if (error || !property?.imageUrls[0]) {
-    return (
-      <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.propertyFrame, styles.propertyState, { backgroundColor: palette.subtle }, pressed && styles.pressed]}>
-        <Home color={palette.brandIcon} size={40} />
-        <Text style={[styles.stateTitle, { color: palette.text }]}>{t('onboardingPropertyLoadError')}</Text>
-        <Text style={[styles.stateText, styles.underline, { color: palette.text }]}>{t('onboardingTapToRetry')}</Text>
-      </Pressable>
-    );
-  }
-
-  const amount = formatXaf(property.price);
-  const unit = formatXaf(property.price, property.priceType).slice(amount.length);
-
-  return (
-    <View style={styles.propertyCard}>
-      <View style={[styles.propertyFrame, { backgroundColor: palette.subtle }]}>
-        <AnimatedPropertyImage active={active} property={property} />
-        <View pointerEvents="none" style={styles.propertyPill}>
-          <LegalPill status={property.legalStatus} labels={{ verified: t('legalVerified'), pending: t('legalPending'), restricted: t('legalRestricted') }} />
-        </View>
-      </View>
-      <View style={styles.propertySummary}>
-        <View style={styles.propertyTitleRow}>
-          <Text numberOfLines={1} style={[styles.propertyTitle, { color: palette.text }]}>{property.title}</Text>
-          {property.rating ? (
-            <View style={styles.rating}>
-              <Star color={palette.text} fill={palette.text} size={13} />
-              <Text style={[styles.propertyMeta, { color: palette.text }]}>{property.rating.toFixed(1)}</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text numberOfLines={1} style={[styles.propertyMeta, { color: palette.textSecondary }]}>{property.location}</Text>
-        <Text numberOfLines={1} style={[styles.propertyMeta, { color: palette.text }]}>
-          <Text style={styles.propertyPrice}>{amount}</Text>{unit}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 function DiscoverSlide({
   active,
   bottomInset,
   height,
   onNext,
-  onRetry,
-  property,
-  propertyError,
-  propertyLoading,
   topInset,
   width,
-}: CommonSlideProps & { onRetry: () => void; property: Property | null; propertyError: boolean; propertyLoading: boolean }) {
+}: CommonSlideProps) {
   const { t } = useI18n();
-  const { palette } = useAppTheme();
+  const { palette, resolvedMode } = useAppTheme();
   const accent = useAccent();
+  const artworkHeight = Math.min(width * 0.72, height * 0.34);
 
   return (
     <ScrollView
       bounces={false}
-      contentContainerStyle={[styles.page, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg), paddingTop: topInset + spacing.lg }]}
+      contentContainerStyle={[styles.page, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg), paddingTop: topInset + spacing.md }]}
       showsVerticalScrollIndicator={false}
       style={{ width }}
     >
@@ -339,31 +250,38 @@ function DiscoverSlide({
         <Brand />
       </MotionBlock>
 
-      <MotionBlock active={active} delay={90} distance={18} style={styles.titleBlock}>
-        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
+      <MotionBlock active={active} delay={90} distance={18} style={styles.discoverTitleBlock}>
+        <Text accessibilityRole="header" style={[styles.title, { color: resolvedMode === 'dark' ? palette.text : brand.blue[900] }]}>
           {t('onboardingDiscoverTitlePrimary')}{'\n'}
           <Text style={{ color: accent }}>{t('onboardingDiscoverTitleAccent')}</Text>
         </Text>
       </MotionBlock>
 
       <MotionBlock active={active} delay={170} distance={28} style={styles.discoverVisual}>
-        <PropertyVisual active={active} error={propertyError} loading={propertyLoading} onRetry={onRetry} property={property} />
+        <View style={[styles.discoverArtworkFrame, { height: artworkHeight }]}>
+          <Image
+            accessibilityLabel={t('onboardingDiscoverIllustrationAccessibility')}
+            contentFit="contain"
+            source={resolvedMode === 'dark' ? discoverArtworkDark : discoverArtworkLight}
+            style={styles.discoverArtwork}
+            transition={200}
+          />
+        </View>
       </MotionBlock>
 
       <MotionBlock active={active} delay={260} distance={18}>
-        <Text style={[styles.body, { color: palette.textSecondary }]}>{t('onboardingDiscoverBody')}</Text>
+        <Text style={[styles.body, { color: palette.text }]}>{t('onboardingDiscoverBody')}</Text>
       </MotionBlock>
 
       <MotionBlock active={active} delay={340} distance={16} style={styles.actions}>
-        <Pagination current={0} />
-        <PremiumButton label={t('onboardingNext')} onPress={onNext} style={styles.cta} />
+        <PremiumButton label={t('onboardingNext')} onPress={onNext} style={styles.stitchCta} variant="brand" />
         <TextAction label={t('onboardingSkip')} onPress={finishOnboarding} />
       </MotionBlock>
     </ScrollView>
   );
 }
 
-function CommunityContent({ active, community, error, loading, onRetry }: { active: boolean; community?: OnboardingCommunity; error: boolean; loading: boolean; onRetry: () => void }) {
+function CommunityContent({ active, community, error, loading, onRetry, planCount }: { active: boolean; community?: OnboardingCommunity; error: boolean; loading: boolean; onRetry: () => void; planCount?: number }) {
   const { t } = useI18n();
   const { palette } = useAppTheme();
 
@@ -388,24 +306,25 @@ function CommunityContent({ active, community, error, loading, onRetry }: { acti
 
   const stats = [
     { Icon: Home, value: community.propertyCount, label: t('onboardingActiveProperties') },
-    { Icon: Layers3, value: community.ownerCount, label: t('onboardingPublishingOwners') },
-    { Icon: UsersRound, value: community.memberCount, label: t('onboardingVerifiedMembers') },
+    { Icon: UsersRound, value: community.ownerCount, label: t('onboardingPublishingOwners') },
+    planCount === undefined
+      ? { Icon: Layers3, value: community.memberCount, label: t('onboardingVerifiedMembers') }
+      : { Icon: Layers3, value: planCount, label: t('onboardingAvailablePlans') },
   ];
 
   return (
     <>
-      {/* Mismo bloque de confianza que el detalle de una propiedad: tres celdas con filetes. */}
-      <View style={[styles.stats, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+      <View style={styles.stats}>
         {stats.map(({ Icon, label, value }, index) => (
           <MotionBlock
             active={active}
             delay={210 + index * 90}
             distance={18}
             key={label}
-            style={[styles.stat, index > 0 && { borderLeftColor: palette.border, borderLeftWidth: StyleSheet.hairlineWidth }]}
+            style={[styles.stat, { backgroundColor: palette.brandSoft, borderColor: palette.border }]}
           >
-            <Icon color={palette.text} size={22} />
-            <Text style={[styles.statValue, { color: palette.text }]}>{value}</Text>
+            <Icon color={palette.brandIcon} size={22} />
+            <Text style={[styles.statValue, { color: palette.brandText }]}>{value}</Text>
             <Text style={[styles.statLabel, { color: palette.textSecondary }]}>{label}</Text>
           </MotionBlock>
         ))}
@@ -442,35 +361,35 @@ function CommunitySlide({
   height,
   onNext,
   onRetry,
+  planCount,
   topInset,
   width,
-}: CommonSlideProps & { community?: OnboardingCommunity; communityError: boolean; communityLoading: boolean; onRetry: () => void }) {
+}: CommonSlideProps & { community?: OnboardingCommunity; communityError: boolean; communityLoading: boolean; onRetry: () => void; planCount?: number }) {
   const { t } = useI18n();
   const { palette } = useAppTheme();
 
   return (
     <ScrollView
       bounces={false}
-      contentContainerStyle={[styles.page, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg), paddingTop: topInset + spacing.lg }]}
+      contentContainerStyle={[styles.page, styles.communityPage, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg), paddingTop: topInset + spacing.xl }]}
       showsVerticalScrollIndicator={false}
       style={{ width }}
     >
       <MotionBlock active={active} delay={20} distance={-8}>
-        <Brand />
+        <Brand centered />
       </MotionBlock>
-      <MotionBlock active={active} delay={90} distance={18} style={styles.titleBlock}>
-        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{t('onboardingCommunityTitle')}</Text>
-        <Text style={[styles.body, styles.subtitle, { color: palette.textSecondary }]}>{t('onboardingCommunitySubtitle')}</Text>
+      <MotionBlock active={active} delay={90} distance={18} style={styles.communityTitleBlock}>
+        <Text accessibilityRole="header" style={[styles.title, styles.centerText, { color: palette.text }]}>{t('onboardingCommunityTitle')}</Text>
+        <Text style={[styles.body, styles.subtitle, styles.centerText, { color: palette.textSecondary }]}>{t('onboardingCommunitySubtitle')}</Text>
       </MotionBlock>
 
       <View style={styles.communityData}>
-        <CommunityContent active={active} community={community} error={communityError} loading={communityLoading} onRetry={onRetry} />
+        <CommunityContent active={active} community={community} error={communityError} loading={communityLoading} onRetry={onRetry} planCount={planCount} />
       </View>
 
-      <MotionBlock active={active} delay={690} distance={12} style={styles.actions}>
+      <MotionBlock active={active} delay={690} distance={12} style={styles.communityActions}>
         <Pagination current={1} />
-        <PremiumButton label={t('onboardingNext')} onPress={onNext} style={styles.cta} />
-        <TextAction label={t('onboardingSkip')} onPress={finishOnboarding} />
+        <TextAction label={t('onboardingNext')} onPress={onNext} />
       </MotionBlock>
     </ScrollView>
   );
@@ -479,30 +398,30 @@ function CommunitySlide({
 function GetStartedSlide({ active, bottomInset, height, topInset, width }: Omit<CommonSlideProps, 'onNext'>) {
   const { t } = useI18n();
   const { palette, resolvedMode } = useAppTheme();
-  // La ilustración ya no lleva texto ni logo horneados: se muestra entera.
-  const artworkHeight = Math.min(width * ARTWORK_RATIO, height * 0.5);
-  // La ilustración trae un rosa horneado en la franja inferior; el velo la funde
-  // con el fondo del tema. En oscuro además baja su luz al nivel del resto.
-  const overlay = resolvedMode === 'dark'
-    ? (['rgba(10,10,10,0.30)', 'rgba(10,10,10,0.62)', palette.background] as const)
-    : (['transparent', 'transparent', palette.background] as const);
+  const artworkHeight = Math.min(width * 0.95, height * 0.46);
+  const overlay = ['transparent', 'transparent', palette.background] as const;
 
   return (
     <ScrollView
       bounces={false}
-      contentContainerStyle={[styles.getStartedPage, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg) }]}
+      contentContainerStyle={[styles.getStartedPage, { minHeight: height, paddingBottom: Math.max(bottomInset, spacing.lg), paddingTop: topInset + spacing.md }]}
       showsVerticalScrollIndicator={false}
       style={{ width }}
     >
-      <MotionBlock active={active} delay={30} distance={-10}>
-        <View style={[styles.artworkCrop, { height: artworkHeight + topInset, width, paddingTop: topInset }]}>
+      <MotionBlock active={active} delay={30} distance={-10} style={styles.getStartedBrand}>
+        <Brand />
+      </MotionBlock>
+
+      <MotionBlock active={active} delay={90} distance={22} style={styles.getStartedArtworkBlock}>
+        <View style={[styles.artworkCrop, { height: artworkHeight, width }]}>
           <Image
             accessibilityLabel={t('onboardingIllustrationAccessibility')}
-            contentFit="contain"
-            source={getStartedArtwork}
+            contentFit="cover"
+            source={resolvedMode === 'dark' ? getStartedArtworkDark : getStartedArtworkLight}
             style={{ height: artworkHeight, width }}
+            transition={200}
           />
-          <LinearGradient colors={overlay} locations={[0, 0.7, 1]} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={overlay} locations={[0, 0.8, 1]} style={StyleSheet.absoluteFill} />
         </View>
       </MotionBlock>
 
@@ -514,8 +433,7 @@ function GetStartedSlide({ active, bottomInset, height, topInset, width }: Omit<
           <Text style={[styles.body, styles.subtitleLeft, { color: palette.textSecondary }]}>{t('onboardingGetStartedBody')}</Text>
         </MotionBlock>
         <MotionBlock active={active} delay={310} distance={18} style={styles.actions}>
-          <Pagination current={2} />
-          <PremiumButton label={t('onboardingGetStartedCta')} onPress={finishOnboarding} trailingIcon={ArrowRight} style={styles.cta} />
+          <PremiumButton label={t('onboardingGetStartedCta')} onPress={finishOnboarding} trailingIcon={ArrowRight} style={styles.stitchCta} variant="brand" />
           <TextAction label={t('onboardingHaveAccount')} strong={t('signIn')} onPress={() => router.push('/(auth)/login')} />
         </MotionBlock>
       </View>
@@ -529,10 +447,7 @@ type SlideViewProps = CommonSlideProps & {
   communityLoading: boolean;
   item: Slide;
   onRetryCommunity: () => void;
-  onRetryProperty: () => void;
-  property: Property | null;
-  propertyError: boolean;
-  propertyLoading: boolean;
+  planCount?: number;
 };
 
 function SlideView(props: SlideViewProps) {
@@ -543,10 +458,6 @@ function SlideView(props: SlideViewProps) {
         bottomInset={props.bottomInset}
         height={props.height}
         onNext={props.onNext}
-        onRetry={props.onRetryProperty}
-        property={props.property}
-        propertyError={props.propertyError}
-        propertyLoading={props.propertyLoading}
         topInset={props.topInset}
         width={props.width}
       />
@@ -564,6 +475,7 @@ function SlideView(props: SlideViewProps) {
         height={props.height}
         onNext={props.onNext}
         onRetry={props.onRetryCommunity}
+        planCount={props.planCount}
         topInset={props.topInset}
         width={props.width}
       />
@@ -583,16 +495,16 @@ export default function OnboardingScreen() {
   const [showSplash, setShowSplash] = useState(true);
   const list = useRef<FlatList<Slide>>(null);
 
-  const propertyQuery = useQuery({
-    queryKey: onboardingKeys.property,
-    queryFn: ({ signal }) => fetchOnboardingProperty(signal),
-    retry: 2,
-    staleTime: 5 * 60 * 1000,
-  });
   const communityQuery = useQuery({
     queryKey: onboardingKeys.community,
     queryFn: ({ signal }) => fetchOnboardingCommunity(signal),
     retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+  const plansQuery = useQuery({
+    queryKey: ownerPlanKeys.plans,
+    queryFn: fetchOwnerPlans,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -601,9 +513,6 @@ export default function OnboardingScreen() {
     return () => clearTimeout(timeout);
   }, [reduceMotion]);
 
-  const retryProperty = useCallback(() => {
-    void propertyQuery.refetch();
-  }, [propertyQuery]);
   const retryCommunity = useCallback(() => {
     void communityQuery.refetch();
   }, [communityQuery]);
@@ -625,10 +534,7 @@ export default function OnboardingScreen() {
       item={item}
       onNext={next}
       onRetryCommunity={retryCommunity}
-      onRetryProperty={retryProperty}
-      property={propertyQuery.data ?? null}
-      propertyError={propertyQuery.isError}
-      propertyLoading={propertyQuery.isLoading}
+      planCount={plansQuery.data?.length || undefined}
       topInset={insets.top}
       width={pageWidth}
     />
@@ -642,17 +548,21 @@ export default function OnboardingScreen() {
     insets.top,
     next,
     pageWidth,
-    propertyQuery.data,
-    propertyQuery.isError,
-    propertyQuery.isLoading,
+    plansQuery.data,
     retryCommunity,
-    retryProperty,
   ]);
 
   if (showSplash) return <SplashScreenView />;
 
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <LinearGradient
+        colors={resolvedMode === 'dark'
+          ? [brand.dark.background, brand.dark.surface, brand.dark.background]
+          : [brand.neutral[0], brand.blue[50], brand.blue[100]]}
+        locations={[0, 0.55, 1]}
+        style={StyleSheet.absoluteFill}
+      />
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <FlatList
         bounces={false}
@@ -677,17 +587,16 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center' },
   pressed: { opacity: 0.72 },
-  fill: { width: '100%', height: '100%' },
   underline: { textDecorationLine: 'underline' },
 
   brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brandCentered: { alignSelf: 'center' },
-  brandName: { fontSize: 17, lineHeight: 22, fontFamily: fontFamily.bold },
+  brandName: { fontSize: 15, lineHeight: 21, fontFamily: fontFamily.bold, letterSpacing: 0.25 },
   brandNameLarge: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.4 },
 
   splash: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   splashCenter: { alignItems: 'center', gap: 28 },
-  splashSpinner: { width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: withAlpha(colors.primary, 0.24), borderTopColor: colors.primary },
+  splashSpinner: { width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: withAlpha(colors.primary, 0.24), borderTopColor: brand.blue[500] },
   splashDots: { position: 'absolute', bottom: '19%', flexDirection: 'row', gap: 6 },
   splashDot: { width: 6, height: 6, borderRadius: 3 },
   splashDotActive: { backgroundColor: colors.primary, transform: [{ scale: 1.15 }] },
@@ -696,43 +605,41 @@ const styles = StyleSheet.create({
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: spacing.sm },
 
   page: { flexGrow: 1, paddingHorizontal: spacing.xxl },
-  titleBlock: { marginTop: spacing.xxl },
   title: typography.display,
   body: typography.body,
   subtitle: { marginTop: spacing.sm },
   subtitleLeft: { marginTop: spacing.sm, maxWidth: 340 },
+  centerText: { textAlign: 'center' },
   actions: { marginTop: 'auto', paddingTop: spacing.xl, alignItems: 'stretch', gap: spacing.xs },
-  cta: { alignSelf: 'stretch' },
-  textAction: { minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
-  textActionLabel: { fontSize: 15, fontFamily: fontFamily.medium, textAlign: 'center' },
-  textActionStrong: { fontFamily: fontFamily.bold, textDecorationLine: 'underline' },
+  stitchCta: { alignSelf: 'stretch', borderRadius: radius.pill },
+  textAction: { minHeight: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
+  textActionLabel: { fontSize: 14, fontFamily: fontFamily.medium, textAlign: 'center' },
+  textActionStrong: { fontFamily: fontFamily.bold },
 
-  discoverVisual: { marginTop: spacing.xl, marginBottom: spacing.lg },
-  propertyCard: { gap: spacing.md },
-  propertyFrame: { width: '100%', aspectRatio: 4 / 3, overflow: 'hidden', borderRadius: radius.md, borderCurve: 'continuous' },
-  propertyPill: { position: 'absolute', left: 12, top: 12 },
-  propertyState: { alignItems: 'center', justifyContent: 'center', gap: 9, padding: 22 },
-  propertySummary: { gap: 2 },
-  propertyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  propertyTitle: { flex: 1, fontSize: 16, lineHeight: 21, fontFamily: fontFamily.semibold },
-  rating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  propertyMeta: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21 },
-  propertyPrice: { fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
+  discoverTitleBlock: { marginTop: spacing.xxl },
+  discoverVisual: { marginTop: spacing.xl, marginBottom: spacing.lg, marginHorizontal: -spacing.md },
+  discoverArtworkFrame: { width: '100%', overflow: 'hidden', borderRadius: radius.md },
+  discoverArtwork: { width: '100%', height: '100%' },
   stateTitle: { fontSize: 16, fontFamily: fontFamily.bold, textAlign: 'center' },
   stateText: { fontFamily: fontFamily.regular, fontSize: 14, textAlign: 'center' },
 
-  communityData: { flex: 1, justifyContent: 'center', minHeight: 300, paddingVertical: spacing.xl },
+  communityPage: { alignItems: 'stretch' },
+  communityTitleBlock: { marginTop: spacing.xxl, alignItems: 'center' },
+  communityData: { flex: 1, justifyContent: 'center', minHeight: 270, paddingVertical: spacing.xl },
   communityState: { minHeight: 220, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20 },
-  stats: { width: '100%', flexDirection: 'row', alignItems: 'stretch', borderWidth: 1, borderRadius: radius.md, borderCurve: 'continuous', paddingVertical: spacing.lg },
-  stat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 4 },
-  statValue: { fontSize: 26, lineHeight: 32, fontFamily: fontFamily.extrabold, fontVariant: ['tabular-nums'] },
-  statLabel: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 16, textAlign: 'center' },
-  members: { alignItems: 'center', marginTop: spacing.xxxl },
+  stats: { width: '100%', flexDirection: 'row', alignItems: 'stretch', gap: spacing.xs },
+  stat: { flex: 1, minHeight: 126, alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 3, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm },
+  statValue: { fontSize: 25, lineHeight: 30, fontFamily: fontFamily.extrabold, fontVariant: ['tabular-nums'] },
+  statLabel: { fontFamily: fontFamily.medium, fontSize: 10, lineHeight: 13, textTransform: 'uppercase', textAlign: 'center' },
+  members: { alignItems: 'center', marginTop: spacing.xxl },
   avatarRow: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   avatarBorder: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, overflow: 'hidden' },
-  activeUsers: { marginTop: spacing.sm, fontSize: 15, fontFamily: fontFamily.semibold },
+  activeUsers: { marginTop: spacing.sm, fontSize: 14, fontFamily: fontFamily.medium },
+  communityActions: { marginTop: 'auto', alignItems: 'stretch', gap: spacing.md },
 
   getStartedPage: { flexGrow: 1 },
+  getStartedBrand: { paddingHorizontal: spacing.xxl },
+  getStartedArtworkBlock: { marginTop: spacing.lg },
   artworkCrop: { overflow: 'hidden' },
-  getStartedCopy: { flex: 1, paddingHorizontal: spacing.xxl, paddingTop: spacing.lg },
+  getStartedCopy: { flex: 1, paddingHorizontal: spacing.xxl, paddingTop: spacing.xs },
 });

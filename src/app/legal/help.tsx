@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   security: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   securityText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
   faqList: { gap: 9 },
-  faq: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', paddingHorizontal: 15, overflow: 'hidden' },
+  faq: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', paddingHorizontal: 15, overflow: 'hidden' },
   faqHeader: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11 },
   faqIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   question: { flex: 1, fontSize: 14, lineHeight: 19, fontFamily: fontFamily.bold },

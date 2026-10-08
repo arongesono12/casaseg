@@ -7,12 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { z } from 'zod';
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
 import { AppleAuthButton } from '@/components/apple-auth-button';
-import { AuthLogo } from '@/components/auth-logo';
+import { AuthBrand } from '@/components/auth-brand';
 import { FormField } from '@/components/form-field';
 import { GoogleAuthButton } from '@/components/google-auth-button';
 import { NativeActionButton } from '@/components/native-action-button';
 import { ArrowLeft, Check, Eye, EyeOff } from '@/components/ui/icons';
-import { colors, fontFamily, touchTarget } from '@/constants/theme';
+import { colors, fontFamily, radius, touchTarget } from '@/constants/theme';
 import { loginSchema } from '@/features/auth/auth.schemas';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { AccesoPendienteError } from '@/providers/auth-provider';
@@ -45,7 +45,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const passwordRef = useRef<TextInput>(null);
   const { height, width } = useWindowDimensions();
-  const compact = height < 700 || width < 360;
+  const compact = height < 760 || width < 380;
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -110,6 +110,7 @@ export default function LoginScreen() {
         >
           <ArrowLeft color={palette.text} size={24} />
         </Pressable>
+        <AuthBrand />
       </View>
       <AdaptiveKeyboardView style={styles.safe}>
         <ScrollView
@@ -121,7 +122,6 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.heading}>
-            <AuthLogo compact={compact} />
             <Text style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{t('loginTitle')}</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('loginSubtitle')}</Text>
           </View>
@@ -220,26 +220,32 @@ export default function LoginScreen() {
             onPress={() => void submit()}
           />
 
-          <View style={styles.oauthButtons}>
-            <GoogleAuthButton
-              backgroundColor={palette.surface}
-              borderColor={palette.border}
-              colorScheme={resolvedMode}
-              disabled={oauthDisabled}
-              label={t('signInWithGoogle')}
-              onPress={() => void oauth('google')}
-              textColor={palette.text}
-            />
-            {Platform.OS !== 'android' ? (
-              <AppleAuthButton
+          <View style={[styles.oauthButtons, Platform.OS !== 'android' && styles.oauthButtonsRow]}>
+            <View style={Platform.OS !== 'android' && styles.oauthButtonCell}>
+              <GoogleAuthButton
+                accessibilityLabel={t('signInWithGoogle')}
                 backgroundColor={palette.surface}
                 borderColor={palette.border}
                 colorScheme={resolvedMode}
                 disabled={oauthDisabled}
-                label={t('signInWithApple')}
-                onPress={() => void oauth('apple')}
+                label={Platform.OS === 'android' ? t('signInWithGoogle') : 'Google'}
+                onPress={() => void oauth('google')}
                 textColor={palette.text}
               />
+            </View>
+            {Platform.OS !== 'android' ? (
+              <View style={styles.oauthButtonCell}>
+                <AppleAuthButton
+                  accessibilityLabel={t('signInWithApple')}
+                  backgroundColor={palette.surface}
+                  borderColor={palette.border}
+                  colorScheme={resolvedMode}
+                  disabled={oauthDisabled}
+                  label="Apple"
+                  onPress={() => void oauth('apple')}
+                  textColor={palette.text}
+                />
+              </View>
             ) : null}
           </View>
 
@@ -259,16 +265,16 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: { paddingHorizontal: 8, paddingVertical: 4 },
+  header: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 4 },
   backButton: { alignItems: 'center', borderRadius: touchTarget / 2, height: touchTarget, justifyContent: 'center', width: touchTarget },
   backButtonPressed: { opacity: 0.6 },
-  content: { flexGrow: 1, width: '100%', maxWidth: 560, alignSelf: 'center', justifyContent: 'center', padding: 24, gap: 14 },
-  contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingVertical: 18, gap: 12 },
-  heading: { gap: 10, marginBottom: 12 },
+  content: { flexGrow: 1, width: '100%', maxWidth: 560, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 18, gap: 12 },
+  contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingVertical: 12, gap: 9 },
+  heading: { gap: 5, marginBottom: 5 },
   title: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold },
   titleCompact: { fontSize: 26, lineHeight: 31 },
-  subtitle: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24 },
-  eyeButton: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' },
+  subtitle: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21 },
+  eyeButton: { width: touchTarget, height: touchTarget, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   optionsRow: { minHeight: touchTarget, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   rememberControl: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 9 },
   checkbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
@@ -276,10 +282,12 @@ const styles = StyleSheet.create({
   forgotLink: { fontSize: 14, fontFamily: fontFamily.bold },
   inlineTarget: { minHeight: touchTarget, justifyContent: 'center' },
   oauthButtons: { gap: 10 },
+  oauthButtonsRow: { flexDirection: 'row' },
+  oauthButtonCell: { flex: 1 },
   demo: { alignItems: 'center', gap: 2, paddingVertical: 8 },
   demoTitle: { fontSize: 12, fontFamily: fontFamily.extrabold },
   link: { minHeight: touchTarget, color: colors.brandDark, textAlign: 'center', textAlignVertical: 'center', fontSize: 15, lineHeight: 20, fontFamily: fontFamily.extrabold, paddingHorizontal: 9, paddingVertical: 14 },
-  legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
+  legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
   legalLink: { fontSize: 13, fontFamily: fontFamily.semibold },
   errorBlock: { gap: 2 },
   error: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },

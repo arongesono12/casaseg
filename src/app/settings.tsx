@@ -121,6 +121,6 @@ const styles = StyleSheet.create({
   body: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   option: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1 },
-  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
+  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
   error: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.bold },
 });

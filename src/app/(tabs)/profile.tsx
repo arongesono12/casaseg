@@ -8,10 +8,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FormField } from '@/components/form-field';
 import { RouteScreen } from '@/components/route-screen';
 import { ProfileHeaderCard } from '@/components/profile/profile-header-card';
-import { ArrowRight, Bell, Building2, Calendar, Check, CheckCircle2, HomeCheck, Lock, LogOut, Settings, ShieldCheck, Sparkles } from '@/components/ui/icons';
-import { PremiumButton, SectionTitle, SurfaceCard } from '@/components/ui/premium';
+import { ArrowRight, Bell, Building2, Calendar, Check, CheckCircle2, HomeCheck, Lock, LogOut, Settings, ShieldCheck } from '@/components/ui/icons';
+import { PremiumButton, SurfaceCard } from '@/components/ui/premium';
 import { actionGradient, colors, fontFamily, radius, withAlpha, type AppPalette } from '@/constants/theme';
-import { useCurrentProfile } from '@/features/auth/use-current-profile';
+import { useCurrentProfile, useUpdateProfilePhone } from '@/features/auth/use-current-profile';
+import { isValidProfilePhone, normalizeProfilePhone } from '@/features/auth/profile-phone';
 import { isAdminRole, isOwnerRole } from '@/lib/access-control';
 import { onBrandRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
 import { useAuth } from '@/providers/auth-context';
@@ -21,9 +22,15 @@ import { useAppTheme } from '@/providers/theme-context';
 const PROFILE_MAX_WIDTH = 960;
 
 const profileCopy = defineCopy({
-  es: { myVisits: 'Mis visitas', myVisitsBody: 'Consulta y cancela las visitas que has solicitado.', superadmin: 'Superadministrador', admin: 'Administrador', adminEyebrow: 'RESPONSABILIDAD ADMINISTRATIVA', adminPanel: 'Panel de administración', adminPanelBody: 'Supervisa usuarios, roles, publicaciones y revisiones pendientes.', saved: 'Tu perfil se ha actualizado correctamente.', saveFailed: 'No pudimos actualizar tu perfil.', personalInfo: 'Información personal', nameRequired: 'Introduce tu nombre.', nameTooShort: 'Introduce al menos 2 caracteres.', fullName: 'Nombre completo', becomeOwner: 'Hazte propietario', becomeOwnerBody: 'Solicita publicar tus viviendas en CasaSeg.' },
-  fr: { myVisits: 'Mes visites', myVisitsBody: 'Consultez et annulez les visites demandées.', superadmin: 'Super-administrateur', admin: 'Administrateur', adminEyebrow: 'RESPONSABILITÉ ADMINISTRATIVE', adminPanel: 'Panneau d’administration', adminPanelBody: 'Supervisez utilisateurs, rôles, annonces et vérifications en attente.', saved: 'Votre profil a bien été mis à jour.', saveFailed: 'Impossible de mettre à jour votre profil.', personalInfo: 'Informations personnelles', nameRequired: 'Saisissez votre nom.', nameTooShort: 'Saisissez au moins 2 caractères.', fullName: 'Nom complet', becomeOwner: 'Devenez propriétaire', becomeOwnerBody: 'Demandez à publier vos logements sur CasaSeg.' },
-  en: { myVisits: 'My visits', myVisitsBody: 'Review and cancel the visits you requested.', superadmin: 'Super administrator', admin: 'Administrator', adminEyebrow: 'ADMIN RESPONSIBILITY', adminPanel: 'Admin dashboard', adminPanelBody: 'Oversee users, roles, listings and pending reviews.', saved: 'Your profile has been updated.', saveFailed: 'We could not update your profile.', personalInfo: 'Personal information', nameRequired: 'Enter your name.', nameTooShort: 'Enter at least 2 characters.', fullName: 'Full name', becomeOwner: 'Become an owner', becomeOwnerBody: 'Apply to list your homes on CasaSeg.' },
+  es: { myVisits: 'Mis visitas', myVisitsBody: 'Consulta y cancela las visitas que has solicitado.', superadmin: 'Superadministrador', admin: 'Administrador', adminEyebrow: 'RESPONSABILIDAD ADMINISTRATIVA', adminPanel: 'Panel de administración', adminPanelBody: 'Supervisa usuarios, roles, publicaciones y revisiones pendientes.', saved: 'Tu perfil se ha actualizado correctamente.', saveFailed: 'No pudimos guardar todos los cambios. Comprueba el perfil e inténtalo de nuevo.', personalInfo: 'Información personal', nameRequired: 'Introduce tu nombre.', nameTooShort: 'Introduce al menos 2 caracteres.', fullName: 'Nombre completo', becomeOwner: 'Hazte propietario', becomeOwnerBody: 'Solicita publicar tus viviendas en CasaSeg.' },
+  fr: { myVisits: 'Mes visites', myVisitsBody: 'Consultez et annulez les visites demandées.', superadmin: 'Super-administrateur', admin: 'Administrateur', adminEyebrow: 'RESPONSABILITÉ ADMINISTRATIVE', adminPanel: 'Panneau d’administration', adminPanelBody: 'Supervisez utilisateurs, rôles, annonces et vérifications en attente.', saved: 'Votre profil a bien été mis à jour.', saveFailed: 'Impossible d’enregistrer tous les changements. Vérifiez votre profil et réessayez.', personalInfo: 'Informations personnelles', nameRequired: 'Saisissez votre nom.', nameTooShort: 'Saisissez au moins 2 caractères.', fullName: 'Nom complet', becomeOwner: 'Devenez propriétaire', becomeOwnerBody: 'Demandez à publier vos logements sur CasaSeg.' },
+  en: { myVisits: 'My visits', myVisitsBody: 'Review and cancel the visits you requested.', superadmin: 'Super administrator', admin: 'Administrator', adminEyebrow: 'ADMIN RESPONSIBILITY', adminPanel: 'Admin dashboard', adminPanelBody: 'Oversee users, roles, listings and pending reviews.', saved: 'Your profile has been updated.', saveFailed: 'We could not save every change. Check your profile and try again.', personalInfo: 'Personal information', nameRequired: 'Enter your name.', nameTooShort: 'Enter at least 2 characters.', fullName: 'Full name', becomeOwner: 'Become an owner', becomeOwnerBody: 'Apply to list your homes on CasaSeg.' },
+});
+
+const detailsCopy = defineCopy({
+  es: { edit: 'Editar perfil', email: 'Correo electrónico', phone: 'Número de teléfono', phoneMissing: 'Sin añadir', phoneInvalid: 'Introduce un número válido de 7 a 15 cifras.', cancel: 'Cancelar', loading: 'Cargando información personal…', unavailable: 'No pudimos cargar tu información personal.', retry: 'Reintentar' },
+  fr: { edit: 'Modifier le profil', email: 'E-mail', phone: 'Numéro de téléphone', phoneMissing: 'Non renseigné', phoneInvalid: 'Saisissez un numéro valide de 7 à 15 chiffres.', cancel: 'Annuler', loading: 'Chargement des informations personnelles…', unavailable: 'Impossible de charger vos informations personnelles.', retry: 'Réessayer' },
+  en: { edit: 'Edit profile', email: 'Email', phone: 'Phone number', phoneMissing: 'Not added', phoneInvalid: 'Enter a valid number with 7 to 15 digits.', cancel: 'Cancel', loading: 'Loading personal information…', unavailable: 'We could not load your personal information.', retry: 'Retry' },
 });
 
 export default function ProfileScreen() {
@@ -34,6 +41,7 @@ export default function ProfileScreen() {
   const { width } = useWindowDimensions();
   const wide = width >= 760;
   const profile = useCurrentProfile();
+  const updatePhone = useUpdateProfilePhone();
   const insets = useSafeAreaInsets();
 
   if (!user) return <Redirect href="/(auth)/login" />;
@@ -41,6 +49,10 @@ export default function ProfileScreen() {
   const roleLabel = isRoleLoading ? t('verifyingRole') : role === 'owner' ? t('owner') : role === 'client' ? t('client') : role === 'superadmin' ? copy.superadmin : role === 'admin' ? copy.admin : t('roleUnavailable');
   const roleTone = isAdminRole(role) ? colors.primary : isOwnerRole(role) ? colors.brand : role === 'client' ? colors.success : palette.muted;
   const RoleIcon = isAdminRole(role) ? ShieldCheck : isOwnerRole(role) ? Building2 : role === 'client' ? HomeCheck : Lock;
+  const saveProfile = async ({ name, phone }: { name: string; phone: string | null }) => {
+    if (phone !== (profile.data?.phone ?? null)) await updatePhone(phone);
+    if (name !== user.name.trim()) await updateProfileName(name);
+  };
 
   return (
     <RouteScreen
@@ -94,7 +106,7 @@ export default function ProfileScreen() {
         <Pressable accessibilityRole="button" onPress={() => router.push('/owner')} android_ripple={onBrandRipple} style={({ pressed }) => [styles.ownerCta, pressed && !usesRipple && styles.pressed]}>
           <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
             <View style={styles.ownerCopy}>
-              <View style={styles.ownerEyebrow}><Sparkles color={colors.onBrandMuted} size={15} /><Text style={styles.ownerEyebrowText}>{t('professionalSpace')}</Text></View>
+              <View style={styles.ownerEyebrow}><Text style={styles.ownerEyebrowText}>{t('professionalSpace')}</Text></View>
               <Text style={styles.ownerTitle}>{t('ownerPanel')}</Text>
               <Text style={styles.ownerDescription}>{t('ownerPanelSubtitle')}</Text>
             </View>
@@ -123,7 +135,13 @@ export default function ProfileScreen() {
       <ProfileDetailsForm
         key={user.id}
         initialName={user.name}
-        onSave={updateProfileName}
+        email={user.email}
+        initialPhone={profile.data?.phone ?? ''}
+        canEdit={Boolean(profile.data)}
+        profileLoading={!profile.data && !profile.isError && !profile.isSuccess}
+        profileUnavailable={!profile.data && (profile.isError || profile.isSuccess)}
+        onRetry={() => void profile.refetch()}
+        onSave={saveProfile}
         palette={palette}
         wide={wide}
       />
@@ -169,59 +187,157 @@ function Action({ title, description, icon, tone, onPress, palette }: { title: s
 
 function ProfileDetailsForm({
   initialName,
+  email,
+  initialPhone,
+  canEdit,
+  profileLoading,
+  profileUnavailable,
+  onRetry,
   onSave,
   palette,
   wide,
 }: {
   initialName: string;
-  onSave: (name: string) => Promise<void>;
+  email: string;
+  initialPhone: string;
+  canEdit: boolean;
+  profileLoading: boolean;
+  profileUnavailable: boolean;
+  onRetry: () => void;
+  onSave: (values: { name: string; phone: string | null }) => Promise<void>;
   palette: AppPalette;
   wide: boolean;
 }) {
   const { t } = useI18n();
   const copy = useCopy(profileCopy);
+  const details = useCopy(detailsCopy);
+  const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string }>();
-  const { control, handleSubmit, formState: { isSubmitting } } = useForm({
-    defaultValues: { name: initialName },
+  const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ name: string; phone: string }>({
+    defaultValues: { name: initialName, phone: initialPhone },
   });
 
-  const submit = handleSubmit(async ({ name }) => {
+  const startEditing = () => {
+    reset({ name: initialName, phone: initialPhone });
+    setFeedback(undefined);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    Keyboard.dismiss();
+    reset({ name: initialName, phone: initialPhone });
+    setFeedback(undefined);
+    setEditing(false);
+  };
+
+  const submit = handleSubmit(async ({ name, phone }) => {
     Keyboard.dismiss();
     setFeedback(undefined);
     try {
-      await onSave(name);
+      await onSave({ name: name.trim(), phone: normalizeProfilePhone(phone) });
+      setEditing(false);
       setFeedback({ tone: 'success', message: copy.saved });
-    } catch (error) {
-      setFeedback({ tone: 'error', message: error instanceof Error ? error.message : copy.saveFailed });
+    } catch {
+      setFeedback({ tone: 'error', message: copy.saveFailed });
     }
   });
 
   return (
     <SurfaceCard style={styles.profileForm}>
-      <SectionTitle title={copy.personalInfo} />
-      <View style={[styles.formFields, wide && styles.formFieldsWide]}>
-        <View style={styles.formField}>
-          <Controller
-            control={control}
-            name="name"
-            rules={{ required: copy.nameRequired, minLength: { value: 2, message: copy.nameTooShort } }}
-            render={({ field, fieldState }) => (
-              <FormField
-                label={copy.fullName}
-                autoCapitalize="words"
-                autoComplete="name"
-                returnKeyType="done"
-                textContentType="name"
-                value={field.value}
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                onSubmitEditing={() => void submit()}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-        </View>
+      <View style={styles.profileFormHeading}>
+        <Text accessibilityRole="header" style={[styles.profileFormTitle, { color: palette.text }]}>{copy.personalInfo}</Text>
+        {editing ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={details.cancel} disabled={isSubmitting} android_ripple={pressRipple} onPress={cancelEditing} style={({ pressed }) => [styles.editButton, { backgroundColor: palette.subtle }, pressed && !usesRipple && styles.pressed]}>
+            <Text style={[styles.editButtonText, { color: palette.textSecondary }]}>{details.cancel}</Text>
+          </Pressable>
+        ) : canEdit ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={details.edit} android_ripple={pressRipple} onPress={startEditing} style={({ pressed }) => [styles.editButton, { backgroundColor: palette.brandSoft }, pressed && !usesRipple && styles.pressed]}>
+            <Text style={[styles.editButtonText, { color: palette.brandText }]}>{details.edit}</Text>
+          </Pressable>
+        ) : null}
       </View>
+
+      {profileLoading ? <Text style={[styles.formNotice, { color: palette.textSecondary }]}>{details.loading}</Text> : null}
+      {profileUnavailable ? (
+        <View style={styles.unavailable}>
+          <Text style={[styles.formNotice, { color: palette.textSecondary }]}>{details.unavailable}</Text>
+          <PremiumButton label={details.retry} variant="secondary" onPress={onRetry} style={styles.retryButton} />
+        </View>
+      ) : null}
+
+      {canEdit && !editing ? (
+        <View style={styles.infoList}>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: palette.muted }]}>{copy.fullName}</Text>
+            <Text selectable style={[styles.infoValue, { color: palette.text }]}>{initialName}</Text>
+          </View>
+          <View style={[styles.infoDivider, { backgroundColor: palette.border }]} />
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: palette.muted }]}>{details.email}</Text>
+            <Text selectable style={[styles.infoValue, { color: palette.text }]}>{email}</Text>
+          </View>
+          <View style={[styles.infoDivider, { backgroundColor: palette.border }]} />
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: palette.muted }]}>{details.phone}</Text>
+            <Text selectable style={[styles.infoValue, { color: initialPhone ? palette.text : palette.textSecondary }]}>{initialPhone || details.phoneMissing}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {editing ? (
+        <>
+          <View style={[styles.formFields, wide && styles.formFieldsWide]}>
+            <View style={styles.formField}>
+              <Controller
+                control={control}
+                name="name"
+                rules={{ required: copy.nameRequired, validate: (value) => value.trim().length >= 2 || copy.nameTooShort }}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label={copy.fullName}
+                    autoCapitalize="words"
+                    autoComplete="name"
+                    returnKeyType="next"
+                    textContentType="name"
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    onChangeText={field.onChange}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+            </View>
+            <View style={styles.formField}>
+              <Controller
+                control={control}
+                name="phone"
+                rules={{ validate: (value) => isValidProfilePhone(value) || details.phoneInvalid }}
+                render={({ field, fieldState }) => (
+                  <FormField
+                    label={details.phone}
+                    autoComplete="tel"
+                    keyboardType="phone-pad"
+                    maxLength={24}
+                    placeholder="+240 222 000 000"
+                    returnKeyType="done"
+                    textContentType="telephoneNumber"
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    onChangeText={field.onChange}
+                    onSubmitEditing={() => void submit()}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+            </View>
+          </View>
+          <View style={[styles.emailReadOnly, { backgroundColor: palette.subtle }]}>
+            <Text style={[styles.infoLabel, { color: palette.muted }]}>{details.email}</Text>
+            <Text selectable style={[styles.infoValue, { color: palette.textSecondary }]}>{email}</Text>
+          </View>
+        </>
+      ) : null}
+
       {feedback ? (
         <View
           accessibilityRole="alert"
@@ -237,25 +353,43 @@ function ProfileDetailsForm({
           <Text selectable style={[styles.feedbackText, { color: feedback.tone === 'success' ? colors.success : colors.error }]}>{feedback.message}</Text>
         </View>
       ) : null}
-      <PremiumButton label={isSubmitting ? t('saving') : t('saveChanges')} icon={Check} loading={isSubmitting} onPress={() => void submit()} style={wide ? styles.saveButton : undefined} />
+      {editing ? (
+        <View style={styles.formActions}>
+          <PremiumButton label={isSubmitting ? t('saving') : t('saveChanges')} icon={Check} loading={isSubmitting} onPress={() => void submit()} style={styles.saveButton} />
+        </View>
+      ) : null}
     </SurfaceCard>
   );
 }
 
 const styles = StyleSheet.create({
   profileForm: { padding: 20, gap: 16 },
+  profileFormHeading: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  profileFormTitle: { minWidth: 0, flexShrink: 1, fontSize: 19, lineHeight: 24, fontFamily: fontFamily.bold, letterSpacing: -0.3 },
+  editButton: { minHeight: 36, borderRadius: radius.pill, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  editButtonText: { fontSize: 11, fontFamily: fontFamily.bold },
+  infoList: { gap: 0 },
+  infoRow: { minHeight: 54, justifyContent: 'center', gap: 4 },
+  infoLabel: { fontSize: 10, lineHeight: 14, fontFamily: fontFamily.bold, letterSpacing: 0.5, textTransform: 'uppercase' },
+  infoValue: { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.semibold },
+  infoDivider: { height: StyleSheet.hairlineWidth },
+  emailReadOnly: { borderRadius: radius.md, padding: 14, gap: 4 },
+  formNotice: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.regular },
+  unavailable: { gap: 12 },
+  retryButton: { maxWidth: 200 },
   formFields: { gap: 14 },
   formFieldsWide: { flexDirection: 'row' },
   formField: { flex: 1, minWidth: 0 },
+  formActions: { width: '100%', maxWidth: 320, gap: 10 },
   feedback: { minHeight: 46, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   feedbackText: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: fontFamily.bold },
-  saveButton: { alignSelf: 'flex-end', width: '100%', maxWidth: 240 },
+  saveButton: { width: '100%' },
   roleWarning: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   trustCopy: { flex: 1, gap: 3 },
   trustTitle: { fontSize: 14, fontFamily: fontFamily.bold },
   trustDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   ownerCta: { borderRadius: radius.xl, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 14px 30px ${withAlpha(colors.brand, 0.20)}` },
-  ownerGradient: { minHeight: 164, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  ownerGradient: { minHeight: 136, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16 },
   ownerCopy: { flex: 1, gap: 8 },
   ownerEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   ownerEyebrowText: { color: colors.onBrandMuted, fontSize: 10, fontFamily: fontFamily.bold, letterSpacing: 1 },
@@ -264,15 +398,15 @@ const styles = StyleSheet.create({
   ownerArrow: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   section: { gap: 10 },
   sectionTitle: { fontSize: 19, lineHeight: 24, fontFamily: fontFamily.bold },
-  actions: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', boxShadow: '0 10px 24px rgba(15,23,42,0.05)' },
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 70 },
-  action: { minHeight: 76, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  actions: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous' },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: 60 },
+  action: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   focusRing: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.38)}` },
-  actionIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  actionIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   actionCopy: { flex: 1, minWidth: 0, gap: 3 },
   actionText: { fontSize: 15, fontFamily: fontFamily.bold },
   actionDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
-  signOut: { minHeight: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, borderCurve: 'continuous', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
+  signOut: { minHeight: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, borderCurve: 'continuous', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
   signOutText: { fontSize: 15, fontFamily: fontFamily.bold },
   pressed: { opacity: 0.76, transform: [{ scale: 0.992 }] },
   tabSpacer: { height: 92 },

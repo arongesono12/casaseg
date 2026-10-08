@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   contentsTitle: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
   contentsDetail: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   contentsList: { gap: 1 },
-  contentsLink: { minHeight: 44, borderRadius: radius.sm, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  contentsLink: { minHeight: 44, borderRadius: radius.pill, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   contentsNumber: { width: 23, fontSize: 11, lineHeight: 15, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
   contentsLabel: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: fontFamily.bold },
   contentColumn: { flex: 1, minWidth: 0, gap: 20 },

@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   countText: { fontSize: 13, fontFamily: fontFamily.extrabold },
   bottom: { padding: 16, gap: 10 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
-  selected: { minHeight: 104, borderRadius: radius.lg, padding: 10, flexDirection: 'row', gap: 12 },
+  selected: { minHeight: 104, borderRadius: radius.xl, padding: 10, flexDirection: 'row', gap: 12 },
   thumb: { width: 108, borderRadius: radius.md },
   selectedCopy: { flex: 1, justifyContent: 'center', gap: 4 },
   selectedTitle: { fontSize: 15, fontFamily: fontFamily.bold },

@@ -1,8 +1,5 @@
 import { HugeiconsIcon, type HugeiconsProps, type IconSvgElement } from '@hugeicons/react-native';
 import { createElement } from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { View } from 'react-native';
-import { materialIconName, type AppIconName } from './material-icon-map';
 import Add01Icon from '@hugeicons/core-free-icons/Add01Icon';
 import AlertCircleIcon from '@hugeicons/core-free-icons/AlertCircleIcon';
 import AppleIcon from '@hugeicons/core-free-icons/AppleIcon';
@@ -27,7 +24,7 @@ import ChartLineData01Icon from '@hugeicons/core-free-icons/ChartLineData01Icon'
 import CheckmarkBadge01Icon from '@hugeicons/core-free-icons/CheckmarkBadge01Icon';
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon';
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon';
-import Compass01Icon from '@hugeicons/core-free-icons/Compass01Icon';
+import Navigation05Icon from '@hugeicons/core-free-icons/Navigation05Icon';
 import ComputerIcon from '@hugeicons/core-free-icons/ComputerIcon';
 import CreditCardIcon from '@hugeicons/core-free-icons/CreditCardIcon';
 import CrownIcon from '@hugeicons/core-free-icons/CrownIcon';
@@ -91,29 +88,16 @@ import WindIcon from '@hugeicons/core-free-icons/WindIcon';
 export type IconProps = Omit<HugeiconsProps, 'icon' | 'altIcon' | 'showAlt'> & {
   /** Relleno del trazo cerrado (corazón, estrella…); 'none' y 'transparent' lo dejan en contorno. */
   fill?: string;
-  /** Estado semántico para Material cuando el relleno SVG es decorativo. */
+  /** Permite mantener el contorno aunque se proporcione un color de relleno. */
   filled?: boolean;
 };
 
 export type AppIcon = (props: IconProps) => ReturnType<typeof createElement>;
 
-// Android uses Material; iOS and web keep Hugeicons. Screens share this API.
-function createIcon(icon: IconSvgElement, displayName: AppIconName): AppIcon {
+// La misma familia Hugeicons se usa en Android, iOS y web.
+function createIcon(icon: IconSvgElement, displayName: string): AppIcon {
   function ProjectIcon({ fill, filled, ...props }: IconProps) {
-    const isFilled = Boolean(fill && fill !== 'none' && fill !== 'transparent');
-
-    if (process.env.EXPO_OS === 'android') {
-      const materialFilled = filled ?? isFilled;
-      return createElement(View, { style: props.style }, createElement(MaterialIcons, {
-        name: materialIconName(displayName, materialFilled),
-        size: typeof props.size === 'number' ? props.size : Number(props.size ?? 24),
-        color: materialFilled ? fill ?? props.color : props.color,
-        accessibilityLabel: props.accessibilityLabel,
-        accessible: props.accessible,
-        testID: props.testID,
-      }));
-    }
-
+    const isFilled = filled ?? Boolean(fill && fill !== 'none' && fill !== 'transparent');
     return createElement(HugeiconsIcon, { ...props, icon, ...(isFilled ? { fill } : null) });
   }
 
@@ -143,7 +127,7 @@ export const ChevronDown = createIcon(ArrowDown01Icon, 'ChevronDown');
 export const ChevronRight = createIcon(ArrowRight01Icon, 'ChevronRight');
 export const ChevronUp = createIcon(ArrowUp01Icon, 'ChevronUp');
 export const Clock = createIcon(Clock01Icon, 'Clock');
-export const Compass = createIcon(Compass01Icon, 'Compass');
+export const Navigation = createIcon(Navigation05Icon, 'Navigation');
 export const CreditCard = createIcon(CreditCardIcon, 'CreditCard');
 export const Crown = createIcon(CrownIcon, 'Crown');
 export const Door = createIcon(DoorIcon, 'Door');

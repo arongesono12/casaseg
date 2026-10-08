@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as DocumentPicker from 'expo-document-picker';
+import type { DocumentPickerResult } from 'expo-document-picker';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -8,6 +8,7 @@ import { PremiumButton } from '@/components/ui/premium';
 import { fontFamily, radius, touchTarget } from '@/constants/theme';
 import { fetchBankTransferSettings, receiptMimeTypes, submitBankTransferProof, type ReceiptFile } from '@/features/payments/bank-transfer.api';
 import { paymentKeys, type PaymentOrder } from '@/features/payments/payments.api';
+import { loadDocumentPicker } from '@/lib/optional-native-modules';
 import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -30,6 +31,7 @@ export function BankTransferProofForm({ order, tenantId }: { order: PaymentOrder
   const [senderName, setSenderName] = useState('');
   const [bankReference, setBankReference] = useState('');
   const [receipt, setReceipt] = useState<ReceiptFile | null>(null);
+  const [pickError, setPickError] = useState<string | null>(null);
   const submit = useMutation({
     mutationFn: () => {
       if (!receipt) throw new Error(copy.pick);
@@ -39,7 +41,14 @@ export function BankTransferProofForm({ order, tenantId }: { order: PaymentOrder
   });
 
   const pick = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ type: [...receiptMimeTypes], copyToCacheDirectory: true });
+    setPickError(null);
+    let result: DocumentPickerResult;
+    try {
+      const DocumentPicker = await loadDocumentPicker();
+      result = await DocumentPicker.getDocumentAsync({ type: [...receiptMimeTypes], copyToCacheDirectory: true });
+    } catch (error) {
+      return setPickError(error instanceof Error ? error.message : copy.pick);
+    }
     if (result.canceled) return;
     const asset = result.assets[0];
     setReceipt({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType ?? 'application/pdf', size: asset.size ?? undefined });
@@ -69,7 +78,7 @@ export function BankTransferProofForm({ order, tenantId }: { order: PaymentOrder
       {field(bankReference, setBankReference, copy.bankReference)}
       <PremiumButton variant="secondary" icon={receipt ? CheckCircle2 : FileText} label={receipt?.name ?? copy.pick} onPress={() => void pick()} />
       <PremiumButton label={copy.submit} loading={submit.isPending} disabled={!account || !receipt || !senderName.trim() || !bankReference.trim()} onPress={() => submit.mutate()} />
-      {submit.error ? <Text accessibilityRole="alert" style={[styles.body, { color: palette.errorText }]}>{submit.error.message}</Text> : null}
+      {pickError || submit.error ? <Text accessibilityRole="alert" style={[styles.body, { color: palette.errorText }]}>{pickError ?? submit.error?.message}</Text> : null}
     </View>
   );
 }
@@ -79,5 +88,5 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontFamily: fontFamily.bold },
   body: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   account: { gap: 4 },
-  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
+  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
 });

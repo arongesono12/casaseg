@@ -6,9 +6,10 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View, type ListRender
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
-import { AlertCircle, ArrowLeft, Check, CheckDouble, ChevronDown, Clock, Send, Trash2 } from '@/components/ui/icons';
+import { AlertCircle, ArrowLeft, CheckDouble, ChevronDown, Clock, Send, Trash2 } from '@/components/ui/icons';
 import { UserAvatar } from '@/components/user-avatar';
-import { actionGradient, brand, colors, fontFamily, type AppPalette } from '@/constants/theme';
+import { actionGradient, brand, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
+import { useCurrentProfile } from '@/features/auth/use-current-profile';
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { buildChatTimeline, dayLabel, type TimelineItem } from '@/features/messaging/chat-timeline';
 import { fetchConversations, fetchMessages, markConversationRead, propertyIdFromChatRoute, resolveChatId, sendMessage, type ChatMessage } from '@/features/messaging/messaging.api';
@@ -53,11 +54,10 @@ const META_SPACER_OTHER = ' '.repeat(7);
 function StatusIcon({ status, chat }: { status: ChatMessage['status']; chat: ChatColors }) {
   if (status === 'pending') return <Clock color={chat.ownMeta} size={13} />;
   if (status === 'failed') return <AlertCircle color={colors.error} size={14} />;
-  if (status === 'sent') return <Check color={chat.ownMeta} size={15} />;
-  return <CheckDouble color={status === 'read' ? chat.read : chat.ownMeta} size={15} />;
+  return <CheckDouble color={status === 'read' ? chat.read : chat.ownMeta} size={17} />;
 }
 
-const MessageBubble = memo(function MessageBubble({ item, chat, onRetry }: { item: Extract<TimelineItem, { type: 'message' }>; chat: ChatColors; onRetry: (message: ChatMessage) => void }) {
+const MessageBubble = memo(function MessageBubble({ item, chat, senderName, senderAvatar, onRetry }: { item: Extract<TimelineItem, { type: 'message' }>; chat: ChatColors; senderName: string; senderAvatar?: string; onRetry: (message: ChatMessage) => void }) {
   const { locale, t } = useI18n();
   const { message, own, firstOfGroup } = item;
   const time = formatTime(message.createdAt, locale);
@@ -70,7 +70,7 @@ const MessageBubble = memo(function MessageBubble({ item, chat, onRetry }: { ite
   const bubble = (
     <View
       accessible
-      accessibilityLabel={[message.content, time, statusLabel].filter(Boolean).join('. ')}
+      accessibilityLabel={[senderName, message.content, time, statusLabel].filter(Boolean).join('. ')}
       style={[
         styles.bubble,
         own ? styles.bubbleOwn : styles.bubbleOther,
@@ -95,12 +95,14 @@ const MessageBubble = memo(function MessageBubble({ item, chat, onRetry }: { ite
 
   return (
     <View style={[styles.row, own ? styles.rowOwn : styles.rowOther, firstOfGroup && styles.rowFirst]}>
+      {!own ? <UserAvatar name={senderName} uri={senderAvatar} size={28} /> : null}
       {failed ? (
-        <Pressable accessibilityRole="button" accessibilityHint={t('messageFailed')} onPress={() => onRetry(message)}>
+        <Pressable accessibilityRole="button" accessibilityHint={t('messageFailed')} onPress={() => onRetry(message)} style={styles.messageBody}>
           {bubble}
           <Text style={[styles.failedText, { color: colors.error }]}>{t('messageFailed')}</Text>
         </Pressable>
-      ) : bubble}
+      ) : <View style={styles.messageBody}>{bubble}</View>}
+      {own ? <UserAvatar name={senderName} uri={senderAvatar} size={28} /> : null}
     </View>
   );
 });
@@ -119,6 +121,7 @@ function DaySeparator({ date, chat, palette }: { date: Date; chat: ChatColors; p
 export default function ChatScreen() {
   const { conversationId: route, title: titleParam } = useLocalSearchParams<{ conversationId: string; title?: string }>();
   const { user } = useAuth();
+  const profile = useCurrentProfile();
   const { palette } = useAppTheme();
   const chat = useChatColors();
   const { t } = useI18n();
@@ -140,7 +143,9 @@ export default function ChatScreen() {
   // La bandeja trae el nombre, la vivienda y el id del interlocutor.
   const conversations = useQuery({ queryKey: conversationKeys.list(user?.id ?? 'guest'), queryFn: fetchConversations, enabled: Boolean(user) });
   const conversation = chatId ? conversations.data?.find((item) => item.id === chatId) : undefined;
-  const contactName = titleParam || conversation?.title || 'CasaSeg';
+  const contactName = conversation?.title || titleParam || 'CasaSeg';
+  const ownName = user?.name?.trim() || profile.data?.name || 'CasaSeg';
+  const ownAvatar = user?.avatar ?? profile.data?.avatar;
   const partnerId = conversation?.partnerId;
   const { requestDelete } = useDeleteChat();
   const deleteChat = async () => {
@@ -211,8 +216,8 @@ export default function ChatScreen() {
   const renderItem = useCallback<ListRenderItem<TimelineItem>>(
     ({ item }) => (item.type === 'day'
       ? <DaySeparator date={item.date} chat={chat} palette={palette} />
-      : <MessageBubble item={item} chat={chat} onRetry={retry} />),
-    [chat, palette, retry],
+      : <MessageBubble item={item} chat={chat} senderName={item.own ? ownName : contactName} senderAvatar={item.own ? ownAvatar : conversation?.avatar} onRetry={retry} />),
+    [chat, contactName, conversation?.avatar, ownAvatar, ownName, palette, retry],
   );
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -324,10 +329,11 @@ const styles = StyleSheet.create({
   contactName: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
   contactSubtitle: { fontSize: 13, lineHeight: 17, fontFamily: fontFamily.regular },
   messages: { paddingHorizontal: 12, paddingVertical: 10, flexGrow: 1 },
-  row: { flexDirection: 'row', marginTop: 2 },
+  row: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: 2 },
   rowFirst: { marginTop: 8 },
-  rowOwn: { justifyContent: 'flex-end', paddingLeft: 56 },
-  rowOther: { justifyContent: 'flex-start', paddingRight: 56 },
+  rowOwn: { justifyContent: 'flex-end', paddingLeft: 48 },
+  rowOther: { justifyContent: 'flex-start', paddingRight: 48 },
+  messageBody: { maxWidth: '100%', flexShrink: 1 },
   bubble: { maxWidth: '100%', borderRadius: 12, paddingLeft: 10, paddingRight: 10, paddingTop: 6, paddingBottom: 7, boxShadow: '0 1px 1px rgba(15,23,42,0.12)' },
   bubbleOwn: { alignSelf: 'flex-end', marginRight: TAIL },
   bubbleOther: { alignSelf: 'flex-start', marginLeft: TAIL },
@@ -348,7 +354,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 13, lineHeight: 18, fontFamily: fontFamily.regular, textAlign: 'center' },
   scrollDown: { position: 'absolute', right: 14, bottom: 12, width: 42, height: 42, borderRadius: 21, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(15,23,42,0.22)' },
   composer: { paddingHorizontal: 8, paddingTop: 6, paddingBottom: 8, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  input: { flex: 1, minHeight: 46, maxHeight: 132, borderRadius: 23, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, fontSize: 16, lineHeight: 21, fontFamily: fontFamily.regular, boxShadow: '0 1px 1px rgba(15,23,42,0.10)' },
+  input: { flex: 1, minHeight: 46, maxHeight: 132, borderRadius: radius.xl, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 12, fontSize: 16, lineHeight: 21, fontFamily: fontFamily.regular, boxShadow: '0 1px 1px rgba(15,23,42,0.10)' },
   send: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden' },
   sendGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   sendDisabled: { opacity: 0.45 },

@@ -3,6 +3,7 @@ import { Apple } from '@/components/ui/icons';
 import { fontFamily, radius } from '@/constants/theme';
 
 export type AppleAuthButtonProps = {
+  accessibilityLabel?: string;
   backgroundColor: string;
   borderColor: string;
   colorScheme: 'light' | 'dark';
@@ -12,17 +13,18 @@ export type AppleAuthButtonProps = {
   textColor: string;
 };
 
-export function AppleAuthButton({ backgroundColor, borderColor, disabled, label, onPress, textColor }: AppleAuthButtonProps) {
+export function AppleAuthButton({ accessibilityLabel, backgroundColor, borderColor, disabled, label, onPress, textColor }: AppleAuthButtonProps) {
   return (
     <Pressable
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor, borderColor, opacity: disabled ? 0.55 : pressed ? 0.75 : 1 },
+        { backgroundColor, borderColor, opacity: disabled ? 0.5 : 1 },
+        pressed && { transform: [{ scale: 0.98 }] },
       ]}
     >
       <Apple color={textColor} fill={textColor} size={22} />
@@ -34,13 +36,13 @@ export function AppleAuthButton({ backgroundColor, borderColor, disabled, label,
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     height: 52,
     justifyContent: 'center',
     width: '100%',
   },
-  label: { fontSize: 15, fontFamily: fontFamily.bold },
+  label: { fontSize: 14, fontFamily: fontFamily.semibold },
 });

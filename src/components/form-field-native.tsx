@@ -63,7 +63,7 @@ export function FormField({ error, inputRef, label, rightAccessory, ...inputProp
           onFocus={() => emitFocus(true)}
           onChangeText={inputProps.onChangeText}
           onSubmitEditing={(submittedValue) => inputProps.onSubmitEditing?.({ nativeEvent: { text: submittedValue } } as never)}
-          style={{ width: '100%', height: inputProps.multiline ? 112 : 54, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderRadius: radius.md, borderColor: error ? colors.error : focused ? colors.brand : palette.border, backgroundColor: palette.surface }}
+          style={{ width: '100%', height: inputProps.multiline ? 112 : 54, paddingHorizontal: 20, paddingVertical: 14, borderWidth: 1, borderRadius: inputProps.multiline ? radius.xl : radius.pill, borderColor: error ? colors.error : focused ? colors.brand : palette.border, backgroundColor: palette.surface }}
           textStyle={{ fontFamily: fontFamily.regular, color: palette.text, fontSize: 16 }}
         />
       </Host>

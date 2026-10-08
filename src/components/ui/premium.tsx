@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useRef, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { CasasegLogo } from '@/components/ui/casaseg-logo';
 import { ArrowLeft, ArrowRight, Clock, RefreshCw, type IconProps } from '@/components/ui/icons';
@@ -71,24 +71,41 @@ export function HeroBadge({ label, icon: Icon }: { label: string; icon?: IconCom
 
 type ButtonProps = {
   label: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   icon?: IconComponent;
   trailingIcon?: IconComponent;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'brand' | 'secondary' | 'danger' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   style?: StyleProp<ViewStyle>;
 };
 
-export function PremiumButton({ label, onPress, icon: Icon, trailingIcon: TrailingIcon, loading = false, disabled = false, variant = 'primary', style }: ButtonProps) {
-  const { palette } = useAppTheme();
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const buttonSizes = {
+  sm: { minHeight: 44, paddingHorizontal: 12, fontSize: 14 },
+  md: { minHeight: 48, paddingHorizontal: 16, fontSize: 14 },
+  lg: { minHeight: 52, paddingHorizontal: 24, fontSize: 16 },
+} as const;
+
+export function PremiumButton({ label, accessibilityLabel, onPress, icon: Icon, trailingIcon: TrailingIcon, loading = false, disabled = false, variant = 'primary', size = 'lg', style }: ButtonProps) {
+  const { palette, resolvedMode } = useAppTheme();
   const [focused, setFocused] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const scale = useRef(new Animated.Value(1)).current;
   const inactive = disabled || loading;
+  const metrics = buttonSizes[size];
+  const lightText = variant === 'primary' || variant === 'brand' || variant === 'danger';
+  const foreground = lightText ? colors.onBrand : palette.text;
+  const animatePress = (toValue: number) => {
+    Animated.spring(scale, { toValue, useNativeDriver: Platform.OS !== 'web', speed: 30, bounciness: 0 }).start();
+  };
   const content = (
     <>
-      {loading ? <ActivityIndicator color={variant === 'secondary' ? palette.text : 'white'} /> : Icon ? <Icon color={variant === 'secondary' ? palette.text : 'white'} size={20} /> : null}
-      <Text style={[styles.buttonLabel, variant === 'secondary' && { color: palette.text }, variant === 'danger' && { color: palette.errorText }]}>{label}</Text>
-      {TrailingIcon ? <TrailingIcon color={variant === 'secondary' ? palette.textSecondary : 'white'} size={19} /> : null}
+      {loading ? <ActivityIndicator color={foreground} /> : Icon ? <Icon color={foreground} size={20} /> : null}
+      <Text style={[styles.buttonLabel, { color: foreground, fontSize: metrics.fontSize }]}>{label}</Text>
+      {TrailingIcon ? <TrailingIcon color={foreground} size={19} /> : null}
     </>
   );
 
@@ -97,18 +114,35 @@ export function PremiumButton({ label, onPress, icon: Icon, trailingIcon: Traili
     onPress();
   };
 
-  if (variant === 'primary') {
-    return (
-      <Pressable accessibilityLabel={label} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} android_ripple={onBrandRipple} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, style, focused && styles.buttonFocused, (inactive || (pressed && !usesRipple)) && styles.buttonPressed]}>
-        <LinearGradient colors={actionGradient} style={styles.buttonGradient}>{content}</LinearGradient>
-      </Pressable>
-    );
-  }
-
   return (
-    <Pressable accessibilityLabel={label} accessibilityRole="button" accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onBlur={() => setFocused(false)} android_ripple={pressRipple} onFocus={() => setFocused(true)} onPress={press} style={({ pressed }) => [styles.buttonShell, styles.secondaryButton, { backgroundColor: variant === 'danger' ? `${colors.error}12` : palette.surface, borderColor: variant === 'danger' ? `${colors.error}35` : palette.border }, style, focused && styles.buttonFocused, (inactive || (pressed && !usesRipple)) && styles.buttonPressed]}>
-      {content}
-    </Pressable>
+    <AnimatedPressable
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: inactive, busy: loading }}
+      android_ripple={lightText ? onBrandRipple : pressRipple}
+      disabled={inactive}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPress={press}
+      onPressIn={() => { setPressed(true); animatePress(0.98); }}
+      onPressOut={() => { setPressed(false); animatePress(1); }}
+      style={[
+        styles.buttonShell,
+        { minHeight: metrics.minHeight, opacity: inactive ? 0.5 : 1, transform: [{ scale }] },
+        variant === 'secondary' && { backgroundColor: palette.surface, borderColor: resolvedMode === 'dark' ? palette.border : brand.neutral[300], borderWidth: 1, boxShadow: 'none' },
+        variant === 'ghost' && { backgroundColor: pressed ? palette.subtle : 'transparent', boxShadow: 'none' },
+        variant === 'primary' && { backgroundColor: pressed ? colors.brandDark : colors.brand },
+        variant === 'danger' && { backgroundColor: pressed ? colors.errorDark : colors.error },
+        style,
+        focused && styles.buttonFocused,
+      ]}
+    >
+      {variant === 'brand' ? (
+        <LinearGradient colors={actionGradient} style={[styles.buttonContent, { minHeight: metrics.minHeight, paddingHorizontal: metrics.paddingHorizontal }]}>{content}</LinearGradient>
+      ) : (
+        <View style={[styles.buttonContent, { minHeight: metrics.minHeight, paddingHorizontal: metrics.paddingHorizontal }]}>{content}</View>
+      )}
+    </AnimatedPressable>
   );
 }
 
@@ -221,12 +255,11 @@ const styles = StyleSheet.create({
   heroTitleCompact: { fontSize: 26, lineHeight: 32 },
   heroBadge: { minHeight: 30, borderRadius: radius.pill, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6 },
   heroBadgeText: { fontSize: 12, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
-  buttonShell: { minHeight: 52, borderRadius: radius.sm, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 8px 18px ${withAlpha(colors.brand, 0.18)}` },
-  buttonGradient: { minHeight: 52, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  secondaryButton: { minHeight: 52, borderWidth: 1, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: 'none' },
+  buttonShell: { minHeight: 52, borderRadius: radius.pill, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 8px 18px ${withAlpha(colors.brand, 0.18)}` },
+  buttonContent: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   buttonPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
   buttonFocused: { boxShadow: `0 0 0 3px ${withAlpha(colors.primary, 0.38)}` },
-  buttonLabel: { color: 'white', fontSize: 16, fontFamily: fontFamily.bold },
+  buttonLabel: { color: 'white', fontSize: 16, fontFamily: fontFamily.semibold },
   emptyCard: { minHeight: 300, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 28, alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 12px 30px rgba(15,23,42,0.06)' },
   emptyIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 5 },
   emptyTitle: { fontSize: 20, lineHeight: 26, fontFamily: fontFamily.bold, textAlign: 'center' },

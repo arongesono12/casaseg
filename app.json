@@ -23,7 +23,7 @@
       "favicon": "./assets/images/splash-icon.png",
       "manifest": {
         "display": "standalone",
-        "background_color": "#1D66A3",
+        "background_color": "#F3F9FD",
         "theme_color": "#1D66A3",
         "scope": "/",
         "start_url": "/",
@@ -51,8 +51,8 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7FAFC",
-          "image": "./assets/images/splash-icon.png",
+          "backgroundColor": "#F3F9FD",
+          "image": "./assets/images/splash-brand-light.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "android": {
@@ -60,7 +60,7 @@
           },
           "dark": {
             "backgroundColor": "#0B131B",
-            "image": "./assets/images/splash-icon.png"
+            "image": "./assets/images/splash-brand-dark.png"
           }
         }
       ],

@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { createElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -15,7 +14,9 @@ import {
   type AppIcon,
 } from '@/components/ui/icons';
 import { UserAvatar } from '@/components/user-avatar';
-import { actionGradient, colors, fontFamily, radius, touchTarget, type AppPalette } from '@/constants/theme';
+import { PremiumButton } from '@/components/ui/premium';
+import { brand, colors, fontFamily, radius, touchTarget, type AppPalette } from '@/constants/theme';
+import { haptics } from '@/lib/haptics';
 
 // Las comodidades se guardan con su nombre en español (ver amenities.ts); aquí
 // solo se elige el icono. Las que escribió el propietario usan el genérico.
@@ -112,18 +113,7 @@ export function AmenityChip({ amenity, label, palette }: { amenity: string; labe
 }
 
 export function PrimaryButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-    >
-      <LinearGradient colors={actionGradient} end={{ x: 1, y: 1 }} start={{ x: 0, y: 0 }} style={styles.primaryGradient}>
-        <Text numberOfLines={2} style={styles.primaryText}>{label}</Text>
-      </LinearGradient>
-    </Pressable>
-  );
+  return <PremiumButton label={label} onPress={onPress} variant="brand" />;
 }
 
 export function SecondaryButton({ label, onPress, palette, icon }: { label: string; onPress: () => void; palette: AppPalette; icon?: ReactNode }) {
@@ -131,10 +121,11 @@ export function SecondaryButton({ label, onPress, palette, icon }: { label: stri
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={() => { haptics.tap(); onPress(); }}
       style={({ pressed }) => [
         styles.secondaryButton,
-        { borderColor: palette.border, backgroundColor: pressed ? palette.subtle : palette.surface },
+        { borderColor: palette.surface === brand.neutral[0] ? brand.neutral[300] : palette.border, backgroundColor: pressed ? palette.subtle : palette.surface },
+        pressed && styles.pressed,
       ]}
     >
       {icon}
@@ -190,12 +181,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   amenityText: { flex: 1, fontSize: 14, lineHeight: 19, fontFamily: fontFamily.bold },
-  primaryButton: { minHeight: 56, borderRadius: radius.md, borderCurve: 'continuous', overflow: 'hidden' },
-  primaryGradient: { flex: 1, minHeight: 56, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: 'white', textAlign: 'center', fontSize: 15, lineHeight: 20, fontFamily: fontFamily.extrabold },
   secondaryButton: {
     minHeight: 52,
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     borderCurve: 'continuous',
     borderWidth: 1,
     paddingHorizontal: 14,
@@ -204,6 +192,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  secondaryText: { textAlign: 'center', fontSize: 14, lineHeight: 19, fontFamily: fontFamily.bold },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
+  secondaryText: { textAlign: 'center', fontSize: 14, lineHeight: 19, fontFamily: fontFamily.semibold },
+  pressed: { transform: [{ scale: 0.98 }] },
 });

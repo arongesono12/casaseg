@@ -205,7 +205,6 @@ export default function PropertyDetailScreen() {
   const numberLocale =
     locale === "fr" ? "fr-FR" : locale === "en" ? "en-US" : "es-GQ";
   const price = formatXaf(property.price, undefined, numberLocale);
-  const narrowCta = width <= 360;
   const priceUnit =
     property.priceType === "per_month"
       ? copy.perMonth
@@ -576,18 +575,6 @@ export default function PropertyDetailScreen() {
             },
           ]}
         >
-          <View style={styles.ctaPriceBlock}>
-            <Text
-              selectable
-              numberOfLines={1}
-              style={[styles.ctaPrice, styles.underline, { color: palette.text }]}
-            >
-              {narrowCta ? price.replace(/ FCFA$/, "") : price}
-            </Text>
-            <Text style={[styles.ctaUnit, { color: palette.textSecondary }]}>
-              {narrowCta ? `FCFA · ${priceUnit}` : priceUnit}
-            </Text>
-          </View>
           <View style={styles.ctaButtonWrap}>
             <PremiumButton label={actionLabel} onPress={requestVisit} />
           </View>
@@ -848,18 +835,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
     boxShadow: "0 -8px 24px rgba(15,23,42,0.08)",
   },
-  ctaPriceBlock: { flex: 1, minWidth: 0 },
-  ctaPrice: {
-    fontSize: 17,
-    lineHeight: 22,
-    fontFamily: fontFamily.extrabold,
-    fontVariant: ["tabular-nums"],
-  },
-  ctaUnit: { fontSize: 12, lineHeight: 17, fontFamily: fontFamily.semibold },
-  ctaButtonWrap: { minWidth: 148, maxWidth: "56%" },
+  ctaButtonWrap: { flex: 1 },
   center: {
     flex: 1,
     alignItems: "center",

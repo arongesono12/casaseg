@@ -36,6 +36,6 @@ const styles = StyleSheet.create({
   container: { gap: 8 },
   hint: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   row: { flexDirection: 'row', gap: 8 },
-  input: { flex: 1, minHeight: 50, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12 },
+  input: { flex: 1, minHeight: 50, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 12 },
   status: { color: colors.brandDark, fontSize: 13, fontFamily: fontFamily.bold },
 });

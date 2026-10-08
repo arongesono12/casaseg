@@ -82,13 +82,13 @@ export default function AdminUsers() {
 }
 
 const styles = StyleSheet.create({
-  search: { minHeight: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', gap: 10, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
+  search: { minHeight: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, borderCurve: 'continuous', paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', gap: 10, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   searchInput: { fontFamily: fontFamily.regular, flex: 1, minHeight: 52, fontSize: 15 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filter: { minHeight: 44, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.pill, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   filterText: { fontSize: 12, fontFamily: fontFamily.extrabold },
   list: { gap: 10 },
-  row: { minHeight: 94, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
+  row: { minHeight: 94, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, boxShadow: '0 8px 22px rgba(15,23,42,0.05)' },
   copy: { flex: 1, minWidth: 0, gap: 5 },
   name: { fontSize: 15, fontFamily: fontFamily.bold },
   email: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },

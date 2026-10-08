@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   providers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   provider: { minHeight: 44, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 14, justifyContent: 'center' },
   providerText: { fontSize: 13, fontFamily: fontFamily.bold },
-  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
+  input: { fontFamily: fontFamily.regular, minHeight: touchTarget, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: 14, fontSize: 16 },
   hint: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
   consent: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 10 },
   consentText: { flex: 1 },
