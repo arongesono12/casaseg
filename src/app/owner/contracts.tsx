@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { router, type Href } from 'expo-router';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { StayReviewForm } from '@/components/contracts/stay-review-form';
@@ -23,6 +24,7 @@ const contractsCopy = defineCopy({
   fr: { signed: 'Signé', awaitingSignature: 'Signatures en attente', partiallySigned: 'Signé par une partie', cancelled: 'Annulé', signConfirm: 'La signature nécessitera une confirmation sécurisée.', toSign: '{count} à signer', loadingTitle: 'Chargement des contrats', loadingBody: 'Nous vérifions les versions disponibles.', errorTitle: 'Impossible de charger les contrats', errorBody: 'Vérifiez la connexion et réessayez.', emptyTitle: 'Vous n’avez pas encore de contrat', emptyBody: 'Les contrats liés à vos logements apparaîtront ici dès qu’ils seront prêts.', signedOn: 'Signé le {date}' },
   en: { signed: 'Signed', awaitingSignature: 'Awaiting signatures', partiallySigned: 'Signed by one party', cancelled: 'Cancelled', signConfirm: 'Signing will require secure confirmation.', toSign: '{count} to sign', loadingTitle: 'Loading contracts', loadingBody: 'We are verifying the available versions.', errorTitle: 'We could not load the contracts', errorBody: 'Check your connection and try again.', emptyTitle: 'You have no contracts yet', emptyBody: 'Contracts linked to your properties will appear here once they are ready.', signedOn: 'Signed on {date}' },
 });
+const travelerCopy = defineCopy({ es: { label: 'Parte de viajeros' }, fr: { label: 'Déclaration des voyageurs' }, en: { label: 'Traveler report' } });
 type ContractsCopy = (typeof contractsCopy)['es'];
 
 function contractStatus(contract: LeaseContract, copy: ContractsCopy) {
@@ -36,6 +38,7 @@ export default function Contracts() {
   const { palette } = useAppTheme();
   const { locale, t } = useI18n();
   const copy = useCopy(contractsCopy);
+  const travelerLabel = useCopy(travelerCopy).label;
   const client = useQueryClient();
   const { user, role } = useAuth();
   const profileId = useProfileId();
@@ -95,6 +98,7 @@ export default function Contracts() {
               <View style={styles.actions}>
                 <PremiumButton variant="secondary" label={t('openPdf')} icon={ExternalLink} loading={openingContractId === contract.id} onPress={() => void handleOpenPdf(contract)} style={styles.action} />
                 {needsSignatureFrom(contract, profileId) ? <PremiumButton label={t('signMfa')} icon={Lock} loading={sign.isPending && sign.variables?.id === contract.id} onPress={() => confirm(contract)} style={styles.action} /> : null}
+                {role === 'owner' && profileId === contract.ownerId && contract.status === 'signed' ? <PremiumButton variant="secondary" label={travelerLabel} onPress={() => router.push({ pathname: '/owner/traveler-report/[contractId]', params: { contractId: contract.id } } as unknown as Href)} style={styles.action} /> : null}
               </View>
               {canReview(contract) ? <StayReviewForm contractId={contract.id} reviewQueryKey={reviewedKey} /> : null}
             </View>

@@ -17,8 +17,6 @@ export default function OwnerLayout() {
       <Stack.Screen name="contract-template/[propertyId]" />
     </Stack.Protected>
     <Stack.Protected guard={isAuthenticated}>
-      {/* La solicitud para ser propietario la envía un cliente, como en la web. */}
-      <Stack.Screen name="onboarding" />
       <Stack.Screen name="payments" />
       <Stack.Screen name="contracts" />
     </Stack.Protected>

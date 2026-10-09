@@ -5,7 +5,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { CheckCircle2, Clock, XCircle } from '@/components/ui/icons';
 import { PremiumButton, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius, touchTarget } from '@/constants/theme';
-import { fetchOwnerPaymentAccounts, payoutKeys, saveFondosEgAccount, type OwnerPaymentAccount } from '@/features/payments/owner-payouts.api';
+import { fetchOwnerPaymentAccounts, payoutKeys, saveEcobankAccount, saveFondosEgAccount, type OwnerPaymentAccount } from '@/features/payments/owner-payouts.api';
 import { defineCopy, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -13,6 +13,12 @@ const payoutCopy = defineCopy({
   es: { title: 'Cuenta de cobro FondosEG', body: 'Aquí recibirás los alquileres cobrados. Administración verifica la cuenta antes de la primera liquidación.', name: 'Titular de la cuenta', phone: 'Teléfono del monedero', city: 'Ciudad', save: 'Guardar cuenta', verified: 'Verificada', pending: 'En verificación', rejected: 'Rechazada' },
   fr: { title: 'Compte d’encaissement FondosEG', body: 'Vous y recevrez les loyers encaissés. L’administration vérifie le compte avant le premier versement.', name: 'Titulaire du compte', phone: 'Téléphone du portefeuille', city: 'Ville', save: 'Enregistrer le compte', verified: 'Vérifié', pending: 'En vérification', rejected: 'Refusé' },
   en: { title: 'FondosEG payout account', body: 'Collected rents are paid out here. Administration verifies the account before the first payout.', name: 'Account holder', phone: 'Wallet phone', city: 'City', save: 'Save account', verified: 'Verified', pending: 'Under verification', rejected: 'Rejected' },
+});
+
+const ecobankCopy = defineCopy({
+  es: { title: 'Cuenta de cobro Ecobank', body: 'Añade una cuenta bancaria para recibir liquidaciones tras la verificación administrativa.', accountNumber: 'Número de cuenta', currency: 'Moneda', save: 'Guardar cuenta Ecobank', name: 'Titular de la cuenta', phone: 'Teléfono', city: 'Ciudad' },
+  fr: { title: 'Compte de versement Ecobank', body: 'Ajoutez un compte bancaire pour recevoir les versements après vérification.', accountNumber: 'Numéro de compte', currency: 'Devise', save: 'Enregistrer le compte Ecobank', name: 'Titulaire', phone: 'Téléphone', city: 'Ville' },
+  en: { title: 'Ecobank payout account', body: 'Add a bank account to receive payouts after administrative verification.', accountNumber: 'Account number', currency: 'Currency', save: 'Save Ecobank account', name: 'Account holder', phone: 'Phone', city: 'City' },
 });
 
 function accountStatus(account: OwnerPaymentAccount, copy: (typeof payoutCopy)['es']) {
@@ -56,6 +62,45 @@ export function OwnerPayoutAccountCard({ ownerId }: { ownerId: string }) {
           <PremiumButton label={copy.save} loading={save.isPending} disabled={!accountName.trim() || !walletPhone.trim() || !destinationCity.trim()} onPress={() => save.mutate()} />
         </>
       ) : null}
+      {save.error ? <Text accessibilityRole="alert" style={[styles.body, { color: palette.errorText }]}>{save.error.message}</Text> : null}
+    </View>
+  );
+}
+
+export function OwnerEcobankAccountCard({ ownerId }: { ownerId: string }) {
+  const { palette } = useAppTheme();
+  const copy = useCopy(payoutCopy);
+  const bank = useCopy(ecobankCopy);
+  const queryClient = useQueryClient();
+  const accounts = useQuery({ queryKey: payoutKeys.accounts(ownerId), queryFn: () => fetchOwnerPaymentAccounts(ownerId) });
+  const current = accounts.data?.find((account) => account.provider === 'ecobank');
+  const [accountName, setAccountName] = useState('');
+  const [walletPhone, setWalletPhone] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [destinationCity, setDestinationCity] = useState('Malabo');
+  const [accountCurrency, setAccountCurrency] = useState('XAF');
+  const save = useMutation({
+    mutationFn: () => saveEcobankAccount({ accountName, walletPhone, accountNumber, destinationCity, accountCurrency }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: payoutKeys.accounts(ownerId) }),
+  });
+  const field = (value: string, onChange: (text: string) => void, label: string, keyboardType: 'default' | 'phone-pad' = 'default') =>
+    <TextInput accessibilityLabel={label} value={value} onChangeText={onChange} placeholder={label} placeholderTextColor={palette.muted} keyboardType={keyboardType} style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]} />;
+  return (
+    <View style={[styles.card, { backgroundColor: palette.subtle }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: palette.text }]}>{bank.title}</Text>
+        {current ? <StatusPill {...accountStatus(current, copy)} /> : null}
+      </View>
+      <Text style={[styles.body, { color: palette.textSecondary }]}>{current ? `${current.accountName} · ${current.accountNumber}` : bank.body}</Text>
+      {current?.rejectionReason ? <Text style={[styles.body, { color: palette.errorText }]}>{current.rejectionReason}</Text> : null}
+      {!current || current.status === 'rejected' ? <>
+        {field(accountName, setAccountName, bank.name)}
+        {field(walletPhone, setWalletPhone, bank.phone, 'phone-pad')}
+        {field(accountNumber, setAccountNumber, bank.accountNumber)}
+        {field(destinationCity, setDestinationCity, bank.city)}
+        {field(accountCurrency, setAccountCurrency, bank.currency)}
+        <PremiumButton label={bank.save} loading={save.isPending} disabled={!accountName.trim() || !walletPhone.trim() || !accountNumber.trim() || !destinationCity.trim()} onPress={() => save.mutate()} />
+      </> : null}
       {save.error ? <Text accessibilityRole="alert" style={[styles.body, { color: palette.errorText }]}>{save.error.message}</Text> : null}
     </View>
   );

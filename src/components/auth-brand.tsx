@@ -1,22 +1,16 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { CasasegLogo } from '@/components/ui/casaseg-logo';
-import { fontFamily } from '@/constants/theme';
-import { useAppTheme } from '@/providers/theme-context';
 
-/** Small brand signature for forms where the content needs the vertical space. */
-export function AuthBrand() {
-  const { palette } = useAppTheme();
-
+/** Icono de marca centrado sobre el título de acceso y registro. */
+export function AuthBrand({ compact = false }: { compact?: boolean }) {
   return (
-    <View accessibilityLabel="CasaSeg" style={styles.brand}>
-      <CasasegLogo width={34} height={29} />
-      <Text style={[styles.wordmark, { color: palette.text }]}>CASASEG</Text>
+    <View accessibilityLabel="CasasEG" accessibilityRole="image" style={styles.brand}>
+      <CasasegLogo width={compact ? 40 : 52} height={compact ? 33 : 43} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  brand: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  wordmark: { fontFamily: fontFamily.extrabold, fontSize: 13, letterSpacing: 1.8 },
+  brand: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
 });

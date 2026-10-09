@@ -106,9 +106,11 @@ function RootNavigator() {
         </Stack.Protected>
 
         <Stack.Protected guard={isAuthenticated}>
+          <Stack.Screen name="become-owner" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="chat/[conversationId]" />
+          <Stack.Screen name="encounters/[conversationId]" />
           <Stack.Screen name="visit/[propertyId]" />
           <Stack.Screen name="visits/index" />
           <Stack.Screen name="payment/success" />

@@ -7,10 +7,10 @@ export function useProperties(filters: PropertyFilters) {
   return useQuery({ queryKey: propertyKeys.list(filters), queryFn: ({ signal }) => fetchProperties(filters, signal), placeholderData: (previous) => previous });
 }
 
-export function useInfiniteProperties(filters: PropertyFilters) {
+export function useInfiniteProperties(filters: PropertyFilters, pageSize = 12) {
   return useInfiniteQuery({
-    queryKey: [...propertyKeys.list(filters), 'infinite'],
-    queryFn: ({ pageParam, signal }) => fetchPropertiesPage(filters, pageParam, signal),
+    queryKey: [...propertyKeys.list(filters), 'infinite', pageSize],
+    queryFn: ({ pageParam, signal }) => fetchPropertiesPage(filters, pageParam, signal, pageSize),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });

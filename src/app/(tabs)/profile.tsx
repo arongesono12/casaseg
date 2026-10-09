@@ -1,17 +1,18 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, type Href } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FormField } from '@/components/form-field';
 import { RouteScreen } from '@/components/route-screen';
 import { ProfileHeaderCard } from '@/components/profile/profile-header-card';
-import { ArrowRight, Bell, Building2, Calendar, Check, CheckCircle2, HomeCheck, Lock, LogOut, Settings, ShieldCheck } from '@/components/ui/icons';
+import { ArrowRight, Bell, Building2, Calendar, Check, CheckCircle2, HomeCheck, Lock, LogOut, Mail, Settings, ShieldCheck } from '@/components/ui/icons';
 import { PremiumButton, SurfaceCard } from '@/components/ui/premium';
 import { actionGradient, colors, fontFamily, radius, withAlpha, type AppPalette } from '@/constants/theme';
-import { useCurrentProfile, useUpdateProfilePhone } from '@/features/auth/use-current-profile';
+import { useCurrentProfile, useUpdateProfileExtras, useUpdateProfilePhone } from '@/features/auth/use-current-profile';
+import { pickAndUploadProfileImage, removeUploadedProfileImage } from '@/features/auth/profile-media';
 import { isValidProfilePhone, normalizeProfilePhone } from '@/features/auth/profile-phone';
 import { isAdminRole, isOwnerRole } from '@/lib/access-control';
 import { onBrandRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
@@ -33,29 +34,60 @@ const detailsCopy = defineCopy({
   en: { edit: 'Edit profile', email: 'Email', phone: 'Phone number', phoneMissing: 'Not added', phoneInvalid: 'Enter a valid number with 7 to 15 digits.', cancel: 'Cancel', loading: 'Loading personal information…', unavailable: 'We could not load your personal information.', retry: 'Retry' },
 });
 
+const mediaCopy = defineCopy({
+  es: { changeAvatar: 'Cambiar foto', changeCover: 'Cambiar portada', updating: 'Actualizando…', failed: 'No pudimos actualizar la imagen.', about: 'Sobre mí', website: 'Sitio web', social: 'Redes sociales' },
+  fr: { changeAvatar: 'Changer la photo', changeCover: 'Changer la couverture', updating: 'Mise à jour…', failed: 'Impossible de modifier l’image.', about: 'À propos', website: 'Site web', social: 'Réseaux sociaux' },
+  en: { changeAvatar: 'Change photo', changeCover: 'Change cover', updating: 'Updating…', failed: 'Could not update the image.', about: 'About me', website: 'Website', social: 'Social links' },
+});
+const contactActionCopy = defineCopy({ es: { title: 'Contacto', body: 'Escribe al equipo de CasaSeg.' }, fr: { title: 'Contact', body: 'Écrivez à l’équipe CasaSeg.' }, en: { title: 'Contact', body: 'Write to the CasaSeg team.' } });
+
 export default function ProfileScreen() {
   const { user, role, isRoleLoading, roleError, signOut, updateProfileName } = useAuth();
   const { palette } = useAppTheme();
   const { t } = useI18n();
   const copy = useCopy(profileCopy);
+  const media = useCopy(mediaCopy);
+  const contactAction = useCopy(contactActionCopy);
   const { width } = useWindowDimensions();
   const wide = width >= 760;
   const profile = useCurrentProfile();
   const updatePhone = useUpdateProfilePhone();
+  const updateExtras = useUpdateProfileExtras();
   const insets = useSafeAreaInsets();
+  const profileScrollRef = useRef<ScrollView>(null);
+  const [editing, setEditing] = useState(false);
+  const [mediaSaving, setMediaSaving] = useState<'avatars' | 'covers' | null>(null);
+  const [mediaError, setMediaError] = useState<string>();
 
   if (!user) return <Redirect href="/(auth)/login" />;
 
   const roleLabel = isRoleLoading ? t('verifyingRole') : role === 'owner' ? t('owner') : role === 'client' ? t('client') : role === 'superadmin' ? copy.superadmin : role === 'admin' ? copy.admin : t('roleUnavailable');
   const roleTone = isAdminRole(role) ? colors.primary : isOwnerRole(role) ? colors.brand : role === 'client' ? colors.success : palette.muted;
   const RoleIcon = isAdminRole(role) ? ShieldCheck : isOwnerRole(role) ? Building2 : role === 'client' ? HomeCheck : Lock;
-  const saveProfile = async ({ name, phone }: { name: string; phone: string | null }) => {
+  const saveProfile = async ({ name, phone, about, socialLinks }: { name: string; phone: string | null; about: string; socialLinks: Record<string, string> }) => {
     if (phone !== (profile.data?.phone ?? null)) await updatePhone(phone);
     if (name !== user.name.trim()) await updateProfileName(name);
+    await updateExtras({ about: about.trim() || null, socialLinks });
+  };
+  const chooseProfileImage = async (kind: 'avatars' | 'covers') => {
+    if (!editing || mediaSaving || !profile.data?.id) return;
+    setMediaError(undefined);
+    setMediaSaving(kind);
+    let uploaded: { url: string; path: string } | null = null;
+    try {
+      uploaded = await pickAndUploadProfileImage(profile.data.id, kind);
+      if (uploaded) await updateExtras(kind === 'avatars' ? { avatar: uploaded.url } : { coverPicture: uploaded.url });
+    } catch (cause) {
+      if (uploaded?.path) await removeUploadedProfileImage(uploaded.path).catch(() => undefined);
+      setMediaError(cause instanceof Error ? cause.message : media.failed);
+    } finally {
+      setMediaSaving(null);
+    }
   };
 
   return (
     <RouteScreen
+      scrollRef={profileScrollRef}
       title={t('profile')}
       description={t('profileSubtitle')}
       showBack={false}
@@ -66,7 +98,7 @@ export default function ProfileScreen() {
         <ProfileHeaderCard
           name={user.name}
           email={user.email}
-          avatar={user.avatar ?? profile.data?.avatar}
+          avatar={profile.data?.avatar ?? user.avatar}
           profile={profile.data}
           profileLoading={profile.isLoading}
           roleLabel={roleLabel}
@@ -76,9 +108,16 @@ export default function ProfileScreen() {
           wide={wide}
           topInset={insets.top}
           contentMaxWidth={PROFILE_MAX_WIDTH}
+          editing={editing && Boolean(profile.data)}
+          mediaSaving={mediaSaving}
+          avatarEditLabel={media.changeAvatar}
+          coverEditLabel={media.changeCover}
+          onChangeAvatar={() => void chooseProfileImage('avatars')}
+          onChangeCover={() => void chooseProfileImage('covers')}
         />
       )}
     >
+      {mediaError ? <Text accessibilityRole="alert" style={[styles.formNotice, { color: palette.errorText }]}>{mediaError}</Text> : null}
       {roleError ? (
         <View style={[styles.roleWarning, { backgroundColor: `${colors.error}0E`, borderColor: `${colors.error}26` }]}>
           <Lock color={colors.error} size={20} />
@@ -122,13 +161,15 @@ export default function ProfileScreen() {
           {role === 'client' ? (
             <>
               <View style={[styles.divider, { backgroundColor: palette.border }]} />
-              <Action title={copy.becomeOwner} description={copy.becomeOwnerBody} icon={<Building2 color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/owner/onboarding' as Href)} palette={palette} />
+              <Action title={copy.becomeOwner} description={copy.becomeOwnerBody} icon={<Building2 color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/become-owner')} palette={palette} />
             </>
           ) : null}
           <View style={[styles.divider, { backgroundColor: palette.border }]} />
           <Action title={t('notifications')} description={t('notificationsActionDetail')} icon={<Bell color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/notifications')} palette={palette} />
           <View style={[styles.divider, { backgroundColor: palette.border }]} />
           <Action title={t('settings')} description={t('settingsActionDetail')} icon={<Settings color={palette.brandIcon} size={21} />} tone={colors.primary} onPress={() => router.push('/settings')} palette={palette} />
+          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Action title={contactAction.title} description={contactAction.body} icon={<Mail color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/contact' as Href)} palette={palette} />
         </View>
       </View>
 
@@ -137,11 +178,20 @@ export default function ProfileScreen() {
         initialName={user.name}
         email={user.email}
         initialPhone={profile.data?.phone ?? ''}
+        initialAbout={profile.data?.about ?? ''}
+        initialSocialLinks={profile.data?.socialLinks ?? {}}
         canEdit={Boolean(profile.data)}
         profileLoading={!profile.data && !profile.isError && !profile.isSuccess}
         profileUnavailable={!profile.data && (profile.isError || profile.isSuccess)}
         onRetry={() => void profile.refetch()}
         onSave={saveProfile}
+        editing={editing}
+        onEditingChange={(next) => {
+          setEditing(next);
+          setMediaError(undefined);
+          if (next) requestAnimationFrame(() => profileScrollRef.current?.scrollTo({ y: 0, animated: true }));
+        }}
+        mediaSaving={Boolean(mediaSaving)}
         palette={palette}
         wide={wide}
       />
@@ -189,53 +239,65 @@ function ProfileDetailsForm({
   initialName,
   email,
   initialPhone,
+  initialAbout,
+  initialSocialLinks,
   canEdit,
   profileLoading,
   profileUnavailable,
   onRetry,
   onSave,
+  editing,
+  onEditingChange,
+  mediaSaving,
   palette,
   wide,
 }: {
   initialName: string;
   email: string;
   initialPhone: string;
+  initialAbout: string;
+  initialSocialLinks: Record<string, string>;
   canEdit: boolean;
   profileLoading: boolean;
   profileUnavailable: boolean;
   onRetry: () => void;
-  onSave: (values: { name: string; phone: string | null }) => Promise<void>;
+  onSave: (values: { name: string; phone: string | null; about: string; socialLinks: Record<string, string> }) => Promise<void>;
+  editing: boolean;
+  onEditingChange: (editing: boolean) => void;
+  mediaSaving: boolean;
   palette: AppPalette;
   wide: boolean;
 }) {
   const { t } = useI18n();
   const copy = useCopy(profileCopy);
   const details = useCopy(detailsCopy);
-  const [editing, setEditing] = useState(false);
+  const media = useCopy(mediaCopy);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string }>();
-  const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ name: string; phone: string }>({
-    defaultValues: { name: initialName, phone: initialPhone },
+  const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ name: string; phone: string; about: string; instagram: string; twitter: string; linkedin: string; facebook: string; youtube: string; website: string }>({
+    defaultValues: { name: initialName, phone: initialPhone, about: initialAbout, instagram: initialSocialLinks.instagram ?? '', twitter: initialSocialLinks.twitter ?? '', linkedin: initialSocialLinks.linkedin ?? '', facebook: initialSocialLinks.facebook ?? '', youtube: initialSocialLinks.youtube ?? '', website: initialSocialLinks.website ?? '' },
   });
 
+  const initialValues = () => ({ name: initialName, phone: initialPhone, about: initialAbout, instagram: initialSocialLinks.instagram ?? '', twitter: initialSocialLinks.twitter ?? '', linkedin: initialSocialLinks.linkedin ?? '', facebook: initialSocialLinks.facebook ?? '', youtube: initialSocialLinks.youtube ?? '', website: initialSocialLinks.website ?? '' });
+
   const startEditing = () => {
-    reset({ name: initialName, phone: initialPhone });
+    reset(initialValues());
     setFeedback(undefined);
-    setEditing(true);
+    onEditingChange(true);
   };
 
   const cancelEditing = () => {
     Keyboard.dismiss();
-    reset({ name: initialName, phone: initialPhone });
+    reset(initialValues());
     setFeedback(undefined);
-    setEditing(false);
+    onEditingChange(false);
   };
 
-  const submit = handleSubmit(async ({ name, phone }) => {
+  const submit = handleSubmit(async ({ name, phone, about, instagram, twitter, linkedin, facebook, youtube, website }) => {
     Keyboard.dismiss();
     setFeedback(undefined);
     try {
-      await onSave({ name: name.trim(), phone: normalizeProfilePhone(phone) });
-      setEditing(false);
+      await onSave({ name: name.trim(), phone: normalizeProfilePhone(phone), about, socialLinks: { instagram: instagram.trim(), twitter: twitter.trim(), linkedin: linkedin.trim(), facebook: facebook.trim(), youtube: youtube.trim(), website: website.trim() } });
+      onEditingChange(false);
       setFeedback({ tone: 'success', message: copy.saved });
     } catch {
       setFeedback({ tone: 'error', message: copy.saveFailed });
@@ -247,7 +309,7 @@ function ProfileDetailsForm({
       <View style={styles.profileFormHeading}>
         <Text accessibilityRole="header" style={[styles.profileFormTitle, { color: palette.text }]}>{copy.personalInfo}</Text>
         {editing ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={details.cancel} disabled={isSubmitting} android_ripple={pressRipple} onPress={cancelEditing} style={({ pressed }) => [styles.editButton, { backgroundColor: palette.subtle }, pressed && !usesRipple && styles.pressed]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={details.cancel} disabled={isSubmitting || mediaSaving} android_ripple={pressRipple} onPress={cancelEditing} style={({ pressed }) => [styles.editButton, { backgroundColor: palette.subtle }, pressed && !usesRipple && styles.pressed]}>
             <Text style={[styles.editButtonText, { color: palette.textSecondary }]}>{details.cancel}</Text>
           </Pressable>
         ) : canEdit ? (
@@ -281,6 +343,8 @@ function ProfileDetailsForm({
             <Text style={[styles.infoLabel, { color: palette.muted }]}>{details.phone}</Text>
             <Text selectable style={[styles.infoValue, { color: initialPhone ? palette.text : palette.textSecondary }]}>{initialPhone || details.phoneMissing}</Text>
           </View>
+          {initialAbout ? <><View style={[styles.infoDivider, { backgroundColor: palette.border }]} /><View style={styles.infoRow}><Text style={[styles.infoLabel, { color: palette.muted }]}>{media.about}</Text><Text selectable style={[styles.infoValue, { color: palette.text }]}>{initialAbout}</Text></View></> : null}
+          {Object.values(initialSocialLinks).some(Boolean) ? <><View style={[styles.infoDivider, { backgroundColor: palette.border }]} /><View style={styles.infoRow}><Text style={[styles.infoLabel, { color: palette.muted }]}>{media.social}</Text><Text selectable style={[styles.infoValue, { color: palette.text }]}>{Object.entries(initialSocialLinks).filter(([, value]) => value).map(([key]) => key).join(' · ')}</Text></View></> : null}
         </View>
       ) : null}
 
@@ -335,6 +399,11 @@ function ProfileDetailsForm({
             <Text style={[styles.infoLabel, { color: palette.muted }]}>{details.email}</Text>
             <Text selectable style={[styles.infoValue, { color: palette.textSecondary }]}>{email}</Text>
           </View>
+          <Controller control={control} name="about" render={({ field }) => <FormField label={media.about} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} multiline numberOfLines={3} maxLength={500} />} />
+          <Text style={[styles.infoLabel, { color: palette.muted }]}>{media.social}</Text>
+          {(['instagram', 'twitter', 'linkedin', 'facebook', 'youtube', 'website'] as const).map((key) => (
+            <Controller key={key} control={control} name={key} render={({ field }) => <FormField label={key === 'website' ? media.website : key.charAt(0).toUpperCase() + key.slice(1)} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} autoCapitalize="none" keyboardType="url" maxLength={240} />} />
+          ))}
         </>
       ) : null}
 
@@ -355,7 +424,7 @@ function ProfileDetailsForm({
       ) : null}
       {editing ? (
         <View style={styles.formActions}>
-          <PremiumButton label={isSubmitting ? t('saving') : t('saveChanges')} icon={Check} loading={isSubmitting} onPress={() => void submit()} style={styles.saveButton} />
+          <PremiumButton label={isSubmitting ? t('saving') : t('saveChanges')} icon={Check} loading={isSubmitting} disabled={mediaSaving} onPress={() => void submit()} style={styles.saveButton} />
         </View>
       ) : null}
     </SurfaceCard>

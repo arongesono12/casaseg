@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import * as Crypto from 'expo-crypto';
+import { Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, Clock, CreditCard, Inbox, Wallet, XCircle } from '@/components/ui/icons';
 import { IconTile, MetricCard, PremiumButton, PremiumEmptyState, PremiumErrorState, SectionTitle, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { BankTransferProofForm } from '@/components/payments/bank-transfer-proof-form';
-import { OwnerPayoutAccountCard } from '@/components/payments/owner-payout-account-card';
+import { OwnerEcobankAccountCard, OwnerPayoutAccountCard } from '@/components/payments/owner-payout-account-card';
 import { useProfileId } from '@/features/auth/use-profile-id';
+import { generateTaxReportExport } from '@/features/compliance/compliance.api';
 import { useAuth } from '@/providers/auth-context';
 import { contractKeys, fetchContracts } from '@/features/contracts/contracts.api';
 import { fetchPaymentOrders, initiateRentalPayment, isOpenPaymentStatus, openPaymentCheckout, paymentKeys, paymentProviderLabels, paymentProviders, providerRequiresPhone, type PaymentOrder, type PaymentProvider } from '@/features/payments/payments.api';
@@ -22,6 +24,7 @@ const paymentsCopy = defineCopy({
   en: { completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled', expired: 'Expired', awaitingReview: 'Under review', processing: 'Processing', pending: 'Pending', acceptCharges: 'I accept the charges breakdown and the cancellation policy for this home.', noPayableContract: 'There is no signed contract awaiting payment.', operations: 'Transactions', completedMetric: 'Completed', confirmedTotal: 'Confirmed total', paymentMethod: 'Payment method', phoneLabel: 'Phone number for the payment', checkingContracts: 'Checking contracts…', chargeContract: 'The contract for {title} will be charged.', historyTitle: 'Transaction history', historyDetail: 'Statuses confirmed directly by the provider.', inProgress: '{count} in progress', loadingTitle: 'Loading transactions', loadingBody: 'We are checking the latest statuses.', errorTitle: 'We could not load the payments', errorBody: 'Check your connection and try again.', emptyTitle: 'No transactions yet', emptyBody: 'When you make or receive a payment, its verified status will appear here.' },
 });
 type PaymentsCopy = (typeof paymentsCopy)['es'];
+const taxCopy = defineCopy({ es: { export: 'Exportar informe fiscal CSV', error: 'No se pudo generar el informe fiscal.' }, fr: { export: 'Exporter le rapport fiscal CSV', error: 'Impossible de générer le rapport fiscal.' }, en: { export: 'Export tax report CSV', error: 'Could not generate the tax report.' } });
 
 function paymentStatus(order: PaymentOrder, copy: PaymentsCopy) {
   if (order.status === 'completed') return { label: copy.completed, tone: colors.success, icon: CheckCircle2 };
@@ -35,6 +38,7 @@ export default function Payments() {
   const { palette } = useAppTheme();
   const { locale, t } = useI18n();
   const copy = useCopy(paymentsCopy);
+  const tax = useCopy(taxCopy);
   const client = useQueryClient();
   const profileId = useProfileId();
   const { role } = useAuth();
@@ -42,6 +46,7 @@ export default function Payments() {
   const [phone, setPhone] = useState('');
   const [chargesAccepted, setChargesAccepted] = useState(false);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const paymentAttemptKey = useRef<string | null>(null);
 
   const orders = useQuery({ queryKey: paymentKeys.all, queryFn: fetchPaymentOrders, refetchInterval: (query) => query.state.data?.some((order) => isOpenPaymentStatus(order.status)) ? 5000 : false });
   const contracts = useQuery({ queryKey: contractKeys.all, queryFn: fetchContracts });
@@ -51,14 +56,24 @@ export default function Payments() {
   const payableContract = contracts.data?.find((contract) => contract.status === 'signed' && contract.clientId === profileId);
 
   const pay = useMutation({
+    retry: false,
     mutationFn: async () => {
       if (!payableContract) throw new Error(copy.noPayableContract);
-      const result = await initiateRentalPayment({ contractId: payableContract.id, provider, phoneNumber: phone, chargesAccepted, cancellationPolicyAccepted: chargesAccepted });
+      paymentAttemptKey.current ??= Crypto.randomUUID();
+      const result = await initiateRentalPayment({ contractId: payableContract.id, provider, phoneNumber: phone, chargesAccepted, cancellationPolicyAccepted: chargesAccepted, idempotencyKey: paymentAttemptKey.current });
       setResultMessage(result.message);
       return openPaymentCheckout(result);
     },
     onMutate: () => setResultMessage(null),
+    onSuccess: () => { paymentAttemptKey.current = null; },
     onSettled: () => client.invalidateQueries({ queryKey: paymentKeys.all }),
+  });
+  const exportTax = useMutation({
+    retry: false,
+    mutationFn: async () => {
+      const csv = await generateTaxReportExport(new Date().getFullYear());
+      await Share.share({ title: `casaseg-ingresos-${new Date().getFullYear()}.csv`, message: csv });
+    },
   });
 
   const completed = (orders.data ?? []).filter((order) => order.status === 'completed');
@@ -75,6 +90,8 @@ export default function Payments() {
       </View>
 
       {role === 'owner' && profileId ? <OwnerPayoutAccountCard ownerId={profileId} /> : null}
+      {role === 'owner' && profileId ? <OwnerEcobankAccountCard ownerId={profileId} /> : null}
+      {role === 'owner' && profileId ? <View style={styles.payBlock}><PremiumButton variant="secondary" label={tax.export} loading={exportTax.isPending} disabled={exportTax.isPending} onPress={() => exportTax.mutate()} />{exportTax.error ? <Text accessibilityRole="alert" style={[styles.hint, { color: palette.errorText }]}>{tax.error} {exportTax.error.message}</Text> : null}</View> : null}
 
       <View style={styles.payBlock}>
         <Text style={[styles.label, { color: palette.text }]}>{copy.paymentMethod}</Text>

@@ -1,13 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
 import { UserAvatar } from '@/components/user-avatar';
 import { Building2, Home, Search, ShieldCheck, UsersRound } from '@/components/ui/icons';
-import { HeroBadge, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
+import { HeroBadge, PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius } from '@/constants/theme';
-import { fetchAdminUsers } from '@/features/admin/admin.api';
+import { fetchAdminUsersPage } from '@/features/admin/admin.api';
 import { adminCopy, roleLabel, statusLabel } from '@/features/admin/admin-copy';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -32,19 +32,24 @@ export default function AdminUsers() {
   const { locale } = useI18n();
   const copy = useCopy(usersCopy);
   const shared = useCopy(adminCopy);
-  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: fetchAdminUsers });
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
-  const filteredUsers = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return (users.data ?? []).filter((user) => (roleFilter === 'all' || user.role === roleFilter) && (!query || `${user.name} ${user.email}`.toLowerCase().includes(query)));
-  }, [roleFilter, search, users.data]);
+  useEffect(() => { const timer = setTimeout(() => setDebouncedSearch(search.trim()), 350); return () => clearTimeout(timer); }, [search]);
+  const users = useInfiniteQuery({
+    queryKey: ['admin', 'users-page', debouncedSearch, roleFilter],
+    queryFn: ({ pageParam }) => fetchAdminUsersPage({ page: pageParam, search: debouncedSearch, role: roleFilter }),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => pages.reduce((sum, page) => sum + page.items.length, 0) < last.total ? pages.length : undefined,
+  });
+  const filteredUsers = useMemo(() => users.data?.pages.flatMap((page) => page.items) ?? [], [users.data]);
+  const total = users.data?.pages[0]?.total ?? 0;
 
   return (
     <RouteScreen
       title={copy.title}
       description={copy.subtitle}
-      headerContent={users.data ? <HeroBadge label={interpolate(shared.visibleCount, { count: filteredUsers.length })} icon={UsersRound} /> : undefined}
+      headerContent={users.data ? <HeroBadge label={interpolate(shared.visibleCount, { count: total })} icon={UsersRound} /> : undefined}
     >
       <View style={[styles.search, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Search color={palette.textSecondary} size={21} />
@@ -77,6 +82,7 @@ export default function AdminUsers() {
           );
         })}
       </View>
+      {users.hasNextPage ? <PremiumButton variant="secondary" label={users.isFetchingNextPage ? copy.loadingTitle : `${copy.all} (${filteredUsers.length}/${total})`} loading={users.isFetchingNextPage} onPress={() => void users.fetchNextPage()} /> : null}
     </RouteScreen>
   );
 }

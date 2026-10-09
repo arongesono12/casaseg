@@ -62,10 +62,10 @@ export default function RegisterScreen() {
             >
               <ArrowLeft color={palette.text} size={21} />
             </Pressable>
-            <AuthBrand />
           </View>
 
           <View style={styles.heading}>
+            <AuthBrand compact={compact} />
             <Text style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{t('registerTitle')}</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('registerSubtitle')}</Text>
           </View>
@@ -232,10 +232,10 @@ const styles = StyleSheet.create({
   contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingVertical: 8, gap: 6 },
   topBar: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   backButton: { width: touchTarget, height: touchTarget, borderWidth: 1, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
-  heading: { gap: 5, marginBottom: 2 },
-  title: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.6 },
+  heading: { alignItems: 'center', gap: 5, marginBottom: 2 },
+  title: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.6, textAlign: 'center' },
   titleCompact: { fontSize: 26, lineHeight: 31 },
-  subtitle: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21 },
+  subtitle: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21, textAlign: 'center' },
   roleSection: { gap: 6 },
   sectionTitle: { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.bold },
   roles: { flexDirection: 'row', gap: 9 },

@@ -1,7 +1,7 @@
 import { useAuth as useClerkAuth, useSession, useSignIn, useSignUp, useSSO, useUser } from '@clerk/expo';
 import { useSignInWithApple } from '@clerk/expo/apple';
 import { useSignInWithGoogle } from '@clerk/expo/google';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
@@ -10,7 +10,7 @@ import { codigoDeClerk, comoError, lanzarSiFalla } from '@/features/auth/clerk-e
 import { getOAuthTransport } from '@/features/auth/oauth-transport';
 import { isExpoGo } from '@/lib/execution-environment';
 import { parseUserRole } from '@/lib/access-control';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { revokePushDevices } from '@/features/notifications/push-notifications';
 import { appStorage } from '@/lib/local-storage';
 import type { AppUser, UserRole } from '@/types';
@@ -159,17 +159,34 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return stored ? JSON.parse(stored) as AppUser : null;
   });
 
-  const { role: rolClerk, error: roleError } = useMemo(
+  const { role: rolClerk, error: metadataRoleError } = useMemo(
     () => (clerkUser ? rolDesdeMetadata(clerkUser.publicMetadata) : { role: 'client' as UserRole, error: null }),
     [clerkUser],
   );
 
+  const databaseRole = useQuery({
+    queryKey: ['auth', 'database-role', clerkUser?.id ?? 'guest'],
+    enabled: Boolean(isSignedIn && clerkUser && isSupabaseConfigured),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('current_profile');
+      if (error) throw error;
+      const row = (Array.isArray(data) ? data[0] : data) as { role?: unknown; status?: unknown } | undefined;
+      const resolved = parseUserRole(row?.role);
+      if (!resolved) return null; // El webhook puede seguir creando el perfil.
+      return { role: resolved, status: row?.status };
+    },
+  });
+  const resolvedRole = databaseRole.data?.role ?? rolClerk;
+  const roleError = metadataRoleError ?? (databaseRole.error ? 'No se pudo actualizar el rol de la cuenta.' : null);
+
   const user = useMemo(
-    () => demoUser ?? (clerkUser ? mapearUsuario(clerkUser, rolClerk) : null),
-    [clerkUser, demoUser, rolClerk],
+    () => demoUser ?? (clerkUser ? mapearUsuario(clerkUser, resolvedRole) : null),
+    [clerkUser, demoUser, resolvedRole],
   );
 
-  const role = demoUser?.role ?? (clerkUser ? rolClerk : undefined);
+  const role = demoUser?.role ?? (clerkUser ? resolvedRole : undefined);
 
   const updateProfileName = useCallback(async (name: string) => {
     const nextName = name.trim();
@@ -374,14 +391,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     role,
     isAuthenticated: Boolean(demoUser || isSignedIn),
     isLoading: !authCargado,
-    // El rol viaja dentro del usuario de Clerk, así que no hay una segunda
-    // carga que esperar como ocurría con el RPC de Supabase.
-    isRoleLoading: false,
+    isRoleLoading: Boolean(isSignedIn && isSupabaseConfigured && databaseRole.isPending),
     roleError,
     signIn, signUp, verifyOtp, resendSignupOtp, signInWithOAuth, requestPasswordReset,
     updateProfileName, updatePassword, signInDemo, signOut,
   }), [
-    authCargado, demoUser, isSignedIn, requestPasswordReset, resendSignupOtp, role, roleError,
+    authCargado, databaseRole.isPending, demoUser, isSignedIn, requestPasswordReset, resendSignupOtp, role, roleError,
     session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword,
     updateProfileName, user, verifyOtp,
   ]);

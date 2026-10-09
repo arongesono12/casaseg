@@ -34,6 +34,34 @@ const demoUsers: AdminUser[] = [
   { id: 'demo-client', name: 'Cliente CasaSeg', email: 'cliente@casaseg.app', role: 'client', status: 'active' },
 ];
 
+function mapAdminUser(row: Record<string, unknown>): AdminUser {
+  return {
+    id: String(row.id), name: String(row.name ?? 'Usuario'), email: String(row.email ?? ''),
+    role: parseUserRole(row.role) ?? 'client', status: String(row.status ?? 'active'),
+    ownerRequestStatus: row.owner_request_status ? String(row.owner_request_status) : undefined,
+    avatar: row.avatar ? String(row.avatar) : undefined,
+    createdAt: row.created_at ? String(row.created_at) : undefined,
+  };
+}
+
+export async function fetchAdminUsersPage({ page, pageSize = 30, search = '', role = 'all' }: { page: number; pageSize?: number; search?: string; role?: UserRole | 'all' }): Promise<{ items: AdminUser[]; total: number }> {
+  if (!isSupabaseConfigured) return { items: demoUsers, total: demoUsers.length };
+  const safeSearch = search.trim().replace(/[%_,()]/g, ' ').slice(0, 80);
+  const { data: functionData, error: functionError } = await supabase.functions.invoke('admin-users', {
+    body: { action: 'list', page, pageSize, search: safeSearch || null, role: role === 'all' ? null : role },
+  });
+  if (!functionError && Array.isArray(functionData?.items)) return {
+    items: functionData.items.map((row: Record<string, unknown>) => mapAdminUser(row)),
+    total: Number(functionData.total ?? 0),
+  };
+  let query = supabase.from('users').select('id,name,email,role,status,owner_request_status,avatar,created_at', { count: 'exact' }).order('created_at', { ascending: false });
+  if (role !== 'all') query = query.eq('role', role);
+  if (safeSearch) query = query.or(`name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
+  const { data, error, count } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+  if (error) throw functionError ?? error;
+  return { items: (data ?? []).map((row) => mapAdminUser(row)), total: count ?? 0 };
+}
+
 export async function fetchAdminUsers() {
   if (!isSupabaseConfigured) return demoUsers;
   const { data, error } = await supabase

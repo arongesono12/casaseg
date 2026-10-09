@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +14,8 @@ import { actionGradient, colors, fontFamily, radius, type AppPalette } from '@/c
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { fetchFavorites } from '@/features/properties/api/property.queries';
 import { useFavoriteMutation } from '@/features/properties/hooks/use-favorite-mutation';
+import { useProfileId } from '@/features/auth/use-profile-id';
+import { fetchUserSettings } from '@/features/auth/user-settings';
 import { useFavoritesUserId } from '@/features/properties/hooks/use-favorites-user-id';
 import { useInfiniteProperties, usePropertyCount } from '@/features/properties/hooks/use-properties';
 import { haptics } from '@/lib/haptics';
@@ -74,6 +76,8 @@ export default function ExploreScreen() {
   const sheetRef = useRef<FilterSheetHandle>(null);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const profileId = useProfileId();
+  const userSettings = useQuery({ queryKey: ['user-settings', profileId], queryFn: () => fetchUserSettings(profileId!), enabled: Boolean(profileId) });
   const { palette } = useAppTheme();
   const { t } = useI18n();
   const { width, height, fontScale } = useWindowDimensions();
@@ -83,14 +87,14 @@ export default function ExploreScreen() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { messageUnreadCount } = useNotifications();
   const unreadLabel = messageUnreadCount > 99 ? '99+' : String(messageUnreadCount);
-  const columns = responsiveGridColumns(width, MAX_CONTENT_WIDTH, LIST_PADDING, GRID_GAP, fontScale, 4);
+  const columns = userSettings.data?.defaultView === 'list' ? 1 : responsiveGridColumns(width, MAX_CONTENT_WIDTH, LIST_PADDING, GRID_GAP, fontScale, 4);
   const useCompactCards = columns > 1;
   // Ancho fijo por celda: con flex:1 una última fila de un solo elemento se estiraría a todo el ancho.
   const itemWidth = Math.floor((Math.min(width, MAX_CONTENT_WIDTH) - LIST_PADDING * 2 - GRID_GAP * (columns - 1)) / columns);
   const filters = useExplorerStore((state) => state.filters);
   const setCategory = useExplorerStore((state) => state.setCategory);
   const setViewMode = useExplorerStore((state) => state.setViewMode);
-  const propertyQuery = useInfiniteProperties(filters);
+  const propertyQuery = useInfiniteProperties(filters, userSettings.data?.propertiesPerPage ?? 12);
   const propertyCountQuery = usePropertyCount(filters);
   const favoritesUserId = useFavoritesUserId();
   const favoritesQuery = useQuery({ queryKey: propertyKeys.favorites(favoritesUserId ?? 'guest'), queryFn: () => fetchFavorites(favoritesUserId!), enabled: Boolean(favoritesUserId) });
@@ -111,6 +115,12 @@ export default function ExploreScreen() {
     setViewMode('map');
     router.push('/map');
   }, [router, setViewMode]);
+  const didApplyMapPreference = useRef(false);
+  useEffect(() => {
+    if (didApplyMapPreference.current || !userSettings.data) return;
+    didApplyMapPreference.current = true;
+    if (userSettings.data.showMapByDefault) openMap();
+  }, [openMap, userSettings.data]);
   const loadNextPage = useCallback(() => {
     if (propertyQuery.hasNextPage && !propertyQuery.isFetchingNextPage) void propertyQuery.fetchNextPage();
   }, [propertyQuery]);

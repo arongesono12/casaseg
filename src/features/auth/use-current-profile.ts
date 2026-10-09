@@ -13,6 +13,7 @@ export type CurrentProfile = {
   coverPicture?: string;
   phone?: string;
   about?: string;
+  socialLinks?: Record<string, string>;
   emailVerified: boolean;
   phoneVerified: boolean;
   createdAt?: string;
@@ -25,6 +26,7 @@ type UserRow = {
   cover_picture: string | null;
   phone: string | null;
   about: string | null;
+  social_links: Record<string, string> | null;
   email_verified: boolean | null;
   phone_verified: boolean | null;
   created_at: string | null;
@@ -61,7 +63,7 @@ export function useCurrentProfile() {
       }
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, avatar, cover_picture, phone, about, email_verified, phone_verified, created_at')
+        .select('id, name, avatar, cover_picture, phone, about, social_links, email_verified, phone_verified, created_at')
         .eq('id', profileId!)
         .maybeSingle();
       if (error) throw error;
@@ -74,12 +76,42 @@ export function useCurrentProfile() {
         coverPicture: text(row.cover_picture),
         phone: text(row.phone),
         about: text(row.about),
+        socialLinks: row.social_links ?? {},
         emailVerified: Boolean(row.email_verified),
         phoneVerified: Boolean(row.phone_verified),
         createdAt: row.created_at ?? undefined,
       };
     },
   });
+}
+
+export function useUpdateProfileExtras() {
+  const { user } = useAuth();
+  const profileId = useProfileId();
+  const queryClient = useQueryClient();
+  return useCallback(async (patch: { about?: string | null; socialLinks?: Record<string, string>; avatar?: string; coverPicture?: string }) => {
+    if (!isSupabaseConfigured) {
+      if (!user) throw new Error('No hay una sesión activa.');
+      queryClient.setQueryData<CurrentProfile | null>(profileDetailsKey(`demo:${user.id}`), (current) => ({
+        ...(current ?? { id: user.id, emailVerified: true, phoneVerified: false }),
+        ...(patch.about !== undefined ? { about: patch.about ?? undefined } : {}),
+        ...(patch.socialLinks !== undefined ? { socialLinks: patch.socialLinks } : {}),
+        ...(patch.avatar !== undefined ? { avatar: patch.avatar } : {}),
+        ...(patch.coverPicture !== undefined ? { coverPicture: patch.coverPicture } : {}),
+      }));
+      return;
+    }
+    if (!profileId) throw new Error('El perfil todavía no está disponible.');
+    const changes = {
+      ...(patch.about !== undefined ? { about: patch.about } : {}),
+      ...(patch.socialLinks !== undefined ? { social_links: patch.socialLinks } : {}),
+      ...(patch.avatar !== undefined ? { avatar: patch.avatar } : {}),
+      ...(patch.coverPicture !== undefined ? { cover_picture: patch.coverPicture } : {}),
+    };
+    const { error } = await supabase.from('users').update(changes).eq('id', profileId);
+    if (error) throw error;
+    await queryClient.invalidateQueries({ queryKey: profileDetailsKey(profileId) });
+  }, [profileId, queryClient, user]);
 }
 
 /** Guarda el teléfono en public.users; la base de datos revoca la verificación al cambiarlo. */

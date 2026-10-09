@@ -85,6 +85,23 @@ export async function fetchPendingUpgradeRequest(userId: string): Promise<OwnerU
   return { id: String(data.id), planType: String(data.plan_type), paymentMethod: String(data.payment_method), status: String(data.status), createdAt: String(data.created_at) };
 }
 
+export async function cancelOwnerUpgradeRequest(requestId: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('La cancelación requiere conexión con el servidor.');
+  const { data, error } = await supabase.rpc('cancel_owner_upgrade_request', { p_request_id: requestId });
+  if (error) throw error;
+  if (data !== true) throw new Error('No se pudo cancelar la solicitud.');
+}
+
+export async function completeOwnerUpgradeAfterVerification(requestId: string, userId: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('La activación requiere conexión con el servidor.');
+  const { data, error } = await supabase.rpc('complete_owner_upgrade_after_verification', {
+    p_request_id: requestId,
+    p_user_id: userId,
+  });
+  if (error) throw error;
+  if (data !== true) throw new Error('No se pudo activar la cuenta de propietario.');
+}
+
 async function uploadTitlePdf(userId: string, file: PickedPdf): Promise<string> {
   const bytes = await readLocalFile(file.uri);
   const validationError = validateTitlePdf(file, bytes);

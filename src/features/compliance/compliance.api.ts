@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { UserRole } from '@/types';
@@ -11,6 +12,33 @@ import type { UserRole } from '@/types';
 export type ComplianceAcceptanceType = 'terms' | 'privacy' | 'marketing' | 'payment_charges' | 'cancellation_policy' | 'traveler_reporting';
 
 const MOBILE_USER_AGENT = `CasaSeg Expo (${Platform.OS} ${String(Platform.Version)})`;
+
+export async function startKycVerification() {
+  if (!isSupabaseConfigured) throw new Error('La verificación requiere conexión con el servidor.');
+  const { data, error } = await supabase.functions.invoke('compliance-kyc-session', {
+    body: { returnUrl: Linking.createURL('/profile') },
+  });
+  if (error) throw error;
+  if (!data?.verification) throw new Error(String(data?.error ?? 'El servidor no devolvió una sesión de verificación.'));
+  return data.verification as { id: string; status: string; provider: string; session_url?: string };
+}
+
+export async function submitTravelerReport(input: { contractId: string; travelers: { fullName: string; documentType: string; documentNumber: string; nationality: string; birthDate: string; checkInDate: string }[] }) {
+  if (!isSupabaseConfigured) throw new Error('El parte de viajeros requiere conexión con el servidor.');
+  const { data, error } = await supabase.functions.invoke('traveler-report-submit', { body: { ...input, travelerReportingAccepted: true } });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+  return data?.report;
+}
+
+export async function generateTaxReportExport(year: number): Promise<string> {
+  if (!isSupabaseConfigured) throw new Error('El informe fiscal requiere conexión con el servidor.');
+  const { data, error } = await supabase.functions.invoke('tax-report-export', { body: { year, format: 'csv' } });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+  if (typeof data?.download !== 'string') throw new Error('El servidor no devolvió el CSV.');
+  return data.download;
+}
 
 /** Deja constancia versionada de lo que el usuario aceptó o rechazó. */
 export async function recordComplianceAcceptance(input: { type: ComplianceAcceptanceType; version: string; accepted: boolean; context?: Record<string, unknown> }): Promise<string> {

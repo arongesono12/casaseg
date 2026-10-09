@@ -15,7 +15,7 @@ export type Conversation = {
   isOwner: boolean;
 };
 /** `pending` y `failed` solo existen en el cliente, mientras se envía un mensaje o si falló. */
-export type ChatMessage = { id: string; conversationId: string; senderId: string; content: string; createdAt: string; status: 'pending' | 'failed' | 'sent' | 'delivered' | 'read' };
+export type ChatMessage = { id: string; conversationId: string; senderId: string; content: string; createdAt: string; status: 'pending' | 'failed' | 'sent' | 'delivered' | 'read'; kind?: 'text' | 'meeting'; metadata?: { event?: 'proposed' | 'confirmed' | 'rejected'; agreementId?: string } };
 
 /** Prefijo de la ruta de chat cuando se abre desde una vivienda sin chat previo. */
 export const PROPERTY_CHAT_PREFIX = 'property-';
@@ -37,7 +37,7 @@ type ChatSummaryRow = {
   unread_count: number | null;
 };
 
-type MessageRow = { id: string; chat_id: string; sender_id: string; content: string | null; created_at: string; is_read: boolean | null; delivered_at: string | null };
+type MessageRow = { id: string; chat_id: string; sender_id: string; content: string | null; created_at: string; is_read: boolean | null; delivered_at: string | null; kind?: 'text' | 'meeting'; metadata?: ChatMessage['metadata'] };
 
 export function propertyIdFromChatRoute(conversationId: string) {
   return conversationId.startsWith(PROPERTY_CHAT_PREFIX) ? conversationId.slice(PROPERTY_CHAT_PREFIX.length) : undefined;
@@ -51,6 +51,8 @@ function mapMessage(row: MessageRow): ChatMessage {
     content: String(row.content ?? ''),
     createdAt: String(row.created_at),
     status: row.is_read ? 'read' : row.delivered_at ? 'delivered' : 'sent',
+    kind: row.kind ?? 'text',
+    metadata: row.metadata,
   };
 }
 

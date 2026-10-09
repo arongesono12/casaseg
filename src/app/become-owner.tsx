@@ -1,5 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { DocumentPickerResult } from 'expo-document-picker';
+import * as WebBrowser from 'expo-web-browser';
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -9,8 +10,11 @@ import { CheckCircle2, Clock, FileText } from '@/components/ui/icons';
 import { PremiumButton, PremiumEmptyState, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { useProfileId } from '@/features/auth/use-profile-id';
+import { startKycVerification } from '@/features/compliance/compliance.api';
 import { fetchOwnerPlans, ownerPlanKeys, type OwnerPlanType } from '@/features/owner/owner-plan.api';
 import {
+  cancelOwnerUpgradeRequest,
+  completeOwnerUpgradeAfterVerification,
   fetchPendingUpgradeRequest,
   ownerUpgradePaymentMethods,
   submitOwnerUpgradeRequest,
@@ -32,6 +36,18 @@ const onboardingCopy = defineCopy({
   en: { title: 'Become an owner', step: 'Step {current} of {total}', plan: 'Choose your plan', monthly: 'Monthly', yearly: 'Yearly', properties: 'Up to {count} properties', payment: 'Payment method', paymentNote: 'Administration confirms the payment before activating your owner account.', muni_dinero: 'Muni Dinero', bank_transfer: 'Bank transfer', phone: 'Contact phone', personal: 'Personal details', fullName: 'Full name', residence: 'Place of residence', nationality: 'Nationality', dni: 'ID card', passport: 'Passport', documentNumber: 'Document number', titlePdf: 'Property title deed (PDF, max 10 MB)', pickPdf: 'Choose PDF', terms: 'Terms', acceptTerms: 'I accept the terms, the privacy policy and the subscription conditions.', readTerms: 'Read the terms', back: 'Back', next: 'Continue', submit: 'Send request', sentTitle: 'Request sent', sentBody: 'We will review your details and the payment, and let you know when your owner account is active.', pendingTitle: 'Request under review', pendingBody: 'You already have a pending request. We will let you know once it has been reviewed.', loading: 'Loading plans', ownerOnly: 'You already have an owner account.', backToProfile: 'Back to profile' },
 });
 
+const pendingCopy = defineCopy({
+  es: { cancel: 'Cancelar solicitud', cancelError: 'No se pudo cancelar la solicitud.', verify: 'Verificar identidad', manual: 'Tu verificación se ha enviado para revisión manual.' },
+  fr: { cancel: 'Annuler la demande', cancelError: 'Impossible d’annuler la demande.', verify: 'Vérifier votre identité', manual: 'Votre vérification a été envoyée pour examen manuel.' },
+  en: { cancel: 'Cancel request', cancelError: 'Could not cancel the request.', verify: 'Verify identity', manual: 'Your verification was submitted for manual review.' },
+});
+
+const approvalCopy = defineCopy({
+  es: { title: 'Aprobada · verifica tu correo', body: 'Tu solicitud está aprobada. Verifica tu correo y activa tu espacio de propietario.', activate: 'Activar cuenta de propietario' },
+  fr: { title: 'Approuvée · vérifiez votre e-mail', body: 'Votre demande est approuvée. Vérifiez votre e-mail et activez votre espace propriétaire.', activate: 'Activer le compte propriétaire' },
+  en: { title: 'Approved · verify your email', body: 'Your request is approved. Verify your email and activate your owner account.', activate: 'Activate owner account' },
+});
+
 const steps = ['plan', 'payment', 'personal', 'terms'] as const;
 type Step = (typeof steps)[number];
 
@@ -39,6 +55,9 @@ export default function OwnerOnboarding() {
   const { palette } = useAppTheme();
   const { locale } = useI18n();
   const copy = useCopy(onboardingCopy);
+  const pendingText = useCopy(pendingCopy);
+  const approvalText = useCopy(approvalCopy);
+  const queryClient = useQueryClient();
   const { user, role } = useAuth();
   const profileId = useProfileId();
 
@@ -58,8 +77,23 @@ export default function OwnerOnboarding() {
 
   const plans = useQuery({ queryKey: ownerPlanKeys.plans, queryFn: fetchOwnerPlans });
   const pending = useQuery({ queryKey: ['owner-upgrade', 'pending', profileId ?? 'none'], queryFn: () => fetchPendingUpgradeRequest(profileId!), enabled: Boolean(profileId) });
+  const cancelRequest = useMutation({
+    mutationFn: () => cancelOwnerUpgradeRequest(pending.data!.id),
+    onSuccess: () => void pending.refetch(),
+  });
+  const completeRequest = useMutation({
+    retry: false,
+    mutationFn: () => completeOwnerUpgradeAfterVerification(pending.data!.id, profileId!),
+    onSuccess: async () => {
+      await Promise.all([
+        pending.refetch(),
+        queryClient.invalidateQueries({ queryKey: ['auth', 'database-role', user?.id ?? 'guest'] }),
+      ]);
+    },
+  });
   const input: OwnerUpgradeInput | null = planType ? { planType, isYearly, paymentMethod, phoneNumber, fullName, residenceLocation, nationality, documentType, documentNumber } : null;
   const submit = useMutation({
+    retry: false,
     mutationFn: () => {
       if (!input || !titlePdf || !profileId || !user) throw new Error(copy.loading);
       return submitOwnerUpgradeRequest({ user: { id: profileId, name: user.name, email: user.email }, input, titlePdf });
@@ -67,8 +101,21 @@ export default function OwnerOnboarding() {
   });
 
   if (role && role !== 'client') return <Finished title={copy.title} body={copy.ownerOnly} action={copy.backToProfile} />;
-  if (submit.data) return <Finished title={copy.sentTitle} body={copy.sentBody} action={copy.backToProfile} />;
-  if (pending.data) return <Finished title={copy.pendingTitle} body={copy.pendingBody} action={copy.backToProfile} />;
+  if (submit.data) return <Finished title={copy.sentTitle} body={copy.sentBody} action={copy.backToProfile} showKyc />;
+  if (pending.data) return <Finished
+    title={pending.data.status === 'approved_pending_verification' ? approvalText.title : copy.pendingTitle}
+    body={pending.data.status === 'approved_pending_verification' ? approvalText.body : copy.pendingBody}
+    action={copy.backToProfile}
+    showKyc
+    activateLabel={pending.data.status === 'approved_pending_verification' ? approvalText.activate : undefined}
+    onActivate={() => completeRequest.mutate()}
+    activateBusy={completeRequest.isPending}
+    activateError={completeRequest.error?.message}
+    cancelLabel={pending.data.status === 'pending' ? pendingText.cancel : undefined}
+    onCancel={() => cancelRequest.mutate()}
+    cancelBusy={cancelRequest.isPending}
+    cancelError={cancelRequest.error?.message}
+  />;
 
   const index = steps.indexOf(step);
   const field = (value: string, onChange: (next: string) => void, label: string, keyboardType: 'default' | 'phone-pad' = 'default') => (
@@ -171,8 +218,18 @@ export default function OwnerOnboarding() {
   );
 }
 
-function Finished({ title, body, action }: { title: string; body: string; action: string }) {
+function Finished({ title, body, action, cancelLabel, onCancel, cancelBusy, cancelError, showKyc, activateLabel, onActivate, activateBusy, activateError }: { title: string; body: string; action: string; cancelLabel?: string; onCancel?: () => void; cancelBusy?: boolean; cancelError?: string; showKyc?: boolean; activateLabel?: string; onActivate?: () => void; activateBusy?: boolean; activateError?: string }) {
   const { palette } = useAppTheme();
+  const pendingText = useCopy(pendingCopy);
+  const [kycNote, setKycNote] = useState('');
+  const verify = useMutation({
+    mutationFn: startKycVerification,
+    retry: false,
+    onSuccess: async (result) => {
+      if (result.session_url) await WebBrowser.openBrowserAsync(result.session_url);
+      else setKycNote(pendingText.manual);
+    },
+  });
   return (
     <RouteScreen title={title} description={body}>
       <View style={[styles.finished, { backgroundColor: palette.surface }]}>
@@ -180,6 +237,13 @@ function Finished({ title, body, action }: { title: string; body: string; action
         <Text style={[styles.hint, { color: palette.textSecondary }]}>{body}</Text>
       </View>
       <PremiumButton label={action} onPress={() => router.replace('/profile' as Href)} />
+      {activateLabel && onActivate ? <PremiumButton label={activateLabel} loading={activateBusy} disabled={activateBusy} onPress={onActivate} /> : null}
+      {activateError ? <Text accessibilityRole="alert" style={[styles.hint, { color: palette.errorText }]}>{activateError}</Text> : null}
+      {showKyc ? <PremiumButton variant="secondary" label={pendingText.verify} loading={verify.isPending} disabled={verify.isPending} onPress={() => verify.mutate()} /> : null}
+      {kycNote ? <Text style={[styles.hint, { color: palette.textSecondary }]}>{kycNote}</Text> : null}
+      {verify.error ? <Text accessibilityRole="alert" style={[styles.hint, { color: palette.errorText }]}>{verify.error.message}</Text> : null}
+      {cancelLabel && onCancel ? <PremiumButton variant="secondary" label={cancelLabel} loading={cancelBusy} disabled={cancelBusy} onPress={onCancel} /> : null}
+      {cancelError ? <Text accessibilityRole="alert" style={[styles.hint, { color: palette.errorText }]}>{cancelError}</Text> : null}
     </RouteScreen>
   );
 }

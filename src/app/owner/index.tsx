@@ -13,6 +13,7 @@ import { fontFamily, radius, spacing, type AppPalette } from '@/constants/theme'
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { fetchOwnerVisitRequests, visitRequestKeys, type VisitRequest } from '@/features/properties/api/visit-requests';
 import { useOwnerProperties } from '@/features/owner/use-owner-properties';
+import { fetchOwnerDashboardStats } from '@/features/owner/owner-dashboard.api';
 import { pressRipple } from '@/lib/press-feedback';
 import { useAuth } from '@/providers/auth-context';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
@@ -23,6 +24,12 @@ const ownerHomeCopy = defineCopy({
   es: { propertiesDetail: 'Edita, publica y controla el estado de tus anuncios.', requestsDetail: 'Revisa y responde solicitudes de visita.', paymentsDetail: 'Consulta operaciones y cobros confirmados.', contractsDetail: 'Gestiona documentos, versiones y firmas.', subscriptionDetail: 'Mejora la visibilidad y tus herramientas.', professional: 'Profesional', properties: 'Propiedades', pendingVisits: 'Visitas pendientes', completedPayments: 'Pagos completados', newListing: 'NUEVA PUBLICACIÓN', createDetail: 'Crea un anuncio atractivo con fotos, características y precio.', hubTitle: 'Centro de gestión' },
   fr: { propertiesDetail: 'Modifiez, publiez et suivez le statut de vos annonces.', requestsDetail: 'Consultez les demandes de visite et répondez-y.', paymentsDetail: 'Consultez les opérations et encaissements confirmés.', contractsDetail: 'Gérez documents, versions et signatures.', subscriptionDetail: 'Améliorez votre visibilité et vos outils.', professional: 'Professionnel', properties: 'Logements', pendingVisits: 'Visites en attente', completedPayments: 'Paiements terminés', newListing: 'NOUVELLE ANNONCE', createDetail: 'Créez une annonce attrayante avec photos, caractéristiques et prix.', hubTitle: 'Centre de gestion' },
   en: { propertiesDetail: 'Edit, publish and track the status of your listings.', requestsDetail: 'Review and answer visit requests.', paymentsDetail: 'See transactions and confirmed payouts.', contractsDetail: 'Manage documents, versions and signatures.', subscriptionDetail: 'Boost your visibility and tools.', professional: 'Professional', properties: 'Properties', pendingVisits: 'Pending visits', completedPayments: 'Completed payments', newListing: 'NEW LISTING', createDetail: 'Create an attractive listing with photos, features and price.', hubTitle: 'Management hub' },
+});
+
+const statsCopy = defineCopy({
+  es: { title: 'Actividad de tus viviendas', views: 'Vistas', contacts: 'Contactos', agreements: 'Acuerdos', trend: 'Últimos seis meses', properties: 'Anuncios', unavailable: 'No se pudieron cargar las estadísticas.', retry: 'Reintentar' },
+  fr: { title: 'Activité de vos logements', views: 'Vues', contacts: 'Contacts', agreements: 'Accords', trend: 'Six derniers mois', properties: 'Annonces', unavailable: 'Impossible de charger les statistiques.', retry: 'Réessayer' },
+  en: { title: 'Your property activity', views: 'Views', contacts: 'Contacts', agreements: 'Agreements', trend: 'Last six months', properties: 'Listings', unavailable: 'Could not load statistics.', retry: 'Retry' },
 });
 
 type ManageLink = { label: string; href: Href; icon: typeof Building2; badge?: string };
@@ -36,10 +43,12 @@ export default function OwnerHome() {
   const { palette } = useAppTheme();
   const { t, locale } = useI18n();
   const copy = useCopy(ownerHomeCopy);
+  const statsText = useCopy(statsCopy);
   const insets = useSafeAreaInsets();
   const properties = useOwnerProperties();
   // visit_requests.owner_id guarda el uuid de public.users, no el id de Clerk.
   const profileId = useProfileId();
+  const stats = useQuery({ queryKey: ['owner-dashboard', profileId], queryFn: () => fetchOwnerDashboardStats(profileId!), enabled: Boolean(profileId) });
   const requests = useQuery({ queryKey: visitRequestKeys.owner(profileId ?? 'pending'), queryFn: () => fetchOwnerVisitRequests(profileId!), enabled: Boolean(profileId) });
   const [view, setView] = useState<'pending' | 'confirmed'>('pending');
   const pending = (requests.data ?? []).filter(isPending);
@@ -80,6 +89,32 @@ export default function OwnerHome() {
               );
             })}
           </View>
+        </View>
+
+        <View style={styles.page}>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>{statsText.title}</Text>
+          {stats.data ? <>
+            <View style={styles.statsGrid}>
+              {([[statsText.views, stats.data.views], [statsText.contacts, stats.data.contacts], [statsText.agreements, stats.data.agreements]] as const).map(([label, value]) => (
+                <View key={label} style={[styles.statCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <Text style={[styles.statValue, { color: palette.text }]}>{value}</Text>
+                  <Text style={[styles.caption, { color: palette.textSecondary }]}>{label}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={[styles.trendCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Text style={[styles.homeTitle, { color: palette.text }]}>{statsText.trend}</Text>
+              {stats.data.trend.map((point) => {
+                const max = Math.max(1, ...stats.data!.trend.map((item) => Math.max(item.contacts, item.properties)));
+                return <View key={point.key} style={styles.trendRow}>
+                  <Text style={[styles.caption, { color: palette.textSecondary, width: 56 }]}>{point.key.slice(5)}</Text>
+                  <View style={[styles.trendTrack, { backgroundColor: palette.subtle }]}><View style={{ width: `${point.contacts / max * 100}%`, height: 8, borderRadius: 4, backgroundColor: palette.brand }} /></View>
+                  <Text style={[styles.caption, { color: palette.text, width: 30, textAlign: 'right' }]}>{point.contacts}</Text>
+                </View>;
+              })}
+              <Text style={[styles.caption, { color: palette.textSecondary }]}>{statsText.contacts} · {statsText.properties}: {stats.data.trend.reduce((sum, item) => sum + item.properties, 0)}</Text>
+            </View>
+          </> : stats.isLoading ? <Text style={[styles.caption, { color: palette.textSecondary }]}>{t('loading')}</Text> : <View style={styles.group}><Text style={[styles.caption, { color: palette.errorText }]}>{statsText.unavailable}</Text><PremiumButton variant="secondary" label={statsText.retry} onPress={() => void stats.refetch()} /></View>}
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cards}>
@@ -145,6 +180,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { gap: spacing.xl },
   page: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: spacing.xxl, gap: spacing.xl },
+  group: { gap: 10 },
+  statsGrid: { flexDirection: 'row', gap: 8 },
+  statCard: { flex: 1, minWidth: 0, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 12, gap: 3 },
+  statValue: { fontSize: 23, fontFamily: fontFamily.bold },
+  trendCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, gap: 10 },
+  trendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  trendTrack: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden' },
   mode: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   modeText: { fontSize: 14, fontFamily: fontFamily.semibold },
   segments: { flexDirection: 'row', gap: 8 },

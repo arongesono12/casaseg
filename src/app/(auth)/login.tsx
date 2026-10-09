@@ -110,7 +110,6 @@ export default function LoginScreen() {
         >
           <ArrowLeft color={palette.text} size={24} />
         </Pressable>
-        <AuthBrand />
       </View>
       <AdaptiveKeyboardView style={styles.safe}>
         <ScrollView
@@ -122,6 +121,7 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.heading}>
+            <AuthBrand compact={compact} />
             <Text style={[styles.title, compact && styles.titleCompact, { color: palette.text }]}>{t('loginTitle')}</Text>
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{t('loginSubtitle')}</Text>
           </View>
@@ -270,10 +270,10 @@ const styles = StyleSheet.create({
   backButtonPressed: { opacity: 0.6 },
   content: { flexGrow: 1, width: '100%', maxWidth: 560, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 18, gap: 12 },
   contentCompact: { justifyContent: 'flex-start', paddingHorizontal: 18, paddingVertical: 12, gap: 9 },
-  heading: { gap: 5, marginBottom: 5 },
-  title: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold },
+  heading: { alignItems: 'center', gap: 5, marginBottom: 5 },
+  title: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, textAlign: 'center' },
   titleCompact: { fontSize: 26, lineHeight: 31 },
-  subtitle: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21 },
+  subtitle: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 21, textAlign: 'center' },
   eyeButton: { width: touchTarget, height: touchTarget, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   optionsRow: { minHeight: touchTarget, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   rememberControl: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 9 },

@@ -10,9 +10,8 @@ import { corsHeaders, jsonResponse } from '../_shared/http.ts';
  * no tienen ninguno: sin este webhook no existirían en `public.users` y todas
  * sus consultas quedarían bloqueadas por RLS.
  *
- * El flujo cierra el círculo: creamos la fila con un uuid nuevo y lo
- * escribimos de vuelta en Clerk como `external_id`, que es exactamente lo que
- * el token de sesión publica como claim.
+ * El flujo cierra el círculo: creamos auth.users con la Admin API, reutilizamos
+ * su uuid en public.users y lo publicamos en Clerk como external_id.
  *
  * Eventos: user.created, user.updated, user.deleted
  *
@@ -26,7 +25,7 @@ import { corsHeaders, jsonResponse } from '../_shared/http.ts';
 
 const CLERK_API = 'https://api.clerk.com/v1';
 
-type ClerkEmail = { id: string; email_address: string };
+type ClerkEmail = { id: string; email_address: string; verification?: { status?: string } | null };
 
 type ClerkUserData = {
   id: string;
@@ -57,12 +56,18 @@ function servicio() {
 
 function correoPrincipal(data: ClerkUserData) {
   const principal = data.email_addresses.find((email) => email.id === data.primary_email_address_id);
-  return (principal ?? data.email_addresses[0])?.email_address?.toLowerCase() ?? null;
+  const verificado = principal?.verification?.status === 'verified'
+    ? principal
+    : data.email_addresses.find((email) => email.verification?.status === 'verified');
+  return verificado?.email_address?.trim().toLowerCase() ?? null;
+}
+
+function nombreDeClerk(data: ClerkUserData) {
+  return [data.first_name, data.last_name].filter(Boolean).join(' ').trim();
 }
 
 function nombreVisible(data: ClerkUserData, correo: string | null) {
-  const compuesto = [data.first_name, data.last_name].filter(Boolean).join(' ').trim();
-  return compuesto || correo?.split('@')[0] || 'Usuario';
+  return nombreDeClerk(data) || correo?.split('@')[0] || 'Usuario';
 }
 
 function avatar(data: ClerkUserData) {
@@ -90,9 +95,30 @@ async function fijarExternalId(clerkUserId: string, externalId: string) {
   }
 }
 
+/**
+ * Los eventos de prueba del panel de Clerk y las repeticiones de usuarios ya
+ * borrados traen un id inexistente. Comprobarlo antes de crear nada evita
+ * altas fantasma (con sus avisos y auditoría) y que Svix reintente sin fin.
+ */
+async function existeEnClerk(clerkUserId: string) {
+  const secreto = Deno.env.get('CLERK_SECRET_KEY');
+  if (!secreto) throw new Error('SERVER_CONFIG');
+
+  const respuesta = await fetch(`${CLERK_API}/users/${clerkUserId}`, {
+    headers: { Authorization: `Bearer ${secreto}` },
+  });
+  if (respuesta.status === 404) return false;
+  if (!respuesta.ok) {
+    throw new Error(`Clerk no respondió al comprobar el usuario (${respuesta.status}).`);
+  }
+  return true;
+}
+
 async function alCrear(data: ClerkUserData) {
   const supabase = servicio();
   const correo = correoPrincipal(data);
+
+  if (!(await existeEnClerk(data.id))) return { estado: 'usuario_clerk_inexistente' };
 
   // Reentrada: Clerk reintenta los webhooks fallidos, y la migración ya dejó
   // external_id puesto en las cuentas antiguas.
@@ -102,16 +128,19 @@ async function alCrear(data: ClerkUserData) {
     if (existente) return { estado: 'ya_existia', id: data.external_id };
   }
 
+  // Un correo sin verificar nunca puede reclamar un perfil existente ni crear
+  // una identidad web confirmada. user.updated volverá a intentarlo al verificarlo.
+  if (!correo) return { estado: 'pendiente_verificacion' };
+
   // Un registro con el mismo correo que una cuenta migrada debe reutilizar la
   // fila existente en vez de duplicar la identidad.
-  if (correo) {
-    const { data: porCorreo } = await supabase
-      .from('users').select('id').eq('email', correo).maybeSingle();
+  const { data: porCorreo, error: buscarError } = await supabase
+    .from('users').select('id').eq('email', correo).maybeSingle();
+  if (buscarError) throw buscarError;
 
-    if (porCorreo?.id) {
-      await fijarExternalId(data.id, String(porCorreo.id));
-      return { estado: 'vinculado_por_correo', id: String(porCorreo.id) };
-    }
+  if (porCorreo?.id) {
+    await fijarExternalId(data.id, String(porCorreo.id));
+    return { estado: 'vinculado_por_correo', id: String(porCorreo.id) };
   }
 
   // unsafe_metadata lo escribe el propio cliente durante el registro, así que
@@ -119,25 +148,45 @@ async function alCrear(data: ClerkUserData) {
   // propietario, se abre la solicitud para que un administrador la revise.
   const pidioPropietario = data.unsafe_metadata?.requestedRole === 'owner';
 
-  const nuevoId = crypto.randomUUID();
-  const { error } = await supabase.from('users').insert({
-    id: nuevoId,
+  const { data: authResult, error: authError } = await supabase.auth.admin.createUser({
     email: correo,
-    name: nombreVisible(data, correo),
-    role: 'client',
-    status: 'active',
-    email_verified: true,
-    avatar: avatar(data),
-    owner_request_status: pidioPropietario ? 'pending' : null,
+    email_confirm: true,
+    user_metadata: { full_name: nombreVisible(data, correo), avatar_url: avatar(data) },
   });
-  if (error) throw error;
+  if (authError || !authResult.user) throw authError ?? new Error('No se pudo crear auth.users.');
+  const nuevoId = authResult.user.id;
 
   try {
+    // El trigger de alta suele crear estas filas. El respaldo conserva el mismo
+    // UUID incluso si una instalación aún no tiene el trigger actualizado.
+    const { data: perfil, error: perfilError } = await supabase.from('users').select('id').eq('id', nuevoId).maybeSingle();
+    if (perfilError) throw perfilError;
+    if (!perfil) {
+      const { error: insertError } = await supabase.from('users').insert({ id: nuevoId, email: correo, name: nombreVisible(data, correo), role: 'client', status: 'active', email_verified: true, avatar: avatar(data) });
+      if (insertError) throw insertError;
+    }
+    // El trigger solo marca verificado el email de Google; aquí Clerk ya lo
+    // verificó (correoPrincipal exige `verified`). Sin esto el ascenso a
+    // propietario fallaría con "El email del usuario no está verificado".
+    const { error: verifiedError } = await supabase.from('users').update({
+      email_verified: true,
+      ...(pidioPropietario ? { owner_request_status: 'pending' } : {}),
+    }).eq('id', nuevoId);
+    if (verifiedError) throw verifiedError;
+    const { data: settings, error: settingsError } = await supabase.from('user_settings').select('user_id').eq('user_id', nuevoId).maybeSingle();
+    if (settingsError) throw settingsError;
+    if (!settings) {
+      const { error: insertSettingsError } = await supabase.from('user_settings').insert({ user_id: nuevoId });
+      if (insertSettingsError) throw insertSettingsError;
+    }
     await fijarExternalId(data.id, nuevoId);
   } catch (causa) {
-    // Sin external_id la fila es inalcanzable para el usuario: revertimos para
-    // que el reintento de Clerk parta de cero en vez de dejar un huérfano.
+    // La identidad fue creada por este intento. public.users ya no cuelga de
+    // auth.users (clerk_owns_identity), así que se borra explícitamente: si
+    // quedara, el reintento de Clerk la vincularía por correo sin auth.users.
+    await supabase.from('user_settings').delete().eq('user_id', nuevoId);
     await supabase.from('users').delete().eq('id', nuevoId);
+    await supabase.auth.admin.deleteUser(nuevoId);
     throw causa;
   }
 
@@ -150,10 +199,12 @@ async function alActualizar(data: ClerkUserData) {
   const supabase = servicio();
   const correo = correoPrincipal(data);
 
+  // Solo se sincroniza el nombre si Clerk lo tiene: el respaldo (prefijo del
+  // correo) borraría el nombre que el usuario puso en la web.
+  const nombre = nombreDeClerk(data);
   const { error } = await supabase.from('users').update({
-    email: correo,
-    name: nombreVisible(data, correo),
-    avatar: avatar(data),
+    ...(correo ? { email: correo, email_verified: true } : {}),
+    ...(nombre ? { name: nombre } : {}),
     updated_at: new Date().toISOString(),
   }).eq('id', data.external_id);
   if (error) throw error;

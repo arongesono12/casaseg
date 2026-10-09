@@ -6,7 +6,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View, type ListRender
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
-import { AlertCircle, ArrowLeft, CheckDouble, ChevronDown, Clock, Send, Trash2 } from '@/components/ui/icons';
+import { AlertCircle, ArrowLeft, Calendar, CheckDouble, ChevronDown, ChevronRight, Clock, Send, Trash2 } from '@/components/ui/icons';
 import { UserAvatar } from '@/components/user-avatar';
 import { actionGradient, brand, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
 import { useCurrentProfile } from '@/features/auth/use-current-profile';
@@ -14,6 +14,7 @@ import { useProfileId } from '@/features/auth/use-profile-id';
 import { buildChatTimeline, dayLabel, type TimelineItem } from '@/features/messaging/chat-timeline';
 import { fetchConversations, fetchMessages, markConversationRead, propertyIdFromChatRoute, resolveChatId, sendMessage, type ChatMessage } from '@/features/messaging/messaging.api';
 import { useDeleteChat } from '@/features/messaging/use-delete-chat';
+import { useChatTyping } from '@/features/messaging/use-chat-typing';
 import { conversationKeys, useActiveConversationRealtime } from '@/features/messaging/use-messaging-realtime';
 import { haptics } from '@/lib/haptics';
 import { iconRipple, onBrandRipple, pressRipple } from '@/lib/press-feedback';
@@ -21,6 +22,9 @@ import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import { formatTime } from '@/utils/formatters';
+
+const encounterButtonCopy = { es: 'Encuentros', fr: 'Rencontres', en: 'Meetings' } as const;
+const typingCopy = { es: 'Escribiendo…', fr: 'Écrit…', en: 'Typing…' } as const;
 
 /**
  * Colores del chat, al estilo WhatsApp pero con la marca: fondo de "papel" para
@@ -118,13 +122,26 @@ function DaySeparator({ date, chat, palette }: { date: Date; chat: ChatColors; p
   );
 }
 
+function MeetingEvent({ message, palette, locale, onOpen }: { message: ChatMessage; palette: AppPalette; locale: 'es' | 'fr' | 'en'; onOpen: () => void }) {
+  const label = { es: 'Ver encuentro', fr: 'Voir la rencontre', en: 'View meeting' }[locale];
+  const tone = message.metadata?.event === 'rejected' ? colors.error : message.metadata?.event === 'confirmed' ? colors.success : palette.brand;
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 8, paddingHorizontal: 24 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${message.content}. ${label}`} onPress={onOpen} style={{ width: '100%', maxWidth: 360, padding: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: tone, backgroundColor: palette.surface, gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}><Calendar color={tone} size={18} /><Text style={{ color: palette.text, fontFamily: fontFamily.semibold, flex: 1 }}>{message.content}</Text></View>
+        <Text style={{ color: tone, fontFamily: fontFamily.bold, fontSize: 12 }}>{label} →</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function ChatScreen() {
   const { conversationId: route, title: titleParam } = useLocalSearchParams<{ conversationId: string; title?: string }>();
   const { user } = useAuth();
   const profile = useCurrentProfile();
   const { palette } = useAppTheme();
   const chat = useChatColors();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const listRef = useRef<FlatList<TimelineItem>>(null);
   const [content, setContent] = useState('');
@@ -135,6 +152,7 @@ export default function ChatScreen() {
   const propertyId = propertyIdFromChatRoute(route);
   const chatIdQuery = useQuery({ queryKey: conversationKeys.chatId(route), queryFn: () => resolveChatId(route), enabled: Boolean(user) });
   const chatId = chatIdQuery.data ?? null;
+  const { partnerTyping, onDraftChange, stopTyping } = useChatTyping(chatId, selfId);
   const messagesKey = conversationKeys.messages(chatId ?? route);
   useActiveConversationRealtime(chatId ?? undefined, selfId);
   // refetchInterval: respaldo del tiempo real para los mensajes nuevos y para
@@ -145,7 +163,7 @@ export default function ChatScreen() {
   const conversation = chatId ? conversations.data?.find((item) => item.id === chatId) : undefined;
   const contactName = conversation?.title || titleParam || 'CasaSeg';
   const ownName = user?.name?.trim() || profile.data?.name || 'CasaSeg';
-  const ownAvatar = user?.avatar ?? profile.data?.avatar;
+  const ownAvatar = profile.data?.avatar ?? user?.avatar;
   const partnerId = conversation?.partnerId;
   const { requestDelete } = useDeleteChat();
   const deleteChat = async () => {
@@ -205,7 +223,7 @@ export default function ChatScreen() {
 
   const submit = () => {
     const text = content.trim();
-    if (text && !send.isPending) send.mutate(text);
+    if (text && !send.isPending) { stopTyping(); send.mutate(text); }
   };
 
   const retry = useCallback((message: ChatMessage) => {
@@ -216,8 +234,10 @@ export default function ChatScreen() {
   const renderItem = useCallback<ListRenderItem<TimelineItem>>(
     ({ item }) => (item.type === 'day'
       ? <DaySeparator date={item.date} chat={chat} palette={palette} />
-      : <MessageBubble item={item} chat={chat} senderName={item.own ? ownName : contactName} senderAvatar={item.own ? ownAvatar : conversation?.avatar} onRetry={retry} />),
-    [chat, contactName, conversation?.avatar, ownAvatar, ownName, palette, retry],
+      : item.message.kind === 'meeting'
+        ? <MeetingEvent message={item.message} palette={palette} locale={locale} onOpen={() => router.push({ pathname: '/encounters/[conversationId]', params: { conversationId: route } })} />
+        : <MessageBubble item={item} chat={chat} senderName={item.own ? ownName : contactName} senderAvatar={item.own ? ownAvatar : conversation?.avatar} onRetry={retry} />),
+    [chat, contactName, conversation?.avatar, locale, ownAvatar, ownName, palette, retry, route],
   );
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -226,33 +246,48 @@ export default function ChatScreen() {
     if (away !== showScrollDown) setShowScrollDown(away);
   };
 
-  const subtitle = conversation?.propertyTitle ?? t('secureConversation');
+  const subtitle = partnerTyping ? typingCopy[locale] : conversation?.propertyTitle ?? t('secureConversation');
   const canSend = Boolean(content.trim());
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={[styles.safe, { backgroundColor: palette.surface }]}>
       <AdaptiveKeyboardView style={styles.safe}>
         <View style={[styles.header, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-          <Pressable accessibilityLabel={t('back')} accessibilityRole="button" android_ripple={iconRipple(48)} onPress={() => router.back()} style={styles.headerButton}>
-            <ArrowLeft color={palette.text} size={23} />
-          </Pressable>
-          <Pressable
-            accessibilityRole={conversation?.propertyId ? 'link' : undefined}
-            accessibilityHint={conversation?.propertyId ? t('viewPropertyLink') : undefined}
-            android_ripple={conversation?.propertyId ? pressRipple : undefined}
-            disabled={!conversation?.propertyId}
-            onPress={() => conversation?.propertyId && router.push({ pathname: '/property/[id]', params: { id: conversation.propertyId } })}
-            style={styles.contact}
-          >
-            <UserAvatar name={contactName} uri={conversation?.avatar} size={40} />
-            <View style={styles.contactCopy}>
-              <Text numberOfLines={1} style={[styles.contactName, { color: palette.text }]}>{contactName}</Text>
-              <Text numberOfLines={1} style={[styles.contactSubtitle, { color: palette.textSecondary }]}>{subtitle}</Text>
-            </View>
-          </Pressable>
-          {chatId ? (
-            <Pressable accessibilityLabel={t('deleteChat')} accessibilityRole="button" android_ripple={iconRipple(48)} hitSlop={4} onPress={() => void deleteChat()} style={styles.headerButton}>
-              <Trash2 color={palette.textSecondary} size={21} />
+          <View style={styles.headerTop}>
+            <Pressable accessibilityLabel={t('back')} accessibilityRole="button" android_ripple={iconRipple(48)} onPress={() => router.back()} style={styles.headerButton}>
+              <ArrowLeft color={palette.text} size={23} />
+            </Pressable>
+            <Pressable
+              accessibilityRole={conversation?.propertyId ? 'link' : undefined}
+              accessibilityHint={conversation?.propertyId ? t('viewPropertyLink') : undefined}
+              android_ripple={conversation?.propertyId ? pressRipple : undefined}
+              disabled={!conversation?.propertyId}
+              onPress={() => conversation?.propertyId && router.push({ pathname: '/property/[id]', params: { id: conversation.propertyId } })}
+              style={styles.contact}
+            >
+              <UserAvatar name={contactName} uri={conversation?.avatar} size={40} />
+              <View style={styles.contactCopy}>
+                <Text numberOfLines={1} style={[styles.contactName, { color: palette.text }]}>{contactName}</Text>
+                <Text numberOfLines={1} style={[styles.contactSubtitle, { color: palette.textSecondary }]}>{subtitle}</Text>
+              </View>
+            </Pressable>
+            {chatId ? (
+              <Pressable accessibilityLabel={t('deleteChat')} accessibilityRole="button" android_ripple={iconRipple(48)} hitSlop={4} onPress={() => void deleteChat()} style={styles.headerButton}>
+                <Trash2 color={palette.textSecondary} size={21} />
+              </Pressable>
+            ) : null}
+          </View>
+          {(conversation?.propertyId || propertyId) ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={encounterButtonCopy[locale]}
+              android_ripple={pressRipple}
+              onPress={() => router.push({ pathname: '/encounters/[conversationId]', params: { conversationId: route } })}
+              style={[styles.encounterButton, { backgroundColor: palette.brandSoft }]}
+            >
+              <Calendar color={palette.brandIcon} size={18} />
+              <Text style={[styles.encounterLabel, { color: palette.brandText }]}>{encounterButtonCopy[locale]}</Text>
+              <ChevronRight color={palette.brandIcon} size={18} />
             </Pressable>
           ) : null}
         </View>
@@ -289,7 +324,7 @@ export default function ChatScreen() {
           <TextInput
             accessibilityLabel={t('writeMessage')}
             value={content}
-            onChangeText={setContent}
+            onChangeText={(value) => { setContent(value); onDraftChange(value); }}
             multiline
             maxLength={4000}
             placeholder={t('writeMessage')}
@@ -322,8 +357,11 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
   flipped: { transform: [{ scaleY: -1 }] },
-  header: { minHeight: 60, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', paddingRight: 12, paddingLeft: 4, gap: 2 },
+  header: { borderBottomWidth: StyleSheet.hairlineWidth, paddingBottom: 8 },
+  headerTop: { minHeight: 60, flexDirection: 'row', alignItems: 'center', paddingRight: 12, paddingLeft: 4, gap: 2 },
   headerButton: { width: 44, height: 48, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  encounterButton: { alignSelf: 'flex-end', minHeight: 38, marginHorizontal: 12, borderRadius: radius.pill, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8, overflow: 'hidden' },
+  encounterLabel: { fontSize: 13, lineHeight: 18, fontFamily: fontFamily.bold },
   contact: { flex: 1, minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, overflow: 'hidden' },
   contactCopy: { flex: 1, minWidth: 0 },
   contactName: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },

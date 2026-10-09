@@ -12,8 +12,38 @@ export type PropertyPage = {
   nextPage?: number;
 };
 
+function usesPublicCatalog(filters: PropertyFilters) {
+  return !filters.location && !filters.name && filters.category === 'Todos'
+    && !filters.maxPrice && filters.availability === 'all' && filters.sort === 'recommended';
+}
+
+function compareCatalogPriority(left: PropertyRow, right: PropertyRow) {
+  if (Boolean(left.is_featured) !== Boolean(right.is_featured)) return left.is_featured ? -1 : 1;
+  const priority = Number(right.search_priority ?? 0) - Number(left.search_priority ?? 0);
+  if (priority) return priority;
+  const featured = Date.parse(String(right.featured_at ?? '')) - Date.parse(String(left.featured_at ?? ''));
+  if (Number.isFinite(featured) && featured) return featured;
+  return Date.parse(String(right.created_at ?? '')) - Date.parse(String(left.created_at ?? ''));
+}
+
+async function fetchPublicCatalogPage(offset: number, limit: number): Promise<PropertyRow[]> {
+  const { data, error } = await supabase.rpc('list_public_active_properties_page', {
+    p_offset: offset,
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return ((data ?? []) as { property: PropertyRow }[])
+    .map((entry) => entry.property)
+    .filter(Boolean);
+}
+
 export async function fetchProperties(filters: PropertyFilters, signal?: AbortSignal) {
   if (!isSupabaseConfigured) return filterFallback(filters);
+  if (usesPublicCatalog(filters)) {
+    const rows = await fetchPublicCatalogPage(0, 20);
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    return rows.sort(compareCatalogPriority).map((row) => mapProperty(row));
+  }
   let query = supabase.from('properties').select(PROPERTY_LIST_COLUMNS).eq('status', 'active').range(0, 19);
   if (filters.location) query = query.ilike('location', `%${filters.location}%`);
   if (filters.name) query = query.ilike('title', `%${filters.name}%`);
@@ -29,14 +59,24 @@ export async function fetchProperties(filters: PropertyFilters, signal?: AbortSi
   return (data as PropertyRow[]).map((row) => mapProperty(row));
 }
 
-export async function fetchPropertiesPage(filters: PropertyFilters, page: number, signal?: AbortSignal): Promise<PropertyPage> {
-  const from = page * PROPERTY_PAGE_SIZE;
-  const to = from + PROPERTY_PAGE_SIZE - 1;
+export async function fetchPropertiesPage(filters: PropertyFilters, page: number, signal?: AbortSignal, pageSize = PROPERTY_PAGE_SIZE): Promise<PropertyPage> {
+  const safePageSize = Math.min(48, Math.max(1, Math.floor(pageSize)));
+  const from = page * safePageSize;
+  const to = from + safePageSize - 1;
 
   if (!isSupabaseConfigured) {
     const filtered = filterFallback(filters);
     const items = filtered.slice(from, to + 1);
     return { items, nextPage: from + items.length < filtered.length ? page + 1 : undefined };
+  }
+
+  if (usesPublicCatalog(filters)) {
+    const rows = await fetchPublicCatalogPage(from, safePageSize + 1);
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    return {
+      items: rows.slice(0, safePageSize).sort(compareCatalogPriority).map((row) => mapProperty(row)),
+      nextPage: rows.length > safePageSize ? page + 1 : undefined,
+    };
   }
 
   let query = supabase.from('properties').select(PROPERTY_LIST_COLUMNS).eq('status', 'active').range(from, to + 1);
@@ -53,8 +93,8 @@ export async function fetchPropertiesPage(filters: PropertyFilters, page: number
 
   const { data, error } = await query.abortSignal(signal ?? new AbortController().signal);
   if (error) throw error;
-  const items = (data as PropertyRow[]).slice(0, PROPERTY_PAGE_SIZE).map((row) => mapProperty(row));
-  return { items, nextPage: data.length > PROPERTY_PAGE_SIZE ? page + 1 : undefined };
+  const items = (data as PropertyRow[]).slice(0, safePageSize).map((row) => mapProperty(row));
+  return { items, nextPage: data.length > safePageSize ? page + 1 : undefined };
 }
 
 export async function fetchMapProperties(filters: PropertyFilters, signal?: AbortSignal): Promise<Property[]> {

@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { CheckCircle2, Clock, ShieldCheck } from '@/components/ui/icons';
+import { Camera, CheckCircle2, Clock, ShieldCheck } from '@/components/ui/icons';
 import { StatusPill, type IconComponent } from '@/components/ui/premium';
 import { UserAvatar } from '@/components/user-avatar';
 import { actionGradient, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
@@ -32,6 +32,12 @@ type ProfileHeaderCardProps = {
   wide: boolean;
   topInset: number;
   contentMaxWidth: number;
+  editing: boolean;
+  mediaSaving: 'avatars' | 'covers' | null;
+  avatarEditLabel: string;
+  coverEditLabel: string;
+  onChangeAvatar: () => void;
+  onChangeCover: () => void;
 };
 
 function formatMemberSince(value: string | undefined, locale: string) {
@@ -43,7 +49,7 @@ function formatMemberSince(value: string | undefined, locale: string) {
 }
 
 /** Identidad primero; los datos secundarios quedan en una fila compacta. */
-export function ProfileHeaderCard({ name, email, avatar, profile, profileLoading, roleLabel, roleTone, roleIcon, palette, wide, topInset, contentMaxWidth }: ProfileHeaderCardProps) {
+export function ProfileHeaderCard({ name, email, avatar, profile, profileLoading, roleLabel, roleTone, roleIcon, palette, wide, topInset, contentMaxWidth, editing, mediaSaving, avatarEditLabel, coverEditLabel, onChangeAvatar, onChangeCover }: ProfileHeaderCardProps) {
   const { locale } = useI18n();
   const copy = useCopy(headerCopy);
   const emailVerified = profile?.emailVerified ?? true;
@@ -56,6 +62,14 @@ export function ProfileHeaderCard({ name, email, avatar, profile, profileLoading
         {profile?.coverPicture
           ? <Image source={{ uri: profile.coverPicture }} contentFit="cover" cachePolicy="disk" transition={180} style={StyleSheet.absoluteFill} />
           : <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+        {editing ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={coverEditLabel} disabled={Boolean(mediaSaving)} onPress={onChangeCover} style={styles.coverEditTarget}>
+            <View style={styles.coverEditBadge}>
+              {mediaSaving === 'covers' ? <ActivityIndicator color="white" size="small" /> : <Camera color="white" size={16} />}
+              <Text style={styles.coverEditText}>{coverEditLabel}</Text>
+            </View>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={[styles.body, { maxWidth: contentMaxWidth }]}>
@@ -63,9 +77,16 @@ export function ProfileHeaderCard({ name, email, avatar, profile, profileLoading
           <View style={[styles.avatarRing, { backgroundColor: palette.surface }]}>
             <UserAvatar name={name} uri={avatar} size={AVATAR_SIZE} />
             {emailVerified ? (
-              <View style={[styles.verifiedDot, { borderColor: palette.surface }]}>
+              <View style={[styles.verifiedDot, editing && styles.verifiedDotEditing, { borderColor: palette.surface }]}>
                 <ShieldCheck color="white" size={12} fill="white" />
               </View>
+            ) : null}
+            {editing ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={avatarEditLabel} disabled={Boolean(mediaSaving)} onPress={onChangeAvatar} style={styles.avatarEditTarget}>
+                <View style={styles.avatarEditBadge}>
+                  {mediaSaving === 'avatars' ? <ActivityIndicator color="white" size="small" /> : <Camera color="white" size={16} />}
+                </View>
+              </Pressable>
             ) : null}
           </View>
           <View style={styles.rolePill}><StatusPill label={roleLabel} tone={roleTone} icon={roleIcon} /></View>
@@ -104,10 +125,16 @@ export function ProfileHeaderCard({ name, email, avatar, profile, profileLoading
 const styles = StyleSheet.create({
   card: { overflow: 'hidden', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg, borderCurve: 'continuous' },
   cover: { backgroundColor: colors.brand },
+  coverEditTarget: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'flex-end', justifyContent: 'flex-end', padding: 12, backgroundColor: 'rgba(0,0,0,0.12)' },
+  coverEditBadge: { minHeight: 34, borderRadius: radius.pill, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.62)' },
+  coverEditText: { color: 'white', fontSize: 12, fontFamily: fontFamily.bold },
   body: { width: '100%', alignSelf: 'center', paddingHorizontal: 20, paddingBottom: 19 },
   topLine: { marginTop: -(AVATAR_SIZE / 2 + AVATAR_RING), flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
   avatarRing: { padding: AVATAR_RING, borderRadius: AVATAR_SIZE / 2 + AVATAR_RING },
+  avatarEditTarget: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'flex-end', justifyContent: 'flex-end', borderRadius: AVATAR_SIZE / 2 + AVATAR_RING },
+  avatarEditBadge: { width: 29, height: 29, borderRadius: 15, backgroundColor: colors.brand, borderWidth: 2, borderColor: 'white', alignItems: 'center', justifyContent: 'center' },
   verifiedDot: { position: 'absolute', right: 2, bottom: 4, width: 24, height: 24, borderRadius: 12, borderWidth: 2, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
+  verifiedDotEditing: { right: undefined, left: 2 },
   rolePill: { paddingBottom: 6, flexShrink: 1 },
   identity: { marginTop: 10, gap: 3 },
   name: { fontSize: 25, lineHeight: 31, fontFamily: fontFamily.extrabold, letterSpacing: -0.5 },
