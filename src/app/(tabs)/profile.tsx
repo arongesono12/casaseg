@@ -54,6 +54,7 @@ export default function ProfileScreen() {
   const updatePhone = useUpdateProfilePhone();
   const updateExtras = useUpdateProfileExtras();
   const insets = useSafeAreaInsets();
+  const ownerPanelBleed = Math.max(0, width - insets.left - insets.right - PROFILE_MAX_WIDTH) / 2 + (width < 380 ? 16 : 24);
   const profileScrollRef = useRef<ScrollView>(null);
   const [editing, setEditing] = useState(false);
   const [mediaSaving, setMediaSaving] = useState<'avatars' | 'covers' | null>(null);
@@ -142,7 +143,7 @@ export default function ProfileScreen() {
       ) : null}
 
       {isOwnerRole(role) ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/owner')} android_ripple={onBrandRipple} style={({ pressed }) => [styles.ownerCta, pressed && !usesRipple && styles.pressed]}>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/owner')} android_ripple={onBrandRipple} style={({ pressed }) => [styles.ownerCta, styles.ownerCtaFullBleed, { marginHorizontal: -ownerPanelBleed }, pressed && !usesRipple && styles.pressed]}>
           <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
             <View style={styles.ownerCopy}>
               <View style={styles.ownerEyebrow}><Text style={styles.ownerEyebrowText}>{t('professionalSpace')}</Text></View>
@@ -344,7 +345,6 @@ function ProfileDetailsForm({
             <Text selectable style={[styles.infoValue, { color: initialPhone ? palette.text : palette.textSecondary }]}>{initialPhone || details.phoneMissing}</Text>
           </View>
           {initialAbout ? <><View style={[styles.infoDivider, { backgroundColor: palette.border }]} /><View style={styles.infoRow}><Text style={[styles.infoLabel, { color: palette.muted }]}>{media.about}</Text><Text selectable style={[styles.infoValue, { color: palette.text }]}>{initialAbout}</Text></View></> : null}
-          {Object.values(initialSocialLinks).some(Boolean) ? <><View style={[styles.infoDivider, { backgroundColor: palette.border }]} /><View style={styles.infoRow}><Text style={[styles.infoLabel, { color: palette.muted }]}>{media.social}</Text><Text selectable style={[styles.infoValue, { color: palette.text }]}>{Object.entries(initialSocialLinks).filter(([, value]) => value).map(([key]) => key).join(' · ')}</Text></View></> : null}
         </View>
       ) : null}
 
@@ -458,6 +458,7 @@ const styles = StyleSheet.create({
   trustTitle: { fontSize: 14, fontFamily: fontFamily.bold },
   trustDescription: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
   ownerCta: { borderRadius: radius.xl, borderCurve: 'continuous', overflow: 'hidden', boxShadow: `0 14px 30px ${withAlpha(colors.brand, 0.20)}` },
+  ownerCtaFullBleed: { borderRadius: 0 },
   ownerGradient: { minHeight: 136, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16 },
   ownerCopy: { flex: 1, gap: 8 },
   ownerEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

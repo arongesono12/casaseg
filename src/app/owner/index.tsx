@@ -74,7 +74,7 @@ export default function OwnerHome() {
             accessory={
               <View style={styles.mode}>
                 <Text style={[styles.modeText, { color: palette.textSecondary }]}>{t('ownerMode')}</Text>
-                {user ? <UserAvatar name={user.name} uri={user.avatar} size={36} /> : null}
+                {user ? <UserAvatar name={user.name} uri={user.avatar} size={36} onPress={() => router.push('/(tabs)/profile')} /> : null}
               </View>
             }
           />

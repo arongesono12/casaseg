@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Camera, CheckCircle2, Clock, ShieldCheck } from '@/components/ui/icons';
+import { CoverSocialLinks } from '@/components/profile/cover-social-links';
 import { StatusPill, type IconComponent } from '@/components/ui/premium';
 import { UserAvatar } from '@/components/user-avatar';
 import { actionGradient, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
@@ -62,6 +63,7 @@ export function ProfileHeaderCard({ name, email, avatar, profile, profileLoading
         {profile?.coverPicture
           ? <Image source={{ uri: profile.coverPicture }} contentFit="cover" cachePolicy="disk" transition={180} style={StyleSheet.absoluteFill} />
           : <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+        {!editing ? <CoverSocialLinks links={profile?.socialLinks} /> : null}
         {editing ? (
           <Pressable accessibilityRole="button" accessibilityLabel={coverEditLabel} disabled={Boolean(mediaSaving)} onPress={onChangeCover} style={styles.coverEditTarget}>
             <View style={styles.coverEditBadge}>

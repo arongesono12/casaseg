@@ -8,7 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ExploreMenu } from '@/components/explore-menu';
 import { FilterSheet, type FilterSheetHandle } from '@/components/filter-sheet';
 import { PropertyCard } from '@/components/property/property-card';
-import { BedDouble, Building2, Grid2X2, Home, Map, Menu, MessageCircle, Search, Sparkles } from '@/components/ui/icons';
+import { BedDouble, Building2, Grid2X2, Home, Map, Menu, Search, Sparkles } from '@/components/ui/icons';
 import { PremiumEmptyState, PremiumErrorState } from '@/components/ui/premium';
 import { actionGradient, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
 import { propertyKeys } from '@/features/properties/api/property.keys';
@@ -23,7 +23,6 @@ import { iconRipple, onBrandRipple, pressRipple, rippleClip, usesRipple } from '
 import { responsiveGridColumns } from '@/lib/responsive-grid';
 import { useAuth } from '@/providers/auth-context';
 import { useI18n } from '@/providers/i18n-context';
-import { useNotifications } from '@/providers/notification-context';
 import { useAppTheme } from '@/providers/theme-context';
 import { useExplorerStore } from '@/stores/explorer-store';
 import type { Property } from '@/types';
@@ -85,8 +84,6 @@ export default function ExploreScreen() {
   const shortViewport = height <= 640;
   const dockMapInHeader = narrowViewport || shortViewport;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { messageUnreadCount } = useNotifications();
-  const unreadLabel = messageUnreadCount > 99 ? '99+' : String(messageUnreadCount);
   const columns = userSettings.data?.defaultView === 'list' ? 1 : responsiveGridColumns(width, MAX_CONTENT_WIDTH, LIST_PADDING, GRID_GAP, fontScale, 4);
   const useCompactCards = columns > 1;
   // Ancho fijo por celda: con flex:1 una última fila de un solo elemento se estiraría a todo el ancho.
@@ -150,7 +147,7 @@ export default function ExploreScreen() {
                 </Text>
               </View>
             </Pressable>
-            {dockMapInHeader ? <Pressable
+            {dockMapInHeader && <Pressable
               accessibilityLabel={t('map')}
               accessibilityRole="button"
               android_ripple={iconRipple(48)}
@@ -158,19 +155,6 @@ export default function ExploreScreen() {
               style={({ pressed }) => [styles.menuButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
             >
               <Map color={palette.text} size={21} />
-            </Pressable> : <Pressable
-              accessibilityLabel={messageUnreadCount > 0 ? `${t('messages')}, ${t('unreadCount', { count: unreadLabel })}` : t('messages')}
-              accessibilityRole="button"
-              android_ripple={iconRipple(48)}
-              onPress={() => router.push('/(tabs)/messages')}
-              style={({ pressed }) => [styles.menuButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
-            >
-              <MessageCircle color={palette.text} size={21} />
-              {messageUnreadCount > 0 ? (
-                <View pointerEvents="none" style={[styles.badge, { borderColor: palette.surface }]}>
-                  <Text style={styles.badgeText}>{unreadLabel}</Text>
-                </View>
-              ) : null}
             </Pressable>}
             <Pressable
               accessibilityLabel={t('menu')}
@@ -237,9 +221,6 @@ const styles = StyleSheet.create({
   searchTitle: { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.bold },
   searchDetail: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 17 },
   menuButton: { width: 48, height: 48, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
-  // Mismo rojo que la insignia de la pestaña Mensajes.
-  badge: { position: 'absolute', top: -2, right: -4, minWidth: 20, height: 20, borderRadius: 10, borderWidth: 2, paddingHorizontal: 4, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: colors.onBrand, fontSize: 11, lineHeight: 13, fontFamily: fontFamily.bold, fontVariant: ['tabular-nums'] },
   categories: { flexGrow: 1, flexDirection: 'row', justifyContent: 'space-around', paddingTop: 12 },
   categoriesNarrow: { justifyContent: 'space-around' },
   // El desplazamiento horizontal conserva las etiquetas completas con texto grande y en francés.

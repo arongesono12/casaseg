@@ -61,7 +61,7 @@ function StatusIcon({ status, chat }: { status: ChatMessage['status']; chat: Cha
   return <CheckDouble color={status === 'read' ? chat.read : chat.ownMeta} size={17} />;
 }
 
-const MessageBubble = memo(function MessageBubble({ item, chat, senderName, senderAvatar, onRetry }: { item: Extract<TimelineItem, { type: 'message' }>; chat: ChatColors; senderName: string; senderAvatar?: string; onRetry: (message: ChatMessage) => void }) {
+const MessageBubble = memo(function MessageBubble({ item, chat, senderName, senderAvatar, onAvatarPress, onRetry }: { item: Extract<TimelineItem, { type: 'message' }>; chat: ChatColors; senderName: string; senderAvatar?: string; onAvatarPress?: () => void; onRetry: (message: ChatMessage) => void }) {
   const { locale, t } = useI18n();
   const { message, own, firstOfGroup } = item;
   const time = formatTime(message.createdAt, locale);
@@ -99,14 +99,14 @@ const MessageBubble = memo(function MessageBubble({ item, chat, senderName, send
 
   return (
     <View style={[styles.row, own ? styles.rowOwn : styles.rowOther, firstOfGroup && styles.rowFirst]}>
-      {!own ? <UserAvatar name={senderName} uri={senderAvatar} size={28} /> : null}
+      {!own ? <UserAvatar name={senderName} uri={senderAvatar} size={28} onPress={onAvatarPress} /> : null}
       {failed ? (
         <Pressable accessibilityRole="button" accessibilityHint={t('messageFailed')} onPress={() => onRetry(message)} style={styles.messageBody}>
           {bubble}
           <Text style={[styles.failedText, { color: colors.error }]}>{t('messageFailed')}</Text>
         </Pressable>
       ) : <View style={styles.messageBody}>{bubble}</View>}
-      {own ? <UserAvatar name={senderName} uri={senderAvatar} size={28} /> : null}
+      {own ? <UserAvatar name={senderName} uri={senderAvatar} size={28} onPress={onAvatarPress} /> : null}
     </View>
   );
 });
@@ -236,8 +236,8 @@ export default function ChatScreen() {
       ? <DaySeparator date={item.date} chat={chat} palette={palette} />
       : item.message.kind === 'meeting'
         ? <MeetingEvent message={item.message} palette={palette} locale={locale} onOpen={() => router.push({ pathname: '/encounters/[conversationId]', params: { conversationId: route } })} />
-        : <MessageBubble item={item} chat={chat} senderName={item.own ? ownName : contactName} senderAvatar={item.own ? ownAvatar : conversation?.avatar} onRetry={retry} />),
-    [chat, contactName, conversation?.avatar, locale, ownAvatar, ownName, palette, retry, route],
+        : <MessageBubble item={item} chat={chat} senderName={item.own ? ownName : contactName} senderAvatar={item.own ? ownAvatar : conversation?.avatar} onAvatarPress={item.own ? () => router.push('/(tabs)/profile') : partnerId ? () => router.push({ pathname: '/users/[id]', params: { id: partnerId } }) : undefined} onRetry={retry} />),
+    [chat, contactName, conversation?.avatar, locale, ownAvatar, ownName, palette, partnerId, retry, route],
   );
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -257,20 +257,20 @@ export default function ChatScreen() {
             <Pressable accessibilityLabel={t('back')} accessibilityRole="button" android_ripple={iconRipple(48)} onPress={() => router.back()} style={styles.headerButton}>
               <ArrowLeft color={palette.text} size={23} />
             </Pressable>
-            <Pressable
-              accessibilityRole={conversation?.propertyId ? 'link' : undefined}
-              accessibilityHint={conversation?.propertyId ? t('viewPropertyLink') : undefined}
-              android_ripple={conversation?.propertyId ? pressRipple : undefined}
-              disabled={!conversation?.propertyId}
-              onPress={() => conversation?.propertyId && router.push({ pathname: '/property/[id]', params: { id: conversation.propertyId } })}
-              style={styles.contact}
-            >
-              <UserAvatar name={contactName} uri={conversation?.avatar} size={40} />
-              <View style={styles.contactCopy}>
+            <View style={styles.contact}>
+              <UserAvatar name={contactName} uri={conversation?.avatar} size={40} onPress={partnerId ? () => router.push({ pathname: '/users/[id]', params: { id: partnerId } }) : undefined} />
+              <Pressable
+                accessibilityRole={conversation?.propertyId ? 'link' : undefined}
+                accessibilityHint={conversation?.propertyId ? t('viewPropertyLink') : undefined}
+                android_ripple={conversation?.propertyId ? pressRipple : undefined}
+                disabled={!conversation?.propertyId}
+                onPress={() => conversation?.propertyId && router.push({ pathname: '/property/[id]', params: { id: conversation.propertyId } })}
+                style={styles.contactCopy}
+              >
                 <Text numberOfLines={1} style={[styles.contactName, { color: palette.text }]}>{contactName}</Text>
                 <Text numberOfLines={1} style={[styles.contactSubtitle, { color: palette.textSecondary }]}>{subtitle}</Text>
-              </View>
-            </Pressable>
+              </Pressable>
+            </View>
             {chatId ? (
               <Pressable accessibilityLabel={t('deleteChat')} accessibilityRole="button" android_ripple={iconRipple(48)} hitSlop={4} onPress={() => void deleteChat()} style={styles.headerButton}>
                 <Trash2 color={palette.textSecondary} size={21} />

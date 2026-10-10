@@ -83,7 +83,7 @@ export default function AdminDashboard() {
           {usersAvailable ? <View style={styles.previewList}>
             {recentUsers.map((user) => (
               <View key={user.id} style={[styles.previewRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                <UserAvatar name={user.name} uri={user.avatar} size={44} />
+                <UserAvatar name={user.name} uri={user.avatar} size={44} onPress={() => router.push({ pathname: '/users/[id]', params: { id: user.id } })} />
                 <View style={styles.previewCopy}><Text numberOfLines={1} style={[styles.previewTitle, { color: palette.text }]}>{user.name}</Text><Text numberOfLines={1} style={[styles.previewDetail, { color: palette.textSecondary }]}>{user.email}</Text></View>
                 <StatusPill label={roleLabel(user.role, locale)} tone={user.role === 'owner' ? colors.primary : user.role === 'client' ? colors.success : colors.brand} />
               </View>

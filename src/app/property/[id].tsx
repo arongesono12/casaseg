@@ -507,7 +507,12 @@ export default function PropertyDetailScreen() {
                     pressed && styles.pressed,
                   ]}
                 >
-                  <UserAvatar name={property.ownerName} uri={property.ownerAvatar} size={48} />
+                  <UserAvatar
+                    name={property.ownerName}
+                    uri={property.ownerAvatar}
+                    size={48}
+                    onPress={() => router.push({ pathname: '/users/[id]', params: { id: property.ownerId } })}
+                  />
                   <View style={styles.flex}>
                     <Text numberOfLines={1} style={[styles.hostName, { color: palette.text }]}>
                       {t("ownerBy", { name: property.ownerName })}

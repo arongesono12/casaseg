@@ -91,6 +91,7 @@ function RootNavigator() {
         <Stack.Screen name="onboarding/index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="property/[id]" />
+        <Stack.Screen name="users/[id]" />
         <Stack.Screen name="map" />
         <Stack.Screen name="legal/terms" />
         <Stack.Screen name="legal/privacy" />

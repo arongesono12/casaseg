@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fontFamily } from '@/constants/theme';
+import { useI18n } from '@/providers/i18n-context';
 
 type UserAvatarProps = {
   name: string;
   uri?: string;
   size?: number;
+  onPress?: () => void;
 };
 
 function getInitials(name: string) {
@@ -22,15 +24,11 @@ function normalizeAvatarUrl(uri?: string) {
   return /\s/.test(absolute) ? encodeURI(absolute.trim()) : absolute;
 }
 
-export function UserAvatar({ name, uri, size = 52 }: UserAvatarProps) {
+export function UserAvatar({ name, uri, size = 52, onPress }: UserAvatarProps) {
   const imageUrl = normalizeAvatarUrl(uri);
-
-  return (
-    <View
-      accessibilityRole="image"
-      accessibilityLabel={`Foto de perfil de ${name}`}
-      style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
-    >
+  const { locale } = useI18n();
+  const children = (
+    <>
       <Text style={[styles.initials, { fontFamily: fontFamily.regular, fontSize: Math.max(14, size * 0.34) }]}>{getInitials(name)}</Text>
       {imageUrl && (
         <Image
@@ -41,6 +39,29 @@ export function UserAvatar({ name, uri, size = 52 }: UserAvatarProps) {
           style={StyleSheet.absoluteFill}
         />
       )}
+    </>
+  );
+  const style = [styles.avatar, { width: size, height: size, borderRadius: size / 2 }];
+
+  if (onPress) return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${{ es: 'Ver perfil de', fr: 'Voir le profil de', en: 'View profile of' }[locale]} ${name}`}
+      hitSlop={size < 44 ? 8 : 0}
+      onPress={(event) => { event.stopPropagation(); onPress(); }}
+      style={style}
+    >
+      {children}
+    </Pressable>
+  );
+
+  return (
+    <View
+      accessibilityRole="image"
+      accessibilityLabel={`Foto de perfil de ${name}`}
+      style={style}
+    >
+      {children}
     </View>
   );
 }

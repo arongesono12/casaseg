@@ -341,7 +341,7 @@ function CommunityContent({ active, community, error, loading, onRetry, planCoun
                 key={member.id}
                 style={[styles.avatarBorder, { backgroundColor: palette.subtle, borderColor: palette.background, marginLeft: index === 0 ? 0 : -10, zIndex: community.members.length - index }]}
               >
-                <UserAvatar name={member.name} size={44} uri={member.avatar} />
+                <UserAvatar name={member.name} size={44} uri={member.avatar} onPress={() => router.push({ pathname: '/users/[id]', params: { id: member.id } })} />
               </MotionBlock>
             ))}
           </View>

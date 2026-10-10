@@ -53,6 +53,7 @@ const ConversationRow = memo(function ConversationRow({ conversation, palette, o
   const openConversation = () => router.push({ pathname: '/chat/[conversationId]', params: { conversationId: conversation.id, title: conversation.title } });
   const unread = conversation.unreadCount > 0;
   const time = formatConversationTime(conversation.updatedAt, locale);
+  const partnerId = conversation.partnerId;
   return (
     // Deslizar a la izquierda (como en WhatsApp) o mantener pulsado: "Eliminar chat".
     <ReanimatedSwipeable
@@ -79,7 +80,12 @@ const ConversationRow = memo(function ConversationRow({ conversation, palette, o
       onPress={openConversation}
       style={({ pressed }) => [styles.row, rippleClip, { borderColor: palette.border, backgroundColor: pressed && !usesRipple ? palette.subtle : 'transparent' }, pressed && !usesRipple && styles.pressed]}
     >
-      <UserAvatar name={conversation.title} uri={conversation.avatar} size={48} />
+      <UserAvatar
+        name={conversation.title}
+        uri={conversation.avatar}
+        size={48}
+        onPress={partnerId ? () => router.push({ pathname: '/users/[id]', params: { id: partnerId } }) : undefined}
+      />
       <View style={styles.copy}>
         <View style={styles.nameRow}>
           <Text numberOfLines={1} style={[styles.name, { color: palette.text }]}>{conversation.title}</Text>

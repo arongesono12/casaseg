@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -72,7 +73,7 @@ export default function AdminUsers() {
           const active = user.status !== 'restricted' && user.status !== 'suspended';
           return (
             <View key={user.id} style={[styles.row, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <UserAvatar name={user.name} uri={user.avatar} size={50} />
+              <UserAvatar name={user.name} uri={user.avatar} size={50} onPress={() => router.push({ pathname: '/users/[id]', params: { id: user.id } })} />
               <View style={styles.copy}>
                 <Text numberOfLines={1} style={[styles.name, { color: palette.text }]}>{user.name}</Text>
                 <Text selectable numberOfLines={1} style={[styles.email, { color: palette.textSecondary }]}>{user.email}</Text>
