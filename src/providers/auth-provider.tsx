@@ -6,6 +6,7 @@ import * as Linking from 'expo-linking';
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { authMessage } from '@/features/auth/auth-messages';
+import { isValidProfilePhone, normalizeProfilePhone } from '@/features/auth/profile-phone';
 import { codigoDeClerk, comoError, lanzarSiFalla } from '@/features/auth/clerk-errors';
 import { getOAuthTransport } from '@/features/auth/oauth-transport';
 import { isExpoGo } from '@/lib/execution-environment';
@@ -293,10 +294,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     lanzarSiFalla(await clerkSignIn.finalize(), authMessage('openSessionFailed'));
   }, [clerkSignIn, metodosDeLaCuenta]);
 
-  const signUp = useCallback(async ({ email, password, name, role }: { email: string; password: string; name: string; role: 'client' | 'owner' }) => {
+  const signUp = useCallback(async ({ email, password, name, phone, role }: { email: string; password: string; name: string; phone: string; role: 'client' | 'owner' }) => {
     if (!clerkSignUp) throw new Error(authMessage('signUpStarting'));
 
     const nombre = name.trim();
+    const telefono = normalizeProfilePhone(phone);
+    if (!telefono || !isValidProfilePhone(telefono)) throw new Error(authMessage('invalidPhone'));
     const [firstName, ...resto] = nombre.split(' ');
 
     lanzarSiFalla(await clerkSignUp.password({
@@ -307,7 +310,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // unsafeMetadata lo escribe el cliente, así que NUNCA puede otorgar un
       // rol. Solo deja constancia de lo que la persona pidió; el webhook crea
       // la cuenta como `client` y, si pidió `owner`, abre la solicitud.
-      unsafeMetadata: { name: nombre, requestedRole: role },
+      unsafeMetadata: { name: nombre, phone: telefono, requestedRole: role },
     }), authMessage('signUpFailed'));
 
     // Si la instancia no exige verificar el correo, la cuenta ya está lista.

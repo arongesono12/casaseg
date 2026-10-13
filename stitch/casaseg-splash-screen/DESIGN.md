@@ -33,7 +33,7 @@ All four onboarding screens follow Stitch's blue revision: clean white-to-pale-b
 
 ## Screen structure
 
-1. Splash: centered uppercase CASASEG wordmark and icon, compact circular loader, three small progress dots. The native splash uses the same lockup as a static image; the onboarding splash adds the motion.
+1. Splash: centered CasaSeg icon and uppercase wordmark with the brand slogan “Líderes en conectar hogares” directly beneath the wordmark, compact circular loader, and three small progress dots. The native splash uses a static image; the onboarding splash adds the motion.
 2. Discover: wordmark, two-line navy headline with blue location emphasis, blue house illustration, explanatory copy, blue pill action and skip link.
 3. Community: centered wordmark, headline and subtitle, three pale-blue metric cards, real member avatar stack, page dots and quiet next action.
 4. Get started: top wordmark, blue neighborhood illustration, navy heading and copy, blue pill CTA and sign-in link.

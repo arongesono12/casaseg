@@ -76,6 +76,14 @@ function avatar(data: ClerkUserData) {
   return data.has_image && data.image_url ? data.image_url : null;
 }
 
+function telefonoDeRegistro(data: ClerkUserData) {
+  const value = data.unsafe_metadata?.phone;
+  if (typeof value !== 'string') return null;
+  const phone = value.trim().replace(/\s+/g, ' ');
+  const digits = phone.replace(/\D/g, '').length;
+  return /^\+?[\d\s().-]+$/.test(phone) && digits >= 7 && digits <= 15 ? phone : null;
+}
+
 /**
  * Publica el uuid recién creado como `external_id` del usuario de Clerk. Sin
  * este paso el token de sesión no llevaría el claim y app_uid() devolvería null.
@@ -117,15 +125,23 @@ async function existeEnClerk(clerkUserId: string) {
 async function alCrear(data: ClerkUserData) {
   const supabase = servicio();
   const correo = correoPrincipal(data);
+  const telefono = telefonoDeRegistro(data);
 
   if (!(await existeEnClerk(data.id))) return { estado: 'usuario_clerk_inexistente' };
 
   // Reentrada: Clerk reintenta los webhooks fallidos, y la migración ya dejó
   // external_id puesto en las cuentas antiguas.
   if (data.external_id) {
-    const { data: existente } = await supabase
-      .from('users').select('id').eq('id', data.external_id).maybeSingle();
-    if (existente) return { estado: 'ya_existia', id: data.external_id };
+    const { data: existente, error: buscarExistenteError } = await supabase
+      .from('users').select('id, phone').eq('id', data.external_id).maybeSingle();
+    if (buscarExistenteError) throw buscarExistenteError;
+    if (existente) {
+      if (telefono && !existente.phone) {
+        const { error } = await supabase.from('users').update({ phone: telefono }).eq('id', data.external_id).is('phone', null);
+        if (error) throw error;
+      }
+      return { estado: 'ya_existia', id: data.external_id };
+    }
   }
 
   // Un correo sin verificar nunca puede reclamar un perfil existente ni crear
@@ -135,10 +151,14 @@ async function alCrear(data: ClerkUserData) {
   // Un registro con el mismo correo que una cuenta migrada debe reutilizar la
   // fila existente en vez de duplicar la identidad.
   const { data: porCorreo, error: buscarError } = await supabase
-    .from('users').select('id').eq('email', correo).maybeSingle();
+    .from('users').select('id, phone').eq('email', correo).maybeSingle();
   if (buscarError) throw buscarError;
 
   if (porCorreo?.id) {
+    if (telefono && !porCorreo.phone) {
+      const { error: telefonoError } = await supabase.from('users').update({ phone: telefono }).eq('id', porCorreo.id).is('phone', null);
+      if (telefonoError) throw telefonoError;
+    }
     await fijarExternalId(data.id, String(porCorreo.id));
     return { estado: 'vinculado_por_correo', id: String(porCorreo.id) };
   }
@@ -162,7 +182,7 @@ async function alCrear(data: ClerkUserData) {
     const { data: perfil, error: perfilError } = await supabase.from('users').select('id').eq('id', nuevoId).maybeSingle();
     if (perfilError) throw perfilError;
     if (!perfil) {
-      const { error: insertError } = await supabase.from('users').insert({ id: nuevoId, email: correo, name: nombreVisible(data, correo), role: 'client', status: 'active', email_verified: true, avatar: avatar(data) });
+      const { error: insertError } = await supabase.from('users').insert({ id: nuevoId, email: correo, name: nombreVisible(data, correo), role: 'client', status: 'active', email_verified: true, avatar: avatar(data), phone: telefono });
       if (insertError) throw insertError;
     }
     // El trigger solo marca verificado el email de Google; aquí Clerk ya lo
@@ -170,6 +190,7 @@ async function alCrear(data: ClerkUserData) {
     // propietario fallaría con "El email del usuario no está verificado".
     const { error: verifiedError } = await supabase.from('users').update({
       email_verified: true,
+      ...(telefono ? { phone: telefono } : {}),
       ...(pidioPropietario ? { owner_request_status: 'pending' } : {}),
     }).eq('id', nuevoId);
     if (verifiedError) throw verifiedError;

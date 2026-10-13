@@ -9,13 +9,15 @@ $fonts.AddFontFile($fontFile)
 
 try {
   foreach ($variant in @(
-    @{ Name = 'splash-brand-light.png'; Color = '#0D2E49' },
-    @{ Name = 'splash-brand-dark.png'; Color = '#F2F6F9' }
+    @{ Name = 'splash-brand-light.png'; Color = '#0D2E49'; SloganColor = '#526579' },
+    @{ Name = 'splash-brand-dark.png'; Color = '#F2F6F9'; SloganColor = '#BACBD7' }
   )) {
-    $bitmap = [System.Drawing.Bitmap]::new(800, 200, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $bitmap = [System.Drawing.Bitmap]::new(800, 250, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     $font = [System.Drawing.Font]::new($fonts.Families[0], 96, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+    $sloganFont = [System.Drawing.Font]::new($fonts.Families[0], 35, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $brush = [System.Drawing.SolidBrush]::new([System.Drawing.ColorTranslator]::FromHtml($variant.Color))
+    $sloganBrush = [System.Drawing.SolidBrush]::new([System.Drawing.ColorTranslator]::FromHtml($variant.SloganColor))
     $format = [System.Drawing.StringFormat]::new()
 
     try {
@@ -28,11 +30,14 @@ try {
       $format.LineAlignment = [System.Drawing.StringAlignment]::Center
       $format.FormatFlags = [System.Drawing.StringFormatFlags]::NoWrap
       $graphics.DrawString('CASASEG', $font, $brush, [System.Drawing.RectangleF]::new(256, 0, 544, 200), $format)
+      $graphics.DrawString('Líderes en conectar hogares', $sloganFont, $sloganBrush, [System.Drawing.RectangleF]::new(256, 170, 544, 70), $format)
       $bitmap.Save((Join-Path $images $variant.Name), [System.Drawing.Imaging.ImageFormat]::Png)
       Write-Output "Generated $($variant.Name)"
     } finally {
       $format.Dispose()
+      $sloganBrush.Dispose()
       $brush.Dispose()
+      $sloganFont.Dispose()
       $font.Dispose()
       $graphics.Dispose()
       $bitmap.Dispose()

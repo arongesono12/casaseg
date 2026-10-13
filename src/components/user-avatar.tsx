@@ -9,6 +9,7 @@ type UserAvatarProps = {
   uri?: string;
   size?: number;
   onPress?: () => void;
+  accessibilityLabel?: string;
 };
 
 function getInitials(name: string) {
@@ -24,7 +25,7 @@ function normalizeAvatarUrl(uri?: string) {
   return /\s/.test(absolute) ? encodeURI(absolute.trim()) : absolute;
 }
 
-export function UserAvatar({ name, uri, size = 52, onPress }: UserAvatarProps) {
+export function UserAvatar({ name, uri, size = 52, onPress, accessibilityLabel }: UserAvatarProps) {
   const imageUrl = normalizeAvatarUrl(uri);
   const { locale } = useI18n();
   const children = (
@@ -46,7 +47,7 @@ export function UserAvatar({ name, uri, size = 52, onPress }: UserAvatarProps) {
   if (onPress) return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${{ es: 'Ver perfil de', fr: 'Voir le profil de', en: 'View profile of' }[locale]} ${name}`}
+      accessibilityLabel={accessibilityLabel ?? `${{ es: 'Ver perfil de', fr: 'Voir le profil de', en: 'View profile of' }[locale]} ${name}`}
       hitSlop={size < 44 ? 8 : 0}
       onPress={(event) => { event.stopPropagation(); onPress(); }}
       style={style}

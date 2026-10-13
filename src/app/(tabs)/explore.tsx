@@ -7,22 +7,25 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ExploreMenu } from '@/components/explore-menu';
 import { FilterSheet, type FilterSheetHandle } from '@/components/filter-sheet';
+import { NotificationDropdown } from '@/components/notification-dropdown';
 import { PropertyCard } from '@/components/property/property-card';
-import { BedDouble, Building2, Grid2X2, Home, Map, Menu, Search, Sparkles } from '@/components/ui/icons';
+import { UserAvatar } from '@/components/user-avatar';
+import { BedDouble, Bell, Building2, Grid2X2, Home, Map, Menu, Search, Sparkles } from '@/components/ui/icons';
 import { PremiumEmptyState, PremiumErrorState } from '@/components/ui/premium';
 import { actionGradient, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { fetchFavorites } from '@/features/properties/api/property.queries';
 import { useFavoriteMutation } from '@/features/properties/hooks/use-favorite-mutation';
 import { useProfileId } from '@/features/auth/use-profile-id';
+import { useCurrentProfile } from '@/features/auth/use-current-profile';
 import { fetchUserSettings } from '@/features/auth/user-settings';
 import { useFavoritesUserId } from '@/features/properties/hooks/use-favorites-user-id';
-import { useInfiniteProperties, usePropertyCount } from '@/features/properties/hooks/use-properties';
+import { useInfiniteProperties } from '@/features/properties/hooks/use-properties';
 import { haptics } from '@/lib/haptics';
-import { iconRipple, onBrandRipple, pressRipple, rippleClip, usesRipple } from '@/lib/press-feedback';
+import { iconRipple, onBrandRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
 import { responsiveGridColumns } from '@/lib/responsive-grid';
 import { useAuth } from '@/providers/auth-context';
-import { useI18n } from '@/providers/i18n-context';
+import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import { useExplorerStore } from '@/stores/explorer-store';
 import type { Property } from '@/types';
@@ -34,6 +37,11 @@ const categoryIcons = { Todos: Grid2X2, Apartamentos: Building2, Casas: Home, Es
 const MAX_CONTENT_WIDTH = 1180;
 const LIST_PADDING = 20;
 const GRID_GAP = 16;
+const headerCopy = defineCopy({
+  es: { greeting: 'Hola,' },
+  fr: { greeting: 'Bonjour,' },
+  en: { greeting: 'Hello,' },
+});
 
 /** Pestaña de categoría del rediseño B: icono sobre la etiqueta y subrayado de marca. */
 const CategoryTab = memo(function CategoryTab({ category, label, accessibilityLabel, selected, palette, onSelect, narrow }: { category: CategoryKey; label: string; accessibilityLabel: string; selected: boolean; palette: AppPalette; onSelect: (category: CategoryKey) => void; narrow: boolean }) {
@@ -75,15 +83,18 @@ export default function ExploreScreen() {
   const sheetRef = useRef<FilterSheetHandle>(null);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const currentProfile = useCurrentProfile();
   const profileId = useProfileId();
   const userSettings = useQuery({ queryKey: ['user-settings', profileId], queryFn: () => fetchUserSettings(profileId!), enabled: Boolean(profileId) });
   const { palette } = useAppTheme();
   const { t } = useI18n();
+  const headerLabels = useCopy(headerCopy);
   const { width, height, fontScale } = useWindowDimensions();
   const narrowViewport = width <= 360;
   const shortViewport = height <= 640;
-  const dockMapInHeader = narrowViewport || shortViewport;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const displayName = currentProfile.data?.name ?? user?.name ?? '';
   const columns = userSettings.data?.defaultView === 'list' ? 1 : responsiveGridColumns(width, MAX_CONTENT_WIDTH, LIST_PADDING, GRID_GAP, fontScale, 4);
   const useCompactCards = columns > 1;
   // Ancho fijo por celda: con flex:1 una última fila de un solo elemento se estiraría a todo el ancho.
@@ -92,7 +103,6 @@ export default function ExploreScreen() {
   const setCategory = useExplorerStore((state) => state.setCategory);
   const setViewMode = useExplorerStore((state) => state.setViewMode);
   const propertyQuery = useInfiniteProperties(filters, userSettings.data?.propertiesPerPage ?? 12);
-  const propertyCountQuery = usePropertyCount(filters);
   const favoritesUserId = useFavoritesUserId();
   const favoritesQuery = useQuery({ queryKey: propertyKeys.favorites(favoritesUserId ?? 'guest'), queryFn: () => fetchFavorites(favoritesUserId!), enabled: Boolean(favoritesUserId) });
   const favoriteMutation = useFavoriteMutation(favoritesUserId ?? 'guest');
@@ -122,8 +132,6 @@ export default function ExploreScreen() {
     if (propertyQuery.hasNextPage && !propertyQuery.isFetchingNextPage) void propertyQuery.fetchNextPage();
   }, [propertyQuery]);
 
-  const searchSummary = filters.location || filters.name;
-  const count = propertyCountQuery.data;
   // La barra de pestañas nativa de iOS es translúcida y el contenido pasa por debajo.
   const mapBottom = Platform.OS === 'ios' ? insets.bottom + 64 : 20;
 
@@ -131,41 +139,38 @@ export default function ExploreScreen() {
     <SafeAreaView collapsable={false} edges={['top']} style={[styles.safe, { backgroundColor: palette.surface }]}>
       <View style={[styles.header, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
         <View style={styles.headerContent}>
-          <View style={styles.searchRow}>
-            <Pressable
-              accessibilityLabel={`${t('searchTitle')}: ${searchSummary || t('whereToLive')}`}
-              accessibilityRole="button"
-              android_ripple={pressRipple}
-              onPress={() => sheetRef.current?.present()}
-              style={({ pressed }) => [styles.search, rippleClip, { backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
-            >
-              <Search color={palette.text} size={20} />
-              <View style={styles.searchCopy}>
-                <Text numberOfLines={1} style={[styles.searchTitle, { color: palette.text }]}>{searchSummary || (narrowViewport ? t('searchTitle') : t('whereToLive'))}</Text>
-                <Text numberOfLines={1} style={[styles.searchDetail, { color: palette.textSecondary }]}>
-                  {count === undefined ? t('searchSubtitle') : `${count} ${t('properties')}${narrowViewport ? '' : ` · ${t('sort')}`}`}
-                </Text>
+          <View style={styles.headerRow}>
+            {user ? <View style={styles.identity}>
+              <UserAvatar name={displayName} uri={currentProfile.data?.avatar ?? user.avatar} size={44} accessibilityLabel={t('menu')} onPress={() => setIsMenuOpen(true)} />
+              <View style={styles.greetingCopy}>
+                <Text style={[styles.greeting, { color: palette.textSecondary }]}>{headerLabels.greeting}</Text>
+                <Text numberOfLines={1} style={[styles.userName, { color: palette.text }]}>{displayName}</Text>
               </View>
-            </Pressable>
-            {dockMapInHeader && <Pressable
-              accessibilityLabel={t('map')}
-              accessibilityRole="button"
-              android_ripple={iconRipple(48)}
-              onPress={openMap}
-              style={({ pressed }) => [styles.menuButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
-            >
-              <Map color={palette.text} size={21} />
-            </Pressable>}
-            <Pressable
+            </View> : <Pressable
               accessibilityLabel={t('menu')}
               accessibilityRole="button"
               accessibilityState={{ expanded: isMenuOpen }}
               android_ripple={iconRipple(48)}
               onPress={() => setIsMenuOpen(true)}
-              style={({ pressed }) => [styles.menuButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
-            >
-              <Menu color={palette.text} size={21} />
-            </Pressable>
+              style={({ pressed }) => [styles.iconButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
+            ><Menu color={palette.text} size={21} /></Pressable>}
+            <View style={styles.headerActions}>
+              <Pressable
+                accessibilityLabel={t('searchTitle')}
+                accessibilityRole="button"
+                android_ripple={iconRipple(48)}
+                onPress={() => sheetRef.current?.present()}
+                style={({ pressed }) => [styles.iconButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
+              ><Search color={palette.text} size={21} /></Pressable>
+              {user ? <Pressable
+                accessibilityLabel={t('notifications')}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: isNotificationsOpen }}
+                android_ripple={iconRipple(48)}
+                onPress={() => setIsNotificationsOpen(true)}
+                style={({ pressed }) => [styles.iconButton, { borderColor: palette.border, backgroundColor: palette.surface }, pressed && !usesRipple && styles.pressed]}
+              ><Bell color={palette.text} size={21} /></Pressable> : null}
+            </View>
           </View>
           <ScrollView accessibilityRole="tablist" contentContainerStyle={[styles.categories, narrowViewport && styles.categoriesNarrow]} horizontal showsHorizontalScrollIndicator={narrowViewport}>
             {categoryKeys.map((category) => (
@@ -198,7 +203,7 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {!dockMapInHeader && properties.length > 0 ? <Pressable accessibilityLabel={t('map')} accessibilityRole="button" android_ripple={onBrandRipple} onPress={openMap} style={({ pressed }) => [styles.mapButton, { bottom: mapBottom }, pressed && !usesRipple && styles.pressed]}>
+      {properties.length > 0 ? <Pressable accessibilityLabel={t('map')} accessibilityRole="button" android_ripple={onBrandRipple} onPress={openMap} style={({ pressed }) => [styles.mapButton, { bottom: mapBottom }, pressed && !usesRipple && styles.pressed]}>
         <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.mapGradient}>
           <Text style={styles.mapText}>{t('map')}</Text>
           <Map color={colors.onBrand} size={18} />
@@ -207,6 +212,7 @@ export default function ExploreScreen() {
 
       <FilterSheet ref={sheetRef} />
       <ExploreMenu onClose={() => setIsMenuOpen(false)} visible={isMenuOpen} />
+      {user ? <NotificationDropdown userId={user.id} visible={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} anchorRight={Math.max(LIST_PADDING, (width - MAX_CONTENT_WIDTH) / 2 + LIST_PADDING)} /> : null}
     </SafeAreaView>
   );
 }
@@ -215,12 +221,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: { borderBottomWidth: StyleSheet.hairlineWidth, boxShadow: '0 6px 12px -10px rgba(15,23,42,0.35)', zIndex: 2 },
   headerContent: { width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center', paddingHorizontal: LIST_PADDING, paddingTop: 8 },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  search: { flex: 1, minWidth: 0, height: 60, borderRadius: radius.pill, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 14, boxShadow: '0 3px 12px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.04)' },
-  searchCopy: { flex: 1, minWidth: 0 },
-  searchTitle: { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.bold },
-  searchDetail: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 17 },
-  menuButton: { width: 48, height: 48, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
+  headerRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  identity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  greetingCopy: { flex: 1, minWidth: 0 },
+  greeting: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 17 },
+  userName: { fontFamily: fontFamily.bold, fontSize: 15, lineHeight: 20 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconButton: { width: 48, height: 48, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
   categories: { flexGrow: 1, flexDirection: 'row', justifyContent: 'space-around', paddingTop: 12 },
   categoriesNarrow: { justifyContent: 'space-around' },
   // El desplazamiento horizontal conserva las etiquetas completas con texto grande y en francés.

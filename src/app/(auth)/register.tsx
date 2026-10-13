@@ -9,14 +9,21 @@ import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
 import { AuthBrand } from '@/components/auth-brand';
 import { FormField } from '@/components/form-field';
 import { NativeActionButton } from '@/components/native-action-button';
+import { RegistrationPhoneField } from '@/components/registration-phone-field';
 import { ArrowLeft, Check, Eye, EyeOff, ShieldCheck } from '@/components/ui/icons';
 import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { registerSchema } from '@/features/auth/auth.schemas';
 import { useAuth } from '@/providers/auth-context';
-import { useI18n } from '@/providers/i18n-context';
+import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 type RegisterValues = z.infer<typeof registerSchema>;
+
+const consentCopy = defineCopy({
+  es: { beforeTerms: 'He leído y acepto los ', beforePrivacy: ' y la ', privacy: 'Política de privacidad' },
+  fr: { beforeTerms: 'J’ai lu et j’accepte les ', beforePrivacy: ' et la ', privacy: 'Politique de confidentialité' },
+  en: { beforeTerms: 'I have read and accept the ', beforePrivacy: ' and the ', privacy: 'Privacy Policy' },
+});
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
@@ -25,19 +32,21 @@ export default function RegisterScreen() {
   const { email: emailInicial } = useLocalSearchParams<{ email?: string }>();
   const { palette } = useAppTheme();
   const { t } = useI18n();
+  const consent = useCopy(consentCopy);
+  const consentLabel = `${consent.beforeTerms}${t('termsAndConditions')}${consent.beforePrivacy}${consent.privacy}.`;
   const [submitError, setSubmitError] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const { height, width } = useWindowDimensions();
   const compact = height < 760 || width < 380;
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: emailInicial ?? '', password: '', role: 'client' },
+    defaultValues: { name: '', email: emailInicial ?? '', phone: '', password: '', role: 'client', acceptedTerms: false },
   });
 
   const submit = handleSubmit(async (values) => {
     try {
       setSubmitError('');
-      await signUp(values);
+      await signUp({ name: values.name, email: values.email, phone: values.phone, password: values.password, role: values.role });
       router.push({ pathname: '/(auth)/verify', params: { email: values.email } });
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t('connectionError'));
@@ -136,6 +145,18 @@ export default function RegisterScreen() {
             />
             <Controller
               control={control}
+              name="phone"
+              render={({ field }) => (
+                <RegistrationPhoneField
+                  label={t('phone')}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.phone?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
               name="password"
               render={({ field }) => (
                 <FormField
@@ -150,7 +171,6 @@ export default function RegisterScreen() {
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                   error={errors.password?.message}
-                  onSubmitEditing={() => void submit()}
                   rightAccessory={(
                     <Pressable
                       accessibilityRole="button"
@@ -171,6 +191,36 @@ export default function RegisterScreen() {
             </View>
           </View>
 
+          <View style={styles.consentSection}>
+            <View style={styles.consentControl}>
+              <Controller
+                control={control}
+                name="acceptedTerms"
+                render={({ field }) => (
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={consentLabel}
+                    accessibilityState={{ checked: field.value }}
+                    onPress={() => field.onChange(!field.value)}
+                    onBlur={field.onBlur}
+                    style={styles.checkboxTouch}
+                  >
+                    <View style={[styles.checkbox, { borderColor: field.value ? colors.brand : palette.border, backgroundColor: field.value ? colors.brand : 'transparent' }]}>
+                      {field.value ? <Check color="white" size={16} /> : null}
+                    </View>
+                  </Pressable>
+                )}
+              />
+              <Text style={[styles.consentText, { color: palette.text }]}>
+                {consent.beforeTerms}
+                <Text accessibilityRole="link" onPress={() => router.push('/legal/terms')} style={[styles.legalLink, { color: palette.brandText }]}>{t('termsAndConditions')}</Text>
+                {consent.beforePrivacy}
+                <Text accessibilityRole="link" onPress={() => router.push('/legal/privacy')} style={[styles.legalLink, { color: palette.brandText }]}>{consent.privacy}</Text>.
+              </Text>
+            </View>
+            {errors.acceptedTerms?.message ? <Text accessibilityRole="alert" style={[styles.consentError, { color: palette.errorText }]}>{errors.acceptedTerms.message}</Text> : null}
+          </View>
+
           {submitError ? <View accessibilityRole="alert" style={styles.errorBanner}><Text style={[styles.errorText, { color: palette.errorText }]}>{submitError}</Text></View> : null}
 
           <NativeActionButton
@@ -183,12 +233,6 @@ export default function RegisterScreen() {
           <View style={styles.signInRow}>
             <Text style={[styles.signInPrompt, { color: palette.textSecondary }]}>{t('alreadyHaveAccount')}</Text>
             <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.replace('/(auth)/login')}><Text style={[styles.signInLink, { color: palette.brandText }]}>{t('signIn')}</Text></Pressable>
-          </View>
-
-          <View style={styles.legalLinks}>
-            <Pressable accessibilityRole="link" hitSlop={12} onPress={() => router.push('/legal/terms')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('termsAndConditions')}</Text></Pressable>
-            <Text style={{ color: palette.muted }}>·</Text>
-            <Pressable accessibilityRole="link" hitSlop={12} onPress={() => router.push('/legal/privacy')}><Text style={[styles.legalLink, { color: palette.textSecondary }]}>{t('privacy')}</Text></Pressable>
           </View>
         </ScrollView>
       </AdaptiveKeyboardView>
@@ -248,13 +292,18 @@ const styles = StyleSheet.create({
   eyeButton: { width: touchTarget, height: touchTarget, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   passwordHint: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: -2 },
   passwordHintText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 12, lineHeight: 18 },
+  consentSection: { gap: 2 },
+  consentControl: { minHeight: touchTarget, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  checkboxTouch: { width: touchTarget, minHeight: touchTarget, alignItems: 'center', justifyContent: 'center' },
+  checkbox: { width: 22, height: 22, borderWidth: 1.5, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  consentText: { flex: 1, fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 19 },
+  consentError: { marginLeft: touchTarget + 10, fontFamily: fontFamily.semibold, fontSize: 12, lineHeight: 18 },
   errorBanner: { borderWidth: 1, borderColor: 'rgba(239,68,68,0.24)', borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 11, backgroundColor: 'rgba(239,68,68,0.08)' },
   errorText: { fontSize: 13, lineHeight: 19, fontFamily: fontFamily.bold },
   primaryShadow: { borderRadius: radius.pill, boxShadow: `0 8px 16px ${withAlpha(colors.brand, 0.28)}` },
   signInRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 5, paddingTop: 2 },
   signInPrompt: { fontFamily: fontFamily.regular, fontSize: 14 },
   signInLink: { color: colors.brandDark, fontSize: 14, fontFamily: fontFamily.bold, paddingVertical: 6 },
-  legalLinks: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  legalLink: { fontSize: 13, fontFamily: fontFamily.semibold, paddingVertical: 4 },
+  legalLink: { fontFamily: fontFamily.semibold, textDecorationLine: 'underline' },
   pressed: { opacity: 0.78 },
 });

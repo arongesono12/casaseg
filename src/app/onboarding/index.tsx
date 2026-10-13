@@ -165,7 +165,10 @@ function SplashScreenView() {
       />
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <MotionBlock active delay={80} distance={10} style={styles.splashCenter}>
-        <Brand large />
+        <View style={styles.splashBrand}>
+          <Brand large />
+          <Text style={[styles.splashSlogan, { color: palette.textSecondary }]}>Líderes en conectar hogares</Text>
+        </View>
         <SplashSpinner />
       </MotionBlock>
       <View accessibilityLabel={t('onboardingLoadingLabel')} style={styles.splashDots}>
@@ -596,6 +599,8 @@ const styles = StyleSheet.create({
 
   splash: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   splashCenter: { alignItems: 'center', gap: 28 },
+  splashBrand: { alignItems: 'center', gap: 10 },
+  splashSlogan: { fontFamily: fontFamily.medium, fontSize: 16, lineHeight: 23, textAlign: 'center', paddingHorizontal: spacing.lg },
   splashSpinner: { width: 28, height: 28, borderRadius: 14, borderWidth: 3, borderColor: withAlpha(colors.primary, 0.24), borderTopColor: brand.blue[500] },
   splashDots: { position: 'absolute', bottom: '19%', flexDirection: 'row', gap: 6 },
   splashDot: { width: 6, height: 6, borderRadius: 3 },
