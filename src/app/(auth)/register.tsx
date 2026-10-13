@@ -9,7 +9,7 @@ import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
 import { AuthBrand } from '@/components/auth-brand';
 import { FormField } from '@/components/form-field';
 import { NativeActionButton } from '@/components/native-action-button';
-import { RegistrationPhoneField } from '@/components/registration-phone-field';
+import { PhoneNumberField } from '@/components/phone-number-field';
 import { ArrowLeft, Check, Eye, EyeOff, ShieldCheck } from '@/components/ui/icons';
 import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { registerSchema } from '@/features/auth/auth.schemas';
@@ -147,7 +147,7 @@ export default function RegisterScreen() {
               control={control}
               name="phone"
               render={({ field }) => (
-                <RegistrationPhoneField
+                <PhoneNumberField
                   label={t('phone')}
                   onChange={field.onChange}
                   onBlur={field.onBlur}

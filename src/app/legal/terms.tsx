@@ -2,23 +2,23 @@ import { LegalPage } from '@/components/legal-page';
 import { defineCopy, useCopy } from '@/providers/i18n-context';
 
 const termsCopy = defineCopy({
-  es: { title: 'Términos y Condiciones', description: 'Reglas aplicables al acceso y uso de los servicios de CasaSeg.', summary: 'Este documento explica cómo utilizar CasaSeg, qué responsabilidades corresponden a cada rol y qué reglas protegen las operaciones de la plataforma.', contactTitle: '¿Necesitas aclarar una condición?', contactDescription: 'Cuéntanos qué apartado necesitas revisar e incluye la referencia de la operación si tu consulta está relacionada con una propiedad, contrato o pago.', contactLabel: 'Consultar los términos' },
-  fr: { title: 'Conditions générales', description: 'Règles applicables à l’accès et à l’utilisation des services de CasaSeg.', summary: 'Ce document explique comment utiliser CasaSeg, quelles responsabilités incombent à chaque rôle et quelles règles protègent les opérations de la plateforme.', contactTitle: 'Besoin de précisions sur une condition ?', contactDescription: 'Indiquez-nous la section concernée et ajoutez la référence de l’opération si votre question porte sur un logement, un contrat ou un paiement.', contactLabel: 'Poser une question sur les conditions' },
-  en: { title: 'Terms and Conditions', description: 'Rules that apply to accessing and using CasaSeg services.', summary: 'This document explains how to use CasaSeg, which responsibilities belong to each role and which rules protect the platform’s transactions.', contactTitle: 'Need a condition clarified?', contactDescription: 'Tell us which section you need to review and include the transaction reference if your question concerns a property, contract or payment.', contactLabel: 'Ask about the terms' },
+  es: { title: 'Términos y Condiciones', description: 'Reglas aplicables al acceso y uso de los servicios de CasasEG.', summary: 'Este documento explica cómo utilizar CasasEG, qué responsabilidades corresponden a cada rol y qué reglas protegen las operaciones de la plataforma.', contactTitle: '¿Necesitas aclarar una condición?', contactDescription: 'Cuéntanos qué apartado necesitas revisar e incluye la referencia de la operación si tu consulta está relacionada con una propiedad, contrato o pago.', contactLabel: 'Consultar los términos' },
+  fr: { title: 'Conditions générales', description: 'Règles applicables à l’accès et à l’utilisation des services de CasasEG.', summary: 'Ce document explique comment utiliser CasasEG, quelles responsabilités incombent à chaque rôle et quelles règles protègent les opérations de la plateforme.', contactTitle: 'Besoin de précisions sur une condition ?', contactDescription: 'Indiquez-nous la section concernée et ajoutez la référence de l’opération si votre question porte sur un logement, un contrat ou un paiement.', contactLabel: 'Poser une question sur les conditions' },
+  en: { title: 'Terms and Conditions', description: 'Rules that apply to accessing and using CasasEG services.', summary: 'This document explains how to use CasasEG, which responsibilities belong to each role and which rules protect the platform’s transactions.', contactTitle: 'Need a condition clarified?', contactDescription: 'Tell us which section you need to review and include the transaction reference if your question concerns a property, contract or payment.', contactLabel: 'Ask about the terms' },
 });
 
 const sections = [
   {
     title: 'Aceptación y alcance',
-    body: 'Estos términos regulan el acceso y el uso de la aplicación, el sitio web y los servicios de CasaSeg. Al crear una cuenta o utilizar la plataforma, aceptas cumplir estas condiciones.',
+    body: 'Estos términos regulan el acceso y el uso de la aplicación, el sitio web y los servicios de CasasEG. Al crear una cuenta o utilizar la plataforma, aceptas cumplir estas condiciones.',
     items: [
       'Debes leer estos términos antes de utilizar funciones autenticadas.',
       'Las condiciones específicas mostradas durante una operación también forman parte del acuerdo aplicable.',
-      'Si no aceptas estas condiciones, no debes utilizar los servicios de CasaSeg.',
+      'Si no aceptas estas condiciones, no debes utilizar los servicios de CasasEG.',
     ],
   },
   {
-    title: 'Requisitos para utilizar CasaSeg',
+    title: 'Requisitos para utilizar CasasEG',
     body: 'Debes tener capacidad legal suficiente para utilizar el servicio y formalizar las operaciones que solicites.',
     items: [
       'La información proporcionada durante el registro debe ser exacta y estar actualizada.',
@@ -34,7 +34,7 @@ const sections = [
       'No debes compartir contraseñas, códigos de verificación ni sesiones activas.',
       'Debes avisar a soporte si detectas una actividad que no reconoces.',
     ],
-    note: 'CasaSeg nunca debe solicitarte por correo tu contraseña completa ni los códigos de verificación de tu cuenta.',
+    note: 'CasasEG nunca debe solicitarte por correo tu contraseña completa ni los códigos de verificación de tu cuenta.',
   },
   {
     title: 'Roles y responsabilidades',
@@ -48,7 +48,7 @@ const sections = [
   },
   {
     title: 'Naturaleza del servicio',
-    body: 'CasaSeg facilita herramientas para explorar, publicar y gestionar propiedades, comunicaciones y operaciones relacionadas. La disponibilidad y el alcance de cada función pueden variar.',
+    body: 'CasasEG facilita herramientas para explorar, publicar y gestionar propiedades, comunicaciones y operaciones relacionadas. La disponibilidad y el alcance de cada función pueden variar.',
     items: [
       'La plataforma no garantiza que una propiedad permanezca disponible hasta la confirmación correspondiente.',
       'Las decisiones entre clientes y propietarios deben quedar reflejadas en los canales y documentos aplicables.',
@@ -62,12 +62,12 @@ const sections = [
       'Las fotografías y descripciones deben corresponder con la propiedad anunciada.',
       'El precio, la ubicación, las características y la disponibilidad deben mostrarse con claridad.',
       'No deben publicarse inmuebles sin autorización o documentación suficiente.',
-      'CasaSeg puede solicitar verificaciones, corregir visibilidad o retirar contenido que incumpla estas condiciones.',
+      'CasasEG puede solicitar verificaciones, corregir visibilidad o retirar contenido que incumpla estas condiciones.',
     ],
   },
   {
     title: 'Búsqueda, visitas y comunicaciones',
-    body: 'Las herramientas de búsqueda, visitas y mensajería deben utilizarse únicamente para finalidades relacionadas con las propiedades y operaciones legítimas de CasaSeg.',
+    body: 'Las herramientas de búsqueda, visitas y mensajería deben utilizarse únicamente para finalidades relacionadas con las propiedades y operaciones legítimas de CasasEG.',
     items: [
       'Una solicitud de visita no constituye por sí sola una reserva o contrato.',
       'Las partes deben respetar las fechas, ubicaciones y condiciones confirmadas.',
@@ -94,7 +94,7 @@ const sections = [
       'Las comisiones, impuestos o conceptos adicionales deben indicarse cuando resulten aplicables.',
       'Los comprobantes deben conservar la referencia necesaria para identificar la operación.',
     ],
-    note: 'CasaSeg no debe solicitar datos completos de tarjeta mediante mensajes, correo electrónico o formularios no autorizados.',
+    note: 'CasasEG no debe solicitar datos completos de tarjeta mediante mensajes, correo electrónico o formularios no autorizados.',
   },
   {
     title: 'Cancelaciones, cambios y devoluciones',
@@ -107,7 +107,7 @@ const sections = [
   },
   {
     title: 'Conductas prohibidas',
-    body: 'No puedes utilizar CasaSeg para actividades ilícitas, engañosas, inseguras o que perjudiquen a otros usuarios o a la plataforma.',
+    body: 'No puedes utilizar CasasEG para actividades ilícitas, engañosas, inseguras o que perjudiquen a otros usuarios o a la plataforma.',
     items: [
       'Está prohibido manipular identidades, precios, valoraciones, estados o comprobantes.',
       'Está prohibido extraer datos de forma masiva o interferir con la seguridad del servicio.',
@@ -120,13 +120,13 @@ const sections = [
     body: 'Conservas los derechos que te correspondan sobre el contenido que aportas, pero autorizas su tratamiento y visualización en la medida necesaria para prestar el servicio.',
     items: [
       'Solo debes publicar contenido propio o para el que dispongas de autorización.',
-      'Las marcas, interfaces, textos y elementos propios de CasaSeg no pueden reutilizarse sin permiso.',
+      'Las marcas, interfaces, textos y elementos propios de CasasEG no pueden reutilizarse sin permiso.',
       'Podemos retirar contenido ante una reclamación fundada o un incumplimiento verificable.',
     ],
   },
   {
     title: 'Privacidad y seguridad',
-    body: 'El tratamiento de datos personales se describe en la Política de Privacidad. Debes respetar la confidencialidad de la información a la que accedas mediante CasaSeg.',
+    body: 'El tratamiento de datos personales se describe en la Política de Privacidad. Debes respetar la confidencialidad de la información a la que accedas mediante CasasEG.',
     items: [
       'No debes divulgar documentos, conversaciones o datos privados de otros usuarios.',
       'Los accesos temporales y recursos privados no deben compartirse fuera de la operación correspondiente.',
@@ -138,7 +138,7 @@ const sections = [
     body: 'Algunas funciones pueden depender de proveedores externos, como autenticación, mapas, almacenamiento o pagos.',
     items: [
       'Los proveedores externos pueden aplicar condiciones y políticas propias.',
-      'CasaSeg puede realizar mantenimientos o limitar temporalmente funciones por seguridad.',
+      'CasasEG puede realizar mantenimientos o limitar temporalmente funciones por seguridad.',
       'No podemos garantizar un funcionamiento ininterrumpido cuando existan causas técnicas o externas fuera de nuestro control razonable.',
     ],
   },

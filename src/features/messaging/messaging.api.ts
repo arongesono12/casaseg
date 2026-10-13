@@ -20,8 +20,8 @@ export type ChatMessage = { id: string; conversationId: string; senderId: string
 /** Prefijo de la ruta de chat cuando se abre desde una vivienda sin chat previo. */
 export const PROPERTY_CHAT_PREFIX = 'property-';
 
-const demoConversations: Conversation[] = [{ id: 'demo-conversation', title: 'Equipo CasaSeg', lastMessage: '¿En qué podemos ayudarte?', unreadCount: 0, updatedAt: new Date().toISOString(), propertyId: 'malabo-modern-1', partnerId: 'support', isOwner: false }];
-const demoMessages: ChatMessage[] = [{ id: 'demo-1', conversationId: 'demo-conversation', senderId: 'support', content: 'Hola, somos el equipo CasaSeg. ¿En qué podemos ayudarte?', createdAt: new Date().toISOString(), status: 'read' }];
+const demoConversations: Conversation[] = [{ id: 'demo-conversation', title: 'Equipo CasasEG', lastMessage: '¿En qué podemos ayudarte?', unreadCount: 0, updatedAt: new Date().toISOString(), propertyId: 'malabo-modern-1', partnerId: 'support', isOwner: false }];
+const demoMessages: ChatMessage[] = [{ id: 'demo-1', conversationId: 'demo-conversation', senderId: 'support', content: 'Hola, somos el equipo CasasEG. ¿En qué podemos ayudarte?', createdAt: new Date().toISOString(), status: 'read' }];
 
 type ChatSummaryRow = {
   chat_id: string;
@@ -62,7 +62,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
   if (error) throw error;
   return ((data ?? []) as ChatSummaryRow[]).map((row) => ({
     id: String(row.chat_id),
-    title: row.partner_name?.trim() || 'CasaSeg',
+    title: row.partner_name?.trim() || 'CasasEG',
     lastMessage: row.last_message ?? '',
     unreadCount: Number(row.unread_count ?? 0),
     updatedAt: String(row.last_message_at ?? ''),

@@ -29,8 +29,8 @@ try {
       $format.Alignment = [System.Drawing.StringAlignment]::Near
       $format.LineAlignment = [System.Drawing.StringAlignment]::Center
       $format.FormatFlags = [System.Drawing.StringFormatFlags]::NoWrap
-      $graphics.DrawString('CASASEG', $font, $brush, [System.Drawing.RectangleF]::new(256, 0, 544, 200), $format)
-      $graphics.DrawString('Líderes en conectar hogares', $sloganFont, $sloganBrush, [System.Drawing.RectangleF]::new(256, 170, 544, 70), $format)
+      $graphics.DrawString('CasasEG', $font, $brush, [System.Drawing.RectangleF]::new(256, 0, 544, 200), $format)
+      $graphics.DrawString('Líderes en conectar hogares', $sloganFont, $sloganBrush, [System.Drawing.RectangleF]::new(256, 130, 544, 70), $format)
       $bitmap.Save((Join-Path $images $variant.Name), [System.Drawing.Imaging.ImageFormat]::Png)
       Write-Output "Generated $($variant.Name)"
     } finally {

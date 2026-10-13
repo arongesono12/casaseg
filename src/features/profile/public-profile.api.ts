@@ -29,7 +29,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 export async function fetchVisibleUserProfile(userId: string): Promise<VisibleUserProfile | null> {
   if (!isSupabaseConfigured) {
-    if (userId === 'support') return { id: userId, name: 'Equipo CasaSeg', role: 'admin' };
+    if (userId === 'support') return { id: userId, name: 'Equipo CasasEG', role: 'admin' };
     const property = fallbackProperties.find((item) => item.ownerId === userId);
     return property ? { id: userId, name: property.ownerName, avatar: property.ownerAvatar, role: 'owner' } : null;
   }

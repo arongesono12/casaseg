@@ -2,9 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppErrorScreen } from '@/components/app-error-screen';
 import { FormField } from '@/components/form-field';
 import { CheckCircle2, Clock, X } from '@/components/ui/icons';
 import { PremiumButton } from '@/components/ui/premium';
@@ -133,6 +134,10 @@ export default function VisitRequestScreen() {
     haptics.selection();
     setSelectedHour(hour);
   };
+
+  if (!propertyId || (property.isSuccess && !property.data)) return <AppErrorScreen kind="visit" />;
+  if (property.isError) return <AppErrorScreen kind="network" onRetry={() => void property.refetch()} />;
+  if (property.isPending) return <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}><View style={styles.loading}><ActivityIndicator color={palette.brandIcon} size="large" /><Text style={[typography.body, { color: palette.textSecondary }]}>{t('loading')}</Text></View></SafeAreaView>;
 
   const header = (
     <View style={[styles.header, { borderBottomColor: palette.border }]}>
@@ -271,6 +276,7 @@ function Chip({ selected, disabled = false, palette, onPress, accessibilityLabel
 }
 
 const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   safe: { flex: 1 },
   header: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   close: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },

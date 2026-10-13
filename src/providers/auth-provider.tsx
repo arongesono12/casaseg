@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import { authMessage } from '@/features/auth/auth-messages';
 import { isValidProfilePhone, normalizeProfilePhone } from '@/features/auth/profile-phone';
 import { codigoDeClerk, comoError, lanzarSiFalla } from '@/features/auth/clerk-errors';
+import { passwordResetOptions, type PasswordResetChannel } from '@/features/auth/password-reset';
 import { getOAuthTransport } from '@/features/auth/oauth-transport';
 import { isExpoGo } from '@/lib/execution-environment';
 import { parseUserRole } from '@/lib/access-control';
@@ -374,7 +375,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }));
   }, [startAppleAuthenticationFlow, startGoogleAuthenticationFlow, startSSOFlow]);
 
-  const requestPasswordReset = useCallback(async (email: string) => {
+  const startPasswordReset = useCallback(async (email: string) => {
     if (!clerkSignIn) throw new Error(authMessage('signInStarting'));
 
     lanzarSiFalla(
@@ -382,8 +383,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
       authMessage('accountNotFound'),
     );
 
+    const opciones = passwordResetOptions(clerkSignIn.supportedFirstFactors);
+    if (!opciones.length) throw new Error(authMessage('recoveryCodeFailed'));
+    return opciones;
+  }, [clerkSignIn]);
+
+  const sendPasswordResetCode = useCallback(async (channel: PasswordResetChannel) => {
+    if (!clerkSignIn) throw new Error(authMessage('signInStarting'));
+
+    // Sin parámetros, Clerk usa la cuenta que identificó startPasswordReset.
     lanzarSiFalla(
-      await clerkSignIn.resetPasswordEmailCode.sendCode(),
+      channel === 'phone'
+        ? await clerkSignIn.resetPasswordPhoneCode.sendCode()
+        : await clerkSignIn.resetPasswordEmailCode.sendCode(),
       authMessage('recoveryCodeFailed'),
     );
   }, [clerkSignIn]);
@@ -396,10 +408,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isLoading: !authCargado,
     isRoleLoading: Boolean(isSignedIn && isSupabaseConfigured && databaseRole.isPending),
     roleError,
-    signIn, signUp, verifyOtp, resendSignupOtp, signInWithOAuth, requestPasswordReset,
+    signIn, signUp, verifyOtp, resendSignupOtp, signInWithOAuth, startPasswordReset, sendPasswordResetCode,
     updateProfileName, updatePassword, signInDemo, signOut,
   }), [
-    authCargado, databaseRole.isPending, demoUser, isSignedIn, requestPasswordReset, resendSignupOtp, role, roleError,
+    authCargado, databaseRole.isPending, demoUser, isSignedIn, resendSignupOtp, role, roleError, sendPasswordResetCode, startPasswordReset,
     session, signIn, signInDemo, signInWithOAuth, signOut, signUp, updatePassword,
     updateProfileName, user, verifyOtp,
   ]);

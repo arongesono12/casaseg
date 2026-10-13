@@ -43,7 +43,7 @@ export function useProfileId(): string | undefined {
       await refreshClerkToken();
       const refreshed = await fetchCurrentProfileId();
       if (refreshed) return refreshed;
-      throw new ProfileNotReadyError('El perfil de CasaSeg todavía no está listo.');
+      throw new ProfileNotReadyError('El perfil de CasasEG todavía no está listo.');
     },
   });
 

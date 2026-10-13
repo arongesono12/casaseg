@@ -9,9 +9,9 @@ import { useAppTheme } from '@/providers/theme-context';
 import { formatDate } from '@/utils/formatters';
 
 const reviewsCopy = defineCopy({
-  es: { title: 'Reseñas verificadas', empty: 'Aún no hay reseñas. Solo pueden opinar quienes han alquilado esta vivienda con contrato firmado y pagado en CasaSeg.', error: 'No se pudieron cargar las reseñas.', badge: 'Estancia verificada' },
-  fr: { title: 'Avis vérifiés', empty: 'Pas encore d’avis. Seules les personnes ayant loué ce logement avec un contrat signé et payé sur CasaSeg peuvent donner leur avis.', error: 'Impossible de charger les avis.', badge: 'Séjour vérifié' },
-  en: { title: 'Verified reviews', empty: 'No reviews yet. Only people who rented this home with a signed and paid CasaSeg contract can review it.', error: 'The reviews could not be loaded.', badge: 'Verified stay' },
+  es: { title: 'Reseñas verificadas', empty: 'Aún no hay reseñas. Solo pueden opinar quienes han alquilado esta vivienda con contrato firmado y pagado en CasasEG.', error: 'No se pudieron cargar las reseñas.', badge: 'Estancia verificada' },
+  fr: { title: 'Avis vérifiés', empty: 'Pas encore d’avis. Seules les personnes ayant loué ce logement avec un contrat signé et payé sur CasasEG peuvent donner leur avis.', error: 'Impossible de charger les avis.', badge: 'Séjour vérifié' },
+  en: { title: 'Verified reviews', empty: 'No reviews yet. Only people who rented this home with a signed and paid CasasEG contract can review it.', error: 'The reviews could not be loaded.', badge: 'Verified stay' },
 });
 
 /**

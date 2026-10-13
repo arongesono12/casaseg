@@ -1,11 +1,11 @@
-import { useLocales } from 'expo-localization';
+import { useCalendars } from 'expo-localization';
 import { useMemo, useState } from 'react';
 import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChevronDown, Search, X } from '@/components/ui/icons';
 import { colors, fontFamily, radius, touchTarget } from '@/constants/theme';
-import { callingCountryForRegion, countryCallingCodes, phoneWithCallingCode, type CountryCallingCode } from '@/features/auth/country-calling-codes';
+import { callingCountryForTimeZone, countryCallingCodes, phoneWithCallingCode, splitPhoneNumber, type CountryCallingCode } from '@/features/auth/country-calling-codes';
 import { defineCopy, useCopy, useI18n, type Locale } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -23,22 +23,32 @@ function searchable(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
-type RegistrationPhoneFieldProps = {
+/** País según la zona horaria del dispositivo; Guinea Ecuatorial si no la identifica. */
+export function useDetectedCallingCountry(): CountryCallingCode {
+  const calendars = useCalendars();
+  // La zona horaria indica dónde está la persona; el idioma del móvil no (p. ej. es-ES en Malabo).
+  return callingCountryForTimeZone(calendars[0]?.timeZone);
+}
+
+type PhoneNumberFieldProps = {
   label: string;
   error?: string;
+  /** Número ya guardado ("+240222123456"); se reparte entre el desplegable y el campo. */
+  initialValue?: string;
   onChange: (phone: string) => void;
   onBlur: () => void;
 };
 
-export function RegistrationPhoneField({ label, error, onChange, onBlur }: RegistrationPhoneFieldProps) {
+export function PhoneNumberField({ label, error, initialValue = '', onChange, onBlur }: PhoneNumberFieldProps) {
   const { locale } = useI18n();
   const labels = useCopy(copy);
   const { palette } = useAppTheme();
-  const deviceLocales = useLocales();
+  const detectedCountry = useDetectedCallingCountry();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const [country, setCountry] = useState<CountryCallingCode>(() => callingCountryForRegion(deviceLocales[0]?.regionCode));
-  const [nationalNumber, setNationalNumber] = useState('');
+  const [initial] = useState(() => splitPhoneNumber(initialValue, detectedCountry));
+  const [country, setCountry] = useState<CountryCallingCode>(initial.country);
+  const [nationalNumber, setNationalNumber] = useState(initial.nationalNumber);
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState('');
   const countries = useMemo(() => {

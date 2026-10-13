@@ -11,7 +11,7 @@ import type { UserRole } from '@/types';
 
 export type ComplianceAcceptanceType = 'terms' | 'privacy' | 'marketing' | 'payment_charges' | 'cancellation_policy' | 'traveler_reporting';
 
-const MOBILE_USER_AGENT = `CasaSeg Expo (${Platform.OS} ${String(Platform.Version)})`;
+const MOBILE_USER_AGENT = `CasasEG Expo (${Platform.OS} ${String(Platform.Version)})`;
 
 export async function startKycVerification() {
   if (!isSupabaseConfigured) throw new Error('La verificación requiere conexión con el servidor.');
@@ -42,7 +42,7 @@ export async function generateTaxReportExport(year: number): Promise<string> {
 
 /** Deja constancia versionada de lo que el usuario aceptó o rechazó. */
 export async function recordComplianceAcceptance(input: { type: ComplianceAcceptanceType; version: string; accepted: boolean; context?: Record<string, unknown> }): Promise<string> {
-  if (!isSupabaseConfigured) throw new Error('La aceptación requiere conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('La aceptación requiere conexión con el servidor de CasasEG.');
   const { data, error } = await supabase.rpc('record_compliance_acceptance', {
     p_acceptance_type: input.type,
     p_version: input.version,
@@ -82,7 +82,7 @@ const REVIEW_COLUMNS = 'id,property_id,contract_id,reviewer_id,rating,comment,cr
 const PUBLIC_REVIEW_LIMIT = 20;
 
 export async function createVerifiedPropertyReview(input: { contractId: string; rating: number; comment?: string }): Promise<VerifiedPropertyReview> {
-  if (!isSupabaseConfigured) throw new Error('La reseña requiere conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('La reseña requiere conexión con el servidor de CasasEG.');
   const { data, error } = await supabase.rpc('create_verified_property_review', {
     p_contract_id: input.contractId,
     p_rating: input.rating,

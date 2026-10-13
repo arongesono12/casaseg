@@ -1,5 +1,5 @@
 import { useSignIn } from '@clerk/expo';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
@@ -7,8 +7,15 @@ import { FormField } from '@/components/form-field';
 import { RouteScreen } from '@/components/route-screen';
 import { PremiumButton } from '@/components/ui/premium';
 import { colors, fontFamily } from '@/constants/theme';
-import { useI18n } from '@/providers/i18n-context';
+import type { PasswordResetChannel } from '@/features/auth/password-reset';
+import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
+
+const sentToCopy = defineCopy({
+  es: { email: 'Introduce el código que enviamos a {destination} y tu contraseña nueva.', phone: 'Introduce el código que enviamos por SMS al {destination} y tu contraseña nueva.' },
+  fr: { email: 'Saisissez le code envoyé à {destination} et votre nouveau mot de passe.', phone: 'Saisissez le code envoyé par SMS au {destination} et votre nouveau mot de passe.' },
+  en: { email: 'Enter the code we sent to {destination} and your new password.', phone: 'Enter the code we texted to {destination} and your new password.' },
+});
 
 /**
  * Segundo paso de la recuperación de contraseña.
@@ -20,7 +27,9 @@ import { useAppTheme } from '@/providers/theme-context';
  */
 export default function ResetPasswordScreen() {
   const { signIn } = useSignIn();
+  const { channel, destination } = useLocalSearchParams<{ channel?: PasswordResetChannel; destination?: string }>();
   const { t } = useI18n();
+  const sentTo = useCopy(sentToCopy);
   const { palette } = useAppTheme();
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -48,10 +57,11 @@ export default function ResetPasswordScreen() {
     setMessage('');
 
     try {
-      const verificado = await signIn.resetPasswordEmailCode.verifyCode({ code: code.trim() });
+      const via = channel === 'phone' ? signIn.resetPasswordPhoneCode : signIn.resetPasswordEmailCode;
+      const verificado = await via.verifyCode({ code: code.trim() });
       if (verificado.error) throw verificado.error;
 
-      const actualizado = await signIn.resetPasswordEmailCode.submitPassword({ password });
+      const actualizado = await via.submitPassword({ password });
       if (actualizado.error) throw actualizado.error;
 
       const abierta = await signIn.finalize();
@@ -67,7 +77,10 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <RouteScreen title={t('resetTitle')} description={t('resetCodeSubtitle')}>
+    <RouteScreen
+      title={t('resetTitle')}
+      description={destination ? interpolate(channel === 'phone' ? sentTo.phone : sentTo.email, { destination }) : t('resetCodeSubtitle')}
+    >
       <FormField
         label={t('verificationCode')}
         placeholder="123456"

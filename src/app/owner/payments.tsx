@@ -72,7 +72,7 @@ export default function Payments() {
     retry: false,
     mutationFn: async () => {
       const csv = await generateTaxReportExport(new Date().getFullYear());
-      await Share.share({ title: `casaseg-ingresos-${new Date().getFullYear()}.csv`, message: csv });
+      await Share.share({ title: `CasasEG-ingresos-${new Date().getFullYear()}.csv`, message: csv });
     },
   });
 

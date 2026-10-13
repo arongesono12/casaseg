@@ -18,7 +18,7 @@ export type { LeaseContract, LeaseContractStatus } from '@/features/contracts/le
 export const contractKeys = { all: ['lease-contracts'] as const };
 
 /** Identifica el cliente en la firma, igual que la web guarda navigator.userAgent. */
-const MOBILE_USER_AGENT = `CasaSeg Expo (${Platform.OS} ${String(Platform.Version)})`;
+const MOBILE_USER_AGENT = `CasasEG Expo (${Platform.OS} ${String(Platform.Version)})`;
 /** Mismo nivel de garantía que registra la web para una sesión iniciada. */
 const ASSURANCE_LEVEL = 'authenticated_session';
 
@@ -40,7 +40,7 @@ export async function fetchContracts(): Promise<LeaseContract[]> {
  * partially_signed/signed y escribe el evento de auditoría.
  */
 export async function signContract(contractId: string, signerName: string | undefined): Promise<LeaseContract> {
-  if (!isSupabaseConfigured) throw new Error('La firma requiere conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('La firma requiere conexión con el servidor de CasasEG.');
   const { data, error } = await supabase.rpc('sign_lease_contract', {
     p_contract_id: contractId,
     p_signer_name: normalizeSignerName(signerName),
@@ -120,7 +120,7 @@ export async function ensureActiveLeaseTemplate(propertyId: string, ownerId: str
  * la llamada devuelve el mismo contrato.
  */
 export async function generateLeaseContract(agreementId: string): Promise<LeaseContract> {
-  if (!isSupabaseConfigured) throw new Error('Los contratos requieren conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('Los contratos requieren conexión con el servidor de CasasEG.');
   const { data, error } = await supabase.rpc('generate_lease_contract', { p_agreement_id: agreementId });
   if (error) throw error;
   return mapLeaseContract(data as LeaseContractRow);
@@ -131,7 +131,7 @@ export async function generateLeaseContract(agreementId: string): Promise<LeaseC
  * la web. Los contratos ya generados no cambian: guardan su propio snapshot.
  */
 export async function saveLeaseTemplate(input: { propertyId: string; ownerId: string; title: string; terms: LeaseContractTerms; activate: boolean }): Promise<LeaseTemplate> {
-  if (!isSupabaseConfigured) throw new Error('Las plantillas requieren conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('Las plantillas requieren conexión con el servidor de CasasEG.');
   const existing = await fetchLeaseTemplate(input.propertyId);
   const { data, error } = await supabase
     .from('lease_contract_templates')

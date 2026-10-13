@@ -140,9 +140,10 @@ export async function fetchPropertyCount(filters: PropertyFilters, signal?: Abor
 
 export async function fetchProperty(id: string, signal?: AbortSignal) {
   if (!isSupabaseConfigured) return fallbackProperties.find((property) => property.id === id) ?? null;
-  const { data, error } = await supabase.from('properties').select('*').eq('id', id).abortSignal(signal ?? new AbortController().signal).single();
+  const { data, error } = await supabase.from('properties').select('*').eq('id', id).abortSignal(signal ?? new AbortController().signal).maybeSingle();
+  if (error?.code === '22P02') return null;
   if (error) throw error;
-  return mapProperty(data as PropertyRow);
+  return data ? mapProperty(data as PropertyRow) : null;
 }
 
 export async function fetchFavorites(userId: string) {

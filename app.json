@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "casaseg",
+    "name": "CasasEG",
     "slug": "casaseg",
     "version": "1.0.0",
     "orientation": "default",
@@ -27,7 +27,7 @@
         "theme_color": "#1D66A3",
         "scope": "/",
         "start_url": "/",
-        "description": "CasaSeg - Líderes en conectar hogares",
+        "description": "CasasEG - Líderes en conectar hogares",
         "lang": "es",
         "orientation": "any",
         "categories": ["real-estate", "lifestyle"],
@@ -86,13 +86,13 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "CasaSeg necesita acceso a tus fotos para publicar imágenes de una propiedad."
+          "photosPermission": "CasasEG necesita acceso a tus fotos para publicar imágenes de una propiedad."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "CasaSeg usa tu ubicación solo cuando lo solicitas para mostrar viviendas cercanas."
+          "locationWhenInUsePermission": "CasasEG usa tu ubicación solo cuando lo solicitas para mostrar viviendas cercanas."
         }
       ]
     ],

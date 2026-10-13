@@ -109,7 +109,7 @@ export async function submitBankTransferProof(input: {
   bankReference: string;
   transferredAt: Date;
 }): Promise<BankTransferProof> {
-  if (!isSupabaseConfigured) throw new Error('El comprobante requiere conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('El comprobante requiere conexión con el servidor de CasasEG.');
   if (input.order.provider !== 'bank_transfer') throw new Error('La orden no corresponde a una transferencia bancaria.');
   const mimeType = validateReceipt(input.file);
   const body = await readLocalFile(input.file.uri);

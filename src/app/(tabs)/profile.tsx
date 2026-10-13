@@ -13,7 +13,12 @@ import { PremiumButton, SurfaceCard } from '@/components/ui/premium';
 import { actionGradient, colors, fontFamily, radius, withAlpha, type AppPalette } from '@/constants/theme';
 import { useCurrentProfile, useUpdateProfileExtras, useUpdateProfilePhone } from '@/features/auth/use-current-profile';
 import { pickAndUploadProfileImage, removeUploadedProfileImage } from '@/features/auth/profile-media';
-import { isValidProfilePhone, normalizeProfilePhone } from '@/features/auth/profile-phone';
+import { PhoneNumberField, useDetectedCallingCountry } from '@/components/phone-number-field';
+import { RecoveryPhoneCard } from '@/components/profile/recovery-phone-card';
+import { phoneWithCallingCode, splitPhoneNumber } from '@/features/auth/country-calling-codes';
+import { formatPhoneForDisplay, isValidProfilePhone, normalizeProfilePhone } from '@/features/auth/profile-phone';
+import { useRecoveryPhone } from '@/features/auth/use-recovery-phone';
+import { socialFormFromLinks, socialLinksFromForm, socialNetworks, socialUrlPrefix, type SocialLinksForm, type SocialNetworkKey } from '@/features/profile/social-links';
 import { isAdminRole, isOwnerRole } from '@/lib/access-control';
 import { onBrandRipple, pressRipple, usesRipple } from '@/lib/press-feedback';
 import { useAuth } from '@/providers/auth-context';
@@ -23,9 +28,9 @@ import { useAppTheme } from '@/providers/theme-context';
 const PROFILE_MAX_WIDTH = 960;
 
 const profileCopy = defineCopy({
-  es: { myVisits: 'Mis visitas', myVisitsBody: 'Consulta y cancela las visitas que has solicitado.', superadmin: 'Superadministrador', admin: 'Administrador', adminEyebrow: 'RESPONSABILIDAD ADMINISTRATIVA', adminPanel: 'Panel de administración', adminPanelBody: 'Supervisa usuarios, roles, publicaciones y revisiones pendientes.', saved: 'Tu perfil se ha actualizado correctamente.', saveFailed: 'No pudimos guardar todos los cambios. Comprueba el perfil e inténtalo de nuevo.', personalInfo: 'Información personal', nameRequired: 'Introduce tu nombre.', nameTooShort: 'Introduce al menos 2 caracteres.', fullName: 'Nombre completo', becomeOwner: 'Hazte propietario', becomeOwnerBody: 'Solicita publicar tus viviendas en CasaSeg.' },
-  fr: { myVisits: 'Mes visites', myVisitsBody: 'Consultez et annulez les visites demandées.', superadmin: 'Super-administrateur', admin: 'Administrateur', adminEyebrow: 'RESPONSABILITÉ ADMINISTRATIVE', adminPanel: 'Panneau d’administration', adminPanelBody: 'Supervisez utilisateurs, rôles, annonces et vérifications en attente.', saved: 'Votre profil a bien été mis à jour.', saveFailed: 'Impossible d’enregistrer tous les changements. Vérifiez votre profil et réessayez.', personalInfo: 'Informations personnelles', nameRequired: 'Saisissez votre nom.', nameTooShort: 'Saisissez au moins 2 caractères.', fullName: 'Nom complet', becomeOwner: 'Devenez propriétaire', becomeOwnerBody: 'Demandez à publier vos logements sur CasaSeg.' },
-  en: { myVisits: 'My visits', myVisitsBody: 'Review and cancel the visits you requested.', superadmin: 'Super administrator', admin: 'Administrator', adminEyebrow: 'ADMIN RESPONSIBILITY', adminPanel: 'Admin dashboard', adminPanelBody: 'Oversee users, roles, listings and pending reviews.', saved: 'Your profile has been updated.', saveFailed: 'We could not save every change. Check your profile and try again.', personalInfo: 'Personal information', nameRequired: 'Enter your name.', nameTooShort: 'Enter at least 2 characters.', fullName: 'Full name', becomeOwner: 'Become an owner', becomeOwnerBody: 'Apply to list your homes on CasaSeg.' },
+  es: { myVisits: 'Mis visitas', myVisitsBody: 'Consulta y cancela las visitas que has solicitado.', superadmin: 'Superadministrador', admin: 'Administrador', adminEyebrow: 'RESPONSABILIDAD ADMINISTRATIVA', adminPanel: 'Panel de administración', adminPanelBody: 'Supervisa usuarios, roles, publicaciones y revisiones pendientes.', saved: 'Tu perfil se ha actualizado correctamente.', saveFailed: 'No pudimos guardar todos los cambios. Comprueba el perfil e inténtalo de nuevo.', personalInfo: 'Información personal', nameRequired: 'Introduce tu nombre.', nameTooShort: 'Introduce al menos 2 caracteres.', fullName: 'Nombre completo', becomeOwner: 'Hazte propietario', becomeOwnerBody: 'Solicita publicar tus viviendas en CasasEG.' },
+  fr: { myVisits: 'Mes visites', myVisitsBody: 'Consultez et annulez les visites demandées.', superadmin: 'Super-administrateur', admin: 'Administrateur', adminEyebrow: 'RESPONSABILITÉ ADMINISTRATIVE', adminPanel: 'Panneau d’administration', adminPanelBody: 'Supervisez utilisateurs, rôles, annonces et vérifications en attente.', saved: 'Votre profil a bien été mis à jour.', saveFailed: 'Impossible d’enregistrer tous les changements. Vérifiez votre profil et réessayez.', personalInfo: 'Informations personnelles', nameRequired: 'Saisissez votre nom.', nameTooShort: 'Saisissez au moins 2 caractères.', fullName: 'Nom complet', becomeOwner: 'Devenez propriétaire', becomeOwnerBody: 'Demandez à publier vos logements sur CasasEG.' },
+  en: { myVisits: 'My visits', myVisitsBody: 'Review and cancel the visits you requested.', superadmin: 'Super administrator', admin: 'Administrator', adminEyebrow: 'ADMIN RESPONSIBILITY', adminPanel: 'Admin dashboard', adminPanelBody: 'Oversee users, roles, listings and pending reviews.', saved: 'Your profile has been updated.', saveFailed: 'We could not save every change. Check your profile and try again.', personalInfo: 'Personal information', nameRequired: 'Enter your name.', nameTooShort: 'Enter at least 2 characters.', fullName: 'Full name', becomeOwner: 'Become an owner', becomeOwnerBody: 'Apply to list your homes on CasasEG.' },
 });
 
 const detailsCopy = defineCopy({
@@ -35,11 +40,11 @@ const detailsCopy = defineCopy({
 });
 
 const mediaCopy = defineCopy({
-  es: { changeAvatar: 'Cambiar foto', changeCover: 'Cambiar portada', updating: 'Actualizando…', failed: 'No pudimos actualizar la imagen.', about: 'Sobre mí', website: 'Sitio web', social: 'Redes sociales' },
-  fr: { changeAvatar: 'Changer la photo', changeCover: 'Changer la couverture', updating: 'Mise à jour…', failed: 'Impossible de modifier l’image.', about: 'À propos', website: 'Site web', social: 'Réseaux sociaux' },
-  en: { changeAvatar: 'Change photo', changeCover: 'Change cover', updating: 'Updating…', failed: 'Could not update the image.', about: 'About me', website: 'Website', social: 'Social links' },
+  es: { changeAvatar: 'Cambiar foto', changeCover: 'Cambiar portada', updating: 'Actualizando…', failed: 'No pudimos actualizar la imagen.', about: 'Sobre mí', website: 'Sitio web', social: 'Redes sociales', socialHint: 'Escribe solo tu nombre de usuario; al guardar completamos el enlace.', usernamePlaceholder: 'usuario', websitePlaceholder: 'tusitio.com', socialFieldInvalid: 'Escribe solo tu usuario o pega un enlace de esta red.', socialInvalid: 'Revisa las redes sociales marcadas.' },
+  fr: { changeAvatar: 'Changer la photo', changeCover: 'Changer la couverture', updating: 'Mise à jour…', failed: 'Impossible de modifier l’image.', about: 'À propos', website: 'Site web', social: 'Réseaux sociaux', socialHint: 'Saisissez seulement votre nom d’utilisateur ; le lien est complété à l’enregistrement.', usernamePlaceholder: 'utilisateur', websitePlaceholder: 'votresite.com', socialFieldInvalid: 'Saisissez seulement votre nom d’utilisateur ou collez un lien de ce réseau.', socialInvalid: 'Vérifiez les réseaux sociaux signalés.' },
+  en: { changeAvatar: 'Change photo', changeCover: 'Change cover', updating: 'Updating…', failed: 'Could not update the image.', about: 'About me', website: 'Website', social: 'Social links', socialHint: 'Type just your username; we complete the link when you save.', usernamePlaceholder: 'username', websitePlaceholder: 'yoursite.com', socialFieldInvalid: 'Type just your username or paste a link from this network.', socialInvalid: 'Check the highlighted social links.' },
 });
-const contactActionCopy = defineCopy({ es: { title: 'Contacto', body: 'Escribe al equipo de CasaSeg.' }, fr: { title: 'Contact', body: 'Écrivez à l’équipe CasaSeg.' }, en: { title: 'Contact', body: 'Write to the CasaSeg team.' } });
+const contactActionCopy = defineCopy({ es: { title: 'Contacto', body: 'Escribe al equipo de CasasEG.' }, fr: { title: 'Contact', body: 'Écrivez à l’équipe CasasEG.' }, en: { title: 'Contact', body: 'Write to the CasasEG team.' } });
 
 export default function ProfileScreen() {
   const { user, role, isRoleLoading, roleError, signOut, updateProfileName } = useAuth();
@@ -274,15 +279,17 @@ function ProfileDetailsForm({
   const details = useCopy(detailsCopy);
   const media = useCopy(mediaCopy);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string }>();
-  const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ name: string; phone: string; about: string; instagram: string; twitter: string; linkedin: string; facebook: string; youtube: string; website: string }>({
-    defaultValues: { name: initialName, phone: initialPhone, about: initialAbout, instagram: initialSocialLinks.instagram ?? '', twitter: initialSocialLinks.twitter ?? '', linkedin: initialSocialLinks.linkedin ?? '', facebook: initialSocialLinks.facebook ?? '', youtube: initialSocialLinks.youtube ?? '', website: initialSocialLinks.website ?? '' },
+  const [invalidSocial, setInvalidSocial] = useState<SocialNetworkKey[]>([]);
+  // Los campos muestran solo el usuario; al guardar se completa la URL.
+  const initialValues = () => ({ name: initialName, phone: initialPhone, about: initialAbout, ...socialFormFromLinks(initialSocialLinks) });
+  const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ name: string; phone: string; about: string } & SocialLinksForm>({
+    defaultValues: initialValues(),
   });
-
-  const initialValues = () => ({ name: initialName, phone: initialPhone, about: initialAbout, instagram: initialSocialLinks.instagram ?? '', twitter: initialSocialLinks.twitter ?? '', linkedin: initialSocialLinks.linkedin ?? '', facebook: initialSocialLinks.facebook ?? '', youtube: initialSocialLinks.youtube ?? '', website: initialSocialLinks.website ?? '' });
 
   const startEditing = () => {
     reset(initialValues());
     setFeedback(undefined);
+    setInvalidSocial([]);
     onEditingChange(true);
   };
 
@@ -290,14 +297,21 @@ function ProfileDetailsForm({
     Keyboard.dismiss();
     reset(initialValues());
     setFeedback(undefined);
+    setInvalidSocial([]);
     onEditingChange(false);
   };
 
-  const submit = handleSubmit(async ({ name, phone, about, instagram, twitter, linkedin, facebook, youtube, website }) => {
+  const submit = handleSubmit(async ({ name, phone, about, ...socialForm }) => {
     Keyboard.dismiss();
     setFeedback(undefined);
+    const { links, invalid } = socialLinksFromForm(socialForm);
+    setInvalidSocial(invalid);
+    if (invalid.length) {
+      setFeedback({ tone: 'error', message: media.socialInvalid });
+      return;
+    }
     try {
-      await onSave({ name: name.trim(), phone: normalizeProfilePhone(phone), about, socialLinks: { instagram: instagram.trim(), twitter: twitter.trim(), linkedin: linkedin.trim(), facebook: facebook.trim(), youtube: youtube.trim(), website: website.trim() } });
+      await onSave({ name: name.trim(), phone: normalizeProfilePhone(phone), about, socialLinks: links as Record<string, string> });
       onEditingChange(false);
       setFeedback({ tone: 'success', message: copy.saved });
     } catch {
@@ -401,8 +415,30 @@ function ProfileDetailsForm({
           </View>
           <Controller control={control} name="about" render={({ field }) => <FormField label={media.about} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} multiline numberOfLines={3} maxLength={500} />} />
           <Text style={[styles.infoLabel, { color: palette.muted }]}>{media.social}</Text>
-          {(['instagram', 'twitter', 'linkedin', 'facebook', 'youtube', 'website'] as const).map((key) => (
-            <Controller key={key} control={control} name={key} render={({ field }) => <FormField label={key === 'website' ? media.website : key.charAt(0).toUpperCase() + key.slice(1)} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} autoCapitalize="none" keyboardType="url" maxLength={240} />} />
+          <Text style={[styles.formNotice, { color: palette.textSecondary }]}>{media.socialHint}</Text>
+          {socialNetworks.map(({ key, label }) => (
+            <Controller
+              key={key}
+              control={control}
+              name={key}
+              render={({ field }) => (
+                <FormField
+                  label={key === 'website' ? media.website : `${label} · ${socialUrlPrefix[key]}`}
+                  placeholder={key === 'website' ? media.websitePlaceholder : media.usernamePlaceholder}
+                  value={field.value}
+                  onChangeText={(value) => {
+                    field.onChange(value);
+                    setInvalidSocial((current) => current.filter((item) => item !== key));
+                  }}
+                  onBlur={field.onBlur}
+                  error={invalidSocial.includes(key) ? media.socialFieldInvalid : undefined}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType={key === 'website' ? 'url' : 'default'}
+                  maxLength={240}
+                />
+              )}
+            />
           ))}
         </>
       ) : null}

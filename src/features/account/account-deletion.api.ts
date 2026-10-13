@@ -29,7 +29,7 @@ async function functionErrorMessage(error: unknown): Promise<string> {
 }
 
 export async function requestAccountDeletion(confirmation: string): Promise<AccountDeletionResult> {
-  if (!isSupabaseConfigured) throw new Error('La eliminación requiere conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('La eliminación requiere conexión con el servidor de CasasEG.');
   if (!isDeletionConfirmed(confirmation)) throw new Error(`Escribe ${ACCOUNT_DELETION_CONFIRMATION} para confirmar.`);
   const { data, error } = await supabase.functions.invoke('account-deletion', {
     body: { action: 'request', confirmation: ACCOUNT_DELETION_CONFIRMATION },

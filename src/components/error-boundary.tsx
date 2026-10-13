@@ -2,7 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PremiumErrorState } from '@/components/ui/premium';
+import { AppErrorContent } from '@/components/app-error-screen';
 import { fontFamily, radius } from '@/constants/theme';
 import { useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -26,11 +26,7 @@ function ErrorFallback({ error, onRetry }: { error: Error; onRetry: () => void }
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <PremiumErrorState
-          title={t('errorScreenTitle')}
-          description={t('errorScreenBody')}
-          onRetry={onRetry}
-        />
+        <AppErrorContent kind="unexpected" title={t('errorScreenTitle')} description={t('errorScreenBody')} onRetry={onRetry} showNavigation={false} />
         {/* El detalle técnico solo en desarrollo: en producción no aporta nada
             al usuario y puede exponer rutas o datos internos. */}
         {__DEV__ ? (

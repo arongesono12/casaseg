@@ -147,7 +147,7 @@ export async function initiateRentalPayment(input: {
       returnUrl: Linking.createURL('/payment/success'),
       chargesAccepted: true,
       cancellationPolicyAccepted: true,
-      userAgent: `CasaSeg Expo (${Platform.OS} ${String(Platform.Version)})`,
+      userAgent: `CasasEG Expo (${Platform.OS} ${String(Platform.Version)})`,
     },
   });
   if (error) throw new Error(await functionErrorMessage(error, 'No se pudo iniciar el pago del alquiler.'));

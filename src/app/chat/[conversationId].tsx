@@ -6,6 +6,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View, type ListRender
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
+import { AppErrorScreen } from '@/components/app-error-screen';
 import { AlertCircle, ArrowLeft, Calendar, CheckDouble, ChevronDown, ChevronRight, Clock, Send, Trash2 } from '@/components/ui/icons';
 import { UserAvatar } from '@/components/user-avatar';
 import { actionGradient, brand, colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
@@ -161,8 +162,8 @@ export default function ChatScreen() {
   // La bandeja trae el nombre, la vivienda y el id del interlocutor.
   const conversations = useQuery({ queryKey: conversationKeys.list(user?.id ?? 'guest'), queryFn: fetchConversations, enabled: Boolean(user) });
   const conversation = chatId ? conversations.data?.find((item) => item.id === chatId) : undefined;
-  const contactName = conversation?.title || titleParam || 'CasaSeg';
-  const ownName = user?.name?.trim() || profile.data?.name || 'CasaSeg';
+  const contactName = conversation?.title || titleParam || 'CasasEG';
+  const ownName = user?.name?.trim() || profile.data?.name || 'CasasEG';
   const ownAvatar = profile.data?.avatar ?? user?.avatar;
   const partnerId = conversation?.partnerId;
   const { requestDelete } = useDeleteChat();
@@ -248,6 +249,11 @@ export default function ChatScreen() {
 
   const subtitle = partnerTyping ? typingCopy[locale] : conversation?.propertyTitle ?? t('secureConversation');
   const canSend = Boolean(content.trim());
+
+  if (!route || (!propertyId && conversations.isSuccess && !conversation)) return <AppErrorScreen kind="conversation" />;
+  if (chatIdQuery.isError || messages.isError) {
+    return <AppErrorScreen kind="network" onRetry={() => { void chatIdQuery.refetch(); void messages.refetch(); }} />;
+  }
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={[styles.safe, { backgroundColor: palette.surface }]}>

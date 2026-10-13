@@ -147,7 +147,7 @@ describe('contracts api', () => {
     expect(calls[0]).toEqual({
       kind: 'rpc',
       name: 'sign_lease_contract',
-      args: { p_contract_id: 'c1', p_signer_name: 'Luis Obiang', p_user_agent: 'CasaSeg Expo (android 34)', p_assurance_level: 'authenticated_session' },
+      args: { p_contract_id: 'c1', p_signer_name: 'Luis Obiang', p_user_agent: 'CasasEG Expo (android 34)', p_assurance_level: 'authenticated_session' },
     });
   });
 

@@ -10,25 +10,25 @@ import { useAppTheme } from '@/providers/theme-context';
 
 const helpCopy = defineCopy({
   es: {
-    title: 'Centro de ayuda', subtitle: 'Respuestas rápidas y soporte cuando lo necesites.', personalHelp: '¿Necesitas ayuda personal?', personalHelpBody: 'Cuéntanos qué ocurre y nuestro equipo revisará tu consulta.', writeSupport: 'Escribir a soporte', supportSubject: 'Ayuda con CasaSeg', security: 'Nunca compartas contraseñas, códigos de verificación ni datos completos de tarjeta por correo.', faqTitle: 'Preguntas frecuentes', faqDetail: 'Toca una pregunta para ver la respuesta.', report: 'Reportar un problema', reportSubject: 'Reporte de problema en CasaSeg',
+    title: 'Centro de ayuda', subtitle: 'Respuestas rápidas y soporte cuando lo necesites.', personalHelp: '¿Necesitas ayuda personal?', personalHelpBody: 'Cuéntanos qué ocurre y nuestro equipo revisará tu consulta.', writeSupport: 'Escribir a soporte', supportSubject: 'Ayuda con CasasEG', security: 'Nunca compartas contraseñas, códigos de verificación ni datos completos de tarjeta por correo.', faqTitle: 'Preguntas frecuentes', faqDetail: 'Toca una pregunta para ver la respuesta.', report: 'Reportar un problema', reportSubject: 'Reporte de problema en CasasEG',
     q1: '¿Cómo guardo una propiedad?', a1: 'Pulsa el corazón de cualquier anuncio. Si has iniciado sesión, la propiedad quedará sincronizada en la pestaña Guardados.',
     q2: '¿Cómo solicito una visita?', a2: 'Abre la ficha de la propiedad y selecciona “Solicitar visita”. Propón una fecha y el propietario podrá revisarla.',
     q3: '¿Dónde reviso pagos y contratos?', a3: 'Desde Perfil puedes acceder a Contratos y Pagos. Los propietarios también disponen de un centro de gestión profesional.',
-    q4: '¿Cómo protege CasaSeg mis operaciones?', a4: 'Los estados sensibles se validan en el servidor. Los pagos se confirman mediante el proveedor y los documentos privados usan accesos temporales.',
+    q4: '¿Cómo protege CasasEG mis operaciones?', a4: 'Los estados sensibles se validan en el servidor. Los pagos se confirman mediante el proveedor y los documentos privados usan accesos temporales.',
   },
   fr: {
-    title: 'Centre d’aide', subtitle: 'Des réponses rapides et de l’aide quand vous en avez besoin.', personalHelp: 'Besoin d’une aide personnalisée ?', personalHelpBody: 'Expliquez-nous la situation et notre équipe examinera votre demande.', writeSupport: 'Écrire au support', supportSubject: 'Aide avec CasaSeg', security: 'Ne partagez jamais de mots de passe, de codes de vérification ni de données complètes de carte par e-mail.', faqTitle: 'Questions fréquentes', faqDetail: 'Touchez une question pour voir la réponse.', report: 'Signaler un problème', reportSubject: 'Signalement de problème sur CasaSeg',
+    title: 'Centre d’aide', subtitle: 'Des réponses rapides et de l’aide quand vous en avez besoin.', personalHelp: 'Besoin d’une aide personnalisée ?', personalHelpBody: 'Expliquez-nous la situation et notre équipe examinera votre demande.', writeSupport: 'Écrire au support', supportSubject: 'Aide avec CasasEG', security: 'Ne partagez jamais de mots de passe, de codes de vérification ni de données complètes de carte par e-mail.', faqTitle: 'Questions fréquentes', faqDetail: 'Touchez une question pour voir la réponse.', report: 'Signaler un problème', reportSubject: 'Signalement de problème sur CasasEG',
     q1: 'Comment enregistrer un logement ?', a1: 'Touchez le cœur de n’importe quelle annonce. Si vous êtes connecté, le logement sera synchronisé dans l’onglet Favoris.',
     q2: 'Comment demander une visite ?', a2: 'Ouvrez la fiche du logement et choisissez « Demander une visite ». Proposez une date et le propriétaire pourra l’examiner.',
     q3: 'Où consulter paiements et contrats ?', a3: 'Depuis Profil, vous accédez aux Contrats et aux Paiements. Les propriétaires disposent aussi d’un centre de gestion professionnel.',
-    q4: 'Comment CasaSeg protège-t-il mes opérations ?', a4: 'Les statuts sensibles sont validés par le serveur. Les paiements sont confirmés par le prestataire et les documents privés utilisent des accès temporaires.',
+    q4: 'Comment CasasEG protège-t-il mes opérations ?', a4: 'Les statuts sensibles sont validés par le serveur. Les paiements sont confirmés par le prestataire et les documents privés utilisent des accès temporaires.',
   },
   en: {
-    title: 'Help center', subtitle: 'Quick answers and support whenever you need it.', personalHelp: 'Need personal help?', personalHelpBody: 'Tell us what is happening and our team will review your request.', writeSupport: 'Write to support', supportSubject: 'Help with CasaSeg', security: 'Never share passwords, verification codes or full card details by email.', faqTitle: 'Frequently asked questions', faqDetail: 'Tap a question to see the answer.', report: 'Report a problem', reportSubject: 'Problem report in CasaSeg',
+    title: 'Help center', subtitle: 'Quick answers and support whenever you need it.', personalHelp: 'Need personal help?', personalHelpBody: 'Tell us what is happening and our team will review your request.', writeSupport: 'Write to support', supportSubject: 'Help with CasasEG', security: 'Never share passwords, verification codes or full card details by email.', faqTitle: 'Frequently asked questions', faqDetail: 'Tap a question to see the answer.', report: 'Report a problem', reportSubject: 'Problem report in CasasEG',
     q1: 'How do I save a property?', a1: 'Tap the heart on any listing. If you are signed in, the property will sync to the Saved tab.',
     q2: 'How do I request a visit?', a2: 'Open the property page and choose “Request a visit”. Propose a date and the owner will be able to review it.',
     q3: 'Where do I check payments and contracts?', a3: 'From Profile you can open Contracts and Payments. Owners also have a professional management hub.',
-    q4: 'How does CasaSeg protect my transactions?', a4: 'Sensitive statuses are validated on the server. Payments are confirmed by the provider and private documents use temporary access.',
+    q4: 'How does CasasEG protect my transactions?', a4: 'Sensitive statuses are validated on the server. Payments are confirmed by the provider and private documents use temporary access.',
   },
 });
 

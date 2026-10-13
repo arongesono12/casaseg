@@ -4,8 +4,10 @@ import { Controller, useForm } from 'react-hook-form';
 import { Text } from 'react-native';
 
 import { FormField } from '@/components/form-field';
+import { AppErrorScreen } from '@/components/app-error-screen';
 import { RouteScreen } from '@/components/route-screen';
-import { PremiumButton } from '@/components/ui/premium';
+import { Building2 } from '@/components/ui/icons';
+import { PremiumButton, PremiumEmptyState } from '@/components/ui/premium';
 import { propertyKeys } from '@/features/properties/api/property.keys';
 import { useProperty } from '@/features/properties/hooks/use-properties';
 import { updateProperty } from '@/features/owner/update-property';
@@ -28,7 +30,9 @@ export default function EditPropertyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const property = useProperty(id);
   const { t } = useI18n();
-  if (!property.data) return <RouteScreen title={t('editProperty')} description={t('loadingListing')} />;
+  if (!id || (property.isSuccess && !property.data)) return <AppErrorScreen kind="property" />;
+  if (property.isError) return <AppErrorScreen kind="network" onRetry={() => void property.refetch()} />;
+  if (!property.data) return <RouteScreen title={t('editProperty')} description={t('loadingListing')}><PremiumEmptyState icon={Building2} title={t('loadingListing')} description="" loading /></RouteScreen>;
   return <EditForm property={property.data} />;
 }
 

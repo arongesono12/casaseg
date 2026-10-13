@@ -67,7 +67,7 @@ export function mapAgreementToVisit(row: AgreementRow): VisitRequest {
 function requireBackend() {
   // Sin servidor no hay a quién enviar la solicitud: fingir el envío dejaba al
   // usuario creyendo que el propietario la había recibido.
-  if (!isSupabaseConfigured) throw new Error('Las visitas necesitan conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('Las visitas necesitan conexión con el servidor de CasasEG.');
 }
 
 async function currentProfileId(): Promise<string> {

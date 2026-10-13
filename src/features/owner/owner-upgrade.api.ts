@@ -121,7 +121,7 @@ export async function submitOwnerUpgradeRequest(params: {
   input: OwnerUpgradeInput;
   titlePdf: PickedPdf;
 }): Promise<OwnerUpgradeRequest> {
-  if (!isSupabaseConfigured) throw new Error('La solicitud requiere conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('La solicitud requiere conexión con el servidor de CasasEG.');
   const { user, input } = params;
   const validationError = validateOwnerUpgradeInput(input);
   if (validationError) throw new Error(validationError);
@@ -136,7 +136,7 @@ export async function submitOwnerUpgradeRequest(params: {
       p_privacy_accepted: true,
       p_subscription_terms_accepted: true,
       p_ip_address: null,
-      p_user_agent: `CasaSeg Expo (${Platform.OS} ${String(Platform.Version)})`,
+      p_user_agent: `CasasEG Expo (${Platform.OS} ${String(Platform.Version)})`,
     });
     if (termsError) throw termsError;
 

@@ -14,13 +14,14 @@ describe('registration and OTP validation', () => {
     });
 
     expect(result.email).toBe('new.user@example.com');
-    expect(result.phone).toBe('+240 222 123 456');
+    expect(result.phone).toBe('+240222123456');
   });
 
   test('requires a valid phone during registration', () => {
     const registration = { name: 'Aron', email: 'user@example.com', password: 'secure-password', role: 'client', acceptedTerms: true };
     expect(registerSchema.safeParse(registration).success).toBe(false);
     expect(registerSchema.safeParse({ ...registration, phone: '123' }).success).toBe(false);
+    expect(registerSchema.safeParse({ ...registration, phone: '222 123 456' }).success).toBe(false);
   });
 
   test('blocks registration until terms are accepted', () => {

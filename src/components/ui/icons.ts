@@ -30,7 +30,6 @@ import DoorIcon from "@hugeicons/core-free-icons/DoorIcon";
 import FavouriteIcon from "@hugeicons/core-free-icons/FavouriteIcon";
 import File02Icon from "@hugeicons/core-free-icons/File02Icon";
 import FlashIcon from "@hugeicons/core-free-icons/FlashIcon";
-import Facebook01Icon from "@hugeicons/core-free-icons/Facebook01Icon";
 import Globe02Icon from "@hugeicons/core-free-icons/Globe02Icon";
 import GridViewIcon from "@hugeicons/core-free-icons/GridViewIcon";
 import HelpCircleIcon from "@hugeicons/core-free-icons/HelpCircleIcon";
@@ -39,13 +38,11 @@ import Home02Icon from "@hugeicons/core-free-icons/Home02Icon";
 import Home11Icon from "@hugeicons/core-free-icons/Home11Icon";
 import ImageAdd01Icon from "@hugeicons/core-free-icons/ImageAdd01Icon";
 import InboxIcon from "@hugeicons/core-free-icons/InboxIcon";
-import InstagramIcon from "@hugeicons/core-free-icons/InstagramIcon";
 import InformationCircleIcon from "@hugeicons/core-free-icons/InformationCircleIcon";
 import Key01Icon from "@hugeicons/core-free-icons/Key01Icon";
 import Layers01Icon from "@hugeicons/core-free-icons/Layers01Icon";
 import LeftToRightListBulletIcon from "@hugeicons/core-free-icons/LeftToRightListBulletIcon";
 import LinkSquare02Icon from "@hugeicons/core-free-icons/LinkSquare02Icon";
-import Linkedin01Icon from "@hugeicons/core-free-icons/Linkedin01Icon";
 import Location01Icon from "@hugeicons/core-free-icons/Location01Icon";
 import LocationCheck01Icon from "@hugeicons/core-free-icons/LocationCheck01Icon";
 import LockIcon from "@hugeicons/core-free-icons/LockIcon";
@@ -59,7 +56,6 @@ import Message01Icon from "@hugeicons/core-free-icons/Message01Icon";
 import Message02Icon from "@hugeicons/core-free-icons/Message02Icon";
 import Moon02Icon from "@hugeicons/core-free-icons/Moon02Icon";
 import Navigation05Icon from "@hugeicons/core-free-icons/Navigation05Icon";
-import NewTwitterIcon from "@hugeicons/core-free-icons/NewTwitterIcon";
 import Notification01Icon from "@hugeicons/core-free-icons/Notification01Icon";
 import Refresh01Icon from "@hugeicons/core-free-icons/Refresh01Icon";
 import RulerIcon from "@hugeicons/core-free-icons/RulerIcon";
@@ -87,12 +83,12 @@ import ViewOffSlashIcon from "@hugeicons/core-free-icons/ViewOffSlashIcon";
 import Wallet01Icon from "@hugeicons/core-free-icons/Wallet01Icon";
 import Wifi01Icon from "@hugeicons/core-free-icons/Wifi01Icon";
 import WindIcon from "@hugeicons/core-free-icons/WindIcon";
-import YoutubeIcon from "@hugeicons/core-free-icons/YoutubeIcon";
 import {
   HugeiconsIcon,
   type HugeiconsProps,
   type IconSvgElement,
 } from "@hugeicons/react-native";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { createElement } from "react";
 
 export type IconProps = Omit<HugeiconsProps, "icon" | "altIcon" | "showAlt"> & {
@@ -116,8 +112,25 @@ function createIcon(icon: IconSvgElement, displayName: string): AppIcon {
     });
   }
 
-  ProjectIcon.displayName = `CasaSegIcon(${displayName})`;
+  ProjectIcon.displayName = `CasasEGIcon(${displayName})`;
   return ProjectIcon;
+}
+
+const DEFAULT_ICON_SIZE = 24;
+
+// Los logos de redes sociales usan Font Awesome 6 (familia "brands"), igual que la web.
+function createBrandIcon(name: string, displayName: string): AppIcon {
+  function BrandIcon({ size, color }: IconProps) {
+    return createElement(FontAwesome6, {
+      name,
+      brand: true,
+      size: Number(size) || DEFAULT_ICON_SIZE,
+      color,
+    });
+  }
+
+  BrandIcon.displayName = `CasasEGIcon(${displayName})`;
+  return BrandIcon;
 }
 
 export const AlertCircle = createIcon(AlertCircleIcon, "AlertCircle");
@@ -181,12 +194,12 @@ export const Plus = createIcon(Add01Icon, "Plus");
 export const RefreshCw = createIcon(Refresh01Icon, "RefreshCw");
 export const Ruler = createIcon(RulerIcon, "Ruler");
 export const Search = createIcon(Search01Icon, "Search");
-export const SocialFacebook = createIcon(Facebook01Icon, "SocialFacebook");
-export const SocialInstagram = createIcon(InstagramIcon, "SocialInstagram");
-export const SocialLinkedin = createIcon(Linkedin01Icon, "SocialLinkedin");
+export const SocialFacebook = createBrandIcon("facebook-f", "SocialFacebook");
+export const SocialInstagram = createBrandIcon("instagram", "SocialInstagram");
+export const SocialLinkedin = createBrandIcon("linkedin-in", "SocialLinkedin");
 export const SocialWebsite = createIcon(Globe02Icon, "SocialWebsite");
-export const SocialX = createIcon(NewTwitterIcon, "SocialX");
-export const SocialYoutube = createIcon(YoutubeIcon, "SocialYoutube");
+export const SocialX = createBrandIcon("x-twitter", "SocialX");
+export const SocialYoutube = createBrandIcon("youtube", "SocialYoutube");
 export const Send = createIcon(SentIcon, "Send");
 export const Settings = createIcon(Settings01Icon, "Settings");
 export const Share2 = createIcon(Share08Icon, "Share2");

@@ -88,6 +88,7 @@ function RootNavigator() {
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.background }, keyboardHandlingEnabled: Platform.OS !== 'web' }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="+not-found" />
         <Stack.Screen name="onboarding/index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="property/[id]" />

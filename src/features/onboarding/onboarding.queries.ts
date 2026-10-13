@@ -50,7 +50,7 @@ function parseMembers(value: unknown): OnboardingCommunityMember[] {
     if (!row.id) return [];
     return [{
       id: String(row.id),
-      name: String(row.name ?? 'Miembro de CasaSeg'),
+      name: String(row.name ?? 'Miembro de CasasEG'),
       avatar: row.avatar ? String(row.avatar) : undefined,
     }];
   });

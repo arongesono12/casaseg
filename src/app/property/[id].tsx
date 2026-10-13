@@ -51,6 +51,7 @@ import { amenityLabel } from "@/features/properties/amenities";
 import { useFavoriteMutation } from "@/features/properties/hooks/use-favorite-mutation";
 import { useFavoritesUserId } from "@/features/properties/hooks/use-favorites-user-id";
 import { useProperty } from "@/features/properties/hooks/use-properties";
+import { AppErrorScreen } from "@/components/app-error-screen";
 import { trackPropertyView } from "@/features/properties/property-views";
 import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-context";
@@ -180,24 +181,10 @@ export default function PropertyDetailScreen() {
     return <ScreenState palette={palette} label={t("loading")} loading />;
   }
   if (propertyQuery.isError) {
-    return (
-      <ScreenState
-        palette={palette}
-        label={t("propertyLoadError")}
-        actionLabel={t("retry")}
-        onAction={() => void propertyQuery.refetch()}
-      />
-    );
+    return <AppErrorScreen kind="network" onRetry={() => void propertyQuery.refetch()} />;
   }
   if (!property) {
-    return (
-      <ScreenState
-        palette={palette}
-        label={t("notFound")}
-        actionLabel={t("back")}
-        onAction={() => router.back()}
-      />
-    );
+    return <AppErrorScreen kind="property" />;
   }
 
   const isFavorite = isAuthenticated && (favorites.data?.includes(property.id) ?? false);

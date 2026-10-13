@@ -42,7 +42,14 @@ type AgreementRow = {
 };
 
 function requireBackend() {
-  if (!isSupabaseConfigured) throw new Error('Los encuentros necesitan conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('Los encuentros necesitan conexión con el servidor de CasasEG.');
+}
+
+export class EncounterUnavailableError extends Error {
+  constructor() {
+    super('Este chat no está disponible.');
+    this.name = 'EncounterUnavailableError';
+  }
 }
 
 /** Resuelve las partes desde el chat real, nunca desde parámetros editables de la ruta. */
@@ -54,7 +61,7 @@ export async function fetchEncounterContext(route: string, profileId: string): P
     const { data, error } = await supabase.from('chats').select('property_id,client_id,owner_id').eq('id', route).maybeSingle();
     if (error) throw error;
     chat = data as ChatRow | null;
-    if (!chat || (chat.client_id !== profileId && chat.owner_id !== profileId)) throw new Error('Este chat no está disponible.');
+    if (!chat || (chat.client_id !== profileId && chat.owner_id !== profileId)) throw new EncounterUnavailableError();
   }
 
   const { data, error } = await supabase.from('properties')
@@ -63,9 +70,9 @@ export async function fetchEncounterContext(route: string, profileId: string): P
     .maybeSingle();
   if (error) throw error;
   const property = data as PropertyRow | null;
-  if (!property) throw new Error('Esta vivienda no está disponible.');
-  if (chat && property.owner_id !== chat.owner_id) throw new Error('Los participantes del chat no coinciden con la vivienda.');
-  if (!chat && property.owner_id === profileId) throw new Error('Abre el chat del cliente para proponer un encuentro.');
+  if (!property) throw new EncounterUnavailableError();
+  if (chat && property.owner_id !== chat.owner_id) throw new EncounterUnavailableError();
+  if (!chat && property.owner_id === profileId) throw new EncounterUnavailableError();
 
   return {
     propertyId: property.id,

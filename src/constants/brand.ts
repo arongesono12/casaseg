@@ -1,4 +1,4 @@
-// Fuente única de los colores de CasaSeg, derivada del logo (public/logo/logo.svg).
+// Fuente única de los colores de CasasEG, derivada del logo (public/logo/logo.svg).
 //
 // El logo usa cuatro azules en degradado. De ellos sale todo lo demás:
 // - `deep` es el color de acción: botones, enlaces, selección. Es el único azul

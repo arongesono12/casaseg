@@ -38,7 +38,7 @@ describe('messaging api', () => {
     };
     const [conversation] = await fetchConversations();
     const { id, title, lastMessage, unreadCount, propertyTitle, avatar, isOwner } = conversation;
-    expect({ id, title, lastMessage, unreadCount, propertyTitle, avatar, isOwner }).toEqual({ id: 'c1', title: 'CasaSeg', lastMessage: 'Hola', unreadCount: 2, propertyTitle: 'Piso', avatar: 'https://x/a.png', isOwner: true });
+    expect({ id, title, lastMessage, unreadCount, propertyTitle, avatar, isOwner }).toEqual({ id: 'c1', title: 'CasasEG', lastMessage: 'Hola', unreadCount: 2, propertyTitle: 'Piso', avatar: 'https://x/a.png', isOwner: true });
   });
 
   test('opens a chat by property when there is no chat yet', async () => {

@@ -1,5 +1,6 @@
 import type { SessionResource } from '@clerk/expo/types';
 import { createContext, useContext } from 'react';
+import type { PasswordResetChannel, PasswordResetOption } from '@/features/auth/password-reset';
 import type { AppUser, UserRole } from '@/types';
 
 export type AuthContextValue = {
@@ -17,7 +18,10 @@ export type AuthContextValue = {
   verifyOtp: (email: string, token: string) => Promise<void>;
   resendSignupOtp: (email: string) => Promise<void>;
   signInWithOAuth: (provider: 'google' | 'apple') => Promise<boolean>;
-  requestPasswordReset: (email: string) => Promise<void>;
+  /** Busca la cuenta y devuelve por dónde puede recibir el código (correo y, si lo verificó, SMS). */
+  startPasswordReset: (email: string) => Promise<PasswordResetOption[]>;
+  /** Envía el código por la vía elegida; requiere `startPasswordReset` antes. */
+  sendPasswordResetCode: (channel: PasswordResetChannel) => Promise<void>;
   updateProfileName: (name: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   signInDemo: (role?: UserRole) => Promise<void>;

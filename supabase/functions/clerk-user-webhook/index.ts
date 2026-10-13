@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.110.0';
 import { Webhook } from 'npm:svix@1.42.0';
 import { corsHeaders, jsonResponse } from '../_shared/http.ts';
+import { phoneVerificationPatch, toE164, type ClerkPhoneData } from '../_shared/phone.ts';
 
 /**
  * Provisiona en Supabase los usuarios que nacen en Clerk.
@@ -27,7 +28,7 @@ const CLERK_API = 'https://api.clerk.com/v1';
 
 type ClerkEmail = { id: string; email_address: string; verification?: { status?: string } | null };
 
-type ClerkUserData = {
+type ClerkUserData = ClerkPhoneData & {
   id: string;
   external_id: string | null;
   primary_email_address_id: string | null;
@@ -76,12 +77,32 @@ function avatar(data: ClerkUserData) {
   return data.has_image && data.image_url ? data.image_url : null;
 }
 
+/** El registro envía el número con prefijo; se guarda en E.164 como exige la base de datos. */
 function telefonoDeRegistro(data: ClerkUserData) {
-  const value = data.unsafe_metadata?.phone;
-  if (typeof value !== 'string') return null;
-  const phone = value.trim().replace(/\s+/g, ' ');
-  const digits = phone.replace(/\D/g, '').length;
-  return /^\+?[\d\s().-]+$/.test(phone) && digits >= 7 && digits <= 15 ? phone : null;
+  return toE164(data.unsafe_metadata?.phone);
+}
+
+/**
+ * Clerk solo envía el SMS de recuperación a números verificados. Cuando la
+ * persona verifica el suyo desde el perfil, se refleja en public.users.
+ */
+async function sincronizarTelefonoVerificado(supabase: ReturnType<typeof servicio>, id: string, data: ClerkUserData) {
+  if (!data.phone_numbers?.length) return;
+  const { data: perfil, error } = await supabase.from('users').select('phone, phone_verified').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!perfil) return;
+
+  const cambios = phoneVerificationPatch(perfil, data);
+  if (!cambios) return;
+
+  const { error: updateError } = await supabase.from('users').update(cambios).eq('id', id);
+  // 23505: otra cuenta ya tiene ese número verificado (p. ej. desde la web). No se
+  // reintenta: Svix repetiría el mismo conflicto sin fin.
+  if (updateError?.code === '23505') {
+    console.warn(`clerk-user-webhook: el teléfono verificado de ${id} ya pertenece a otra cuenta.`);
+    return;
+  }
+  if (updateError) throw updateError;
 }
 
 /**
@@ -229,6 +250,8 @@ async function alActualizar(data: ClerkUserData) {
     updated_at: new Date().toISOString(),
   }).eq('id', data.external_id);
   if (error) throw error;
+
+  await sincronizarTelefonoVerificado(supabase, data.external_id, data);
 
   return { estado: 'actualizado', id: data.external_id };
 }

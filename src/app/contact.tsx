@@ -12,9 +12,9 @@ import { defineCopy, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 const contactCopy = defineCopy({
-  es: { title: 'Contactar con CasaSeg', subtitle: 'Cuéntanos en qué podemos ayudarte.', name: 'Nombre', email: 'Correo electrónico', message: 'Mensaje', send: 'Enviar mensaje', sent: 'Tu mensaje se ha enviado. Te responderemos por correo.', back: 'Volver al perfil' },
-  fr: { title: 'Contacter CasaSeg', subtitle: 'Dites-nous comment nous pouvons vous aider.', name: 'Nom', email: 'E-mail', message: 'Message', send: 'Envoyer le message', sent: 'Votre message a été envoyé. Nous répondrons par e-mail.', back: 'Retour au profil' },
-  en: { title: 'Contact CasaSeg', subtitle: 'Tell us how we can help.', name: 'Name', email: 'Email', message: 'Message', send: 'Send message', sent: 'Your message was sent. We will reply by email.', back: 'Back to profile' },
+  es: { title: 'Contactar con CasasEG', subtitle: 'Cuéntanos en qué podemos ayudarte.', name: 'Nombre', email: 'Correo electrónico', message: 'Mensaje', send: 'Enviar mensaje', sent: 'Tu mensaje se ha enviado. Te responderemos por correo.', back: 'Volver al perfil' },
+  fr: { title: 'Contacter CasasEG', subtitle: 'Dites-nous comment nous pouvons vous aider.', name: 'Nom', email: 'E-mail', message: 'Message', send: 'Envoyer le message', sent: 'Votre message a été envoyé. Nous répondrons par e-mail.', back: 'Retour au profil' },
+  en: { title: 'Contact CasasEG', subtitle: 'Tell us how we can help.', name: 'Name', email: 'Email', message: 'Message', send: 'Send message', sent: 'Your message was sent. We will reply by email.', back: 'Back to profile' },
 });
 
 export default function ContactScreen() {

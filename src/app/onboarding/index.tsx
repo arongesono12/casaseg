@@ -123,7 +123,7 @@ function Brand({ centered = false, large = false }: { centered?: boolean; large?
     <View style={[styles.brand, centered && styles.brandCentered]}>
       <CasasegLogo width={large ? 56 : 26} height={large ? 46 : 21} />
       <Text style={[large ? styles.brandNameLarge : styles.brandName, { color: resolvedMode === 'dark' ? palette.text : brand.blue[900] }]}>
-        CASASEG
+        CasasEG
       </Text>
     </View>
   );

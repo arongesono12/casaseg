@@ -31,7 +31,7 @@ export type AdminOverviewSection = 'users' | 'properties';
 const demoUsers: AdminUser[] = [
   { id: 'demo-admin', name: 'Aron Administrador', email: 'admin@casaseg.app', role: 'admin', status: 'active' },
   { id: 'owner-elena', name: 'Elena Propietaria', email: 'owner@casaseg.app', role: 'owner', status: 'active', ownerRequestStatus: 'approved' },
-  { id: 'demo-client', name: 'Cliente CasaSeg', email: 'cliente@casaseg.app', role: 'client', status: 'active' },
+  { id: 'demo-client', name: 'Cliente CasasEG', email: 'cliente@casaseg.app', role: 'client', status: 'active' },
 ];
 
 function mapAdminUser(row: Record<string, unknown>): AdminUser {
@@ -120,7 +120,7 @@ export type ModerationStatus = 'active' | 'suspended' | 'pending';
  * propietario; es la misma función que puede usar el panel web.
  */
 export async function setAdminPropertyStatus(propertyId: string, status: ModerationStatus): Promise<void> {
-  if (!isSupabaseConfigured) throw new Error('La moderación requiere conexión con el servidor de CasaSeg.');
+  if (!isSupabaseConfigured) throw new Error('La moderación requiere conexión con el servidor de CasasEG.');
   const { error } = await supabase.rpc('admin_set_property_status', { p_property_id: propertyId, p_status: status });
   if (error) throw error;
 }

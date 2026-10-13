@@ -2,23 +2,23 @@ import { LegalPage } from '@/components/legal-page';
 import { defineCopy, useCopy } from '@/providers/i18n-context';
 
 const privacyCopy = defineCopy({
-  es: { title: 'Política de Privacidad', description: 'Cómo protegemos y tratamos tus datos personales en CasaSeg.', summary: 'Este documento explica qué datos tratamos, para qué los usamos y cómo puedes ejercer tus derechos.', contactTitle: '¿Tienes alguna pregunta sobre tus datos?', contactDescription: 'Escríbenos desde tu correo asociado a CasaSeg para que podamos verificar tu identidad.', contactLabel: 'Contactar con privacidad' },
-  fr: { title: 'Politique de confidentialité', description: 'Comment nous protégeons et traitons vos données personnelles sur CasaSeg.', summary: 'Ce document explique quelles données nous traitons, à quelles fins et comment exercer vos droits.', contactTitle: 'Une question sur vos données ?', contactDescription: 'Écrivez-nous depuis l’adresse e-mail associée à CasaSeg afin que nous puissions vérifier votre identité.', contactLabel: 'Contacter l’équipe confidentialité' },
-  en: { title: 'Privacy Policy', description: 'How we protect and process your personal data at CasaSeg.', summary: 'This document explains which data we process, why we use it and how you can exercise your rights.', contactTitle: 'Questions about your data?', contactDescription: 'Write to us from the email linked to CasaSeg so we can verify your identity.', contactLabel: 'Contact the privacy team' },
+  es: { title: 'Política de Privacidad', description: 'Cómo protegemos y tratamos tus datos personales en CasasEG.', summary: 'Este documento explica qué datos tratamos, para qué los usamos y cómo puedes ejercer tus derechos.', contactTitle: '¿Tienes alguna pregunta sobre tus datos?', contactDescription: 'Escríbenos desde tu correo asociado a CasasEG para que podamos verificar tu identidad.', contactLabel: 'Contactar con privacidad' },
+  fr: { title: 'Politique de confidentialité', description: 'Comment nous protégeons et traitons vos données personnelles sur CasasEG.', summary: 'Ce document explique quelles données nous traitons, à quelles fins et comment exercer vos droits.', contactTitle: 'Une question sur vos données ?', contactDescription: 'Écrivez-nous depuis l’adresse e-mail associée à CasasEG afin que nous puissions vérifier votre identité.', contactLabel: 'Contacter l’équipe confidentialité' },
+  en: { title: 'Privacy Policy', description: 'How we protect and process your personal data at CasasEG.', summary: 'This document explains which data we process, why we use it and how you can exercise your rights.', contactTitle: 'Questions about your data?', contactDescription: 'Write to us from the email linked to CasasEG so we can verify your identity.', contactLabel: 'Contact the privacy team' },
 });
 
 const sections = [
   {
     title: 'Ámbito de esta política',
-    body: 'Esta política se aplica al uso de la aplicación, el sitio web y los servicios de CasaSeg. Explica el tratamiento de datos de clientes, propietarios, administradores y visitantes.',
+    body: 'Esta política se aplica al uso de la aplicación, el sitio web y los servicios de CasasEG. Explica el tratamiento de datos de clientes, propietarios, administradores y visitantes.',
     items: [
       'Se aplica cuando creas una cuenta, exploras propiedades o utilizas funciones autenticadas.',
-      'Los servicios externos enlazados desde CasaSeg pueden aplicar sus propias políticas.',
+      'Los servicios externos enlazados desde CasasEG pueden aplicar sus propias políticas.',
     ],
   },
   {
     title: 'Responsable del tratamiento',
-    body: 'CasaSeg gestiona los datos necesarios para prestar la plataforma y atender tus solicitudes. Puedes contactar con el equipo mediante soporte@casaseg.com.',
+    body: 'CasasEG gestiona los datos necesarios para prestar la plataforma y atender tus solicitudes. Puedes contactar con el equipo mediante soporte@casaseg.com.',
     note: 'Para proteger tu cuenta, podremos pedirte que confirmes tu identidad antes de responder a una solicitud sobre datos personales.',
   },
   {
@@ -33,7 +33,7 @@ const sections = [
   },
   {
     title: 'Cómo obtenemos los datos',
-    body: 'Los datos pueden proceder directamente de ti, de tu actividad en CasaSeg o de proveedores que utilizas para autenticarte y completar operaciones.',
+    body: 'Los datos pueden proceder directamente de ti, de tu actividad en CasasEG o de proveedores que utilizas para autenticarte y completar operaciones.',
     items: [
       'Información que introduces en formularios o comunicas al soporte.',
       'Eventos generados al utilizar la aplicación y sus funciones.',
@@ -103,7 +103,7 @@ const sections = [
   },
   {
     title: 'Privacidad de menores',
-    body: 'CasaSeg no está dirigida a menores que no tengan capacidad legal para contratar o utilizar el servicio sin autorización. Si detectamos una cuenta creada en contra de este requisito, podremos limitarla o eliminarla.',
+    body: 'CasasEG no está dirigida a menores que no tengan capacidad legal para contratar o utilizar el servicio sin autorización. Si detectamos una cuenta creada en contra de este requisito, podremos limitarla o eliminarla.',
   },
   {
     title: 'Cookies y tecnologías similares',
@@ -122,7 +122,7 @@ const sections = [
     title: 'Cambios y contacto',
     body: 'Podemos actualizar esta política cuando cambien el servicio, las medidas de seguridad o los requisitos aplicables. La fecha de actualización siempre aparecerá al inicio del documento.',
     items: [
-      'Las modificaciones relevantes deben comunicarse dentro de CasaSeg o por un canal de contacto válido.',
+      'Las modificaciones relevantes deben comunicarse dentro de CasasEG o por un canal de contacto válido.',
       'Para consultas o solicitudes de privacidad puedes escribir a soporte@casaseg.com.',
     ],
   },

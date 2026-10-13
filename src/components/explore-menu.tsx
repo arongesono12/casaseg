@@ -120,7 +120,7 @@ export function ExploreMenu({ onClose, visible }: ExploreMenuProps) {
         >
           <View style={styles.menuHeader}>
             <View>
-              <Text style={[styles.menuEyebrow, { color: palette.brandText }]}>CASASEG</Text>
+              <Text style={[styles.menuEyebrow, { color: palette.brandText }]}>CasasEG</Text>
               <Text accessibilityRole="header" style={[styles.menuTitle, { color: palette.text }]}>{t('menu')}</Text>
             </View>
             <Pressable

@@ -1,3 +1,5 @@
+import { regionForTimeZone } from '@/features/auth/timezone-regions';
+
 // Códigos de llamada de libphonenumber-js 1.13.15 (metadata.min.json).
 // Nombres de región almacenados para funcionar también sin Intl en el dispositivo.
 export const countryCallingCodes = [
@@ -254,6 +256,42 @@ export const defaultCallingCountry = countryCallingCodes.find(([region]) => regi
 
 export function callingCountryForRegion(regionCode: string | null | undefined): CountryCallingCode {
   return countryCallingCodes.find(([region]) => region === regionCode?.toUpperCase()) ?? defaultCallingCountry;
+}
+
+/** Prefijo según la zona horaria del dispositivo; Guinea Ecuatorial si no identifica un país. */
+export function callingCountryForTimeZone(timeZone: string | null | undefined): CountryCallingCode {
+  return callingCountryForRegion(regionForTimeZone(timeZone));
+}
+
+// Prefijos que comparten varios países: el que se asume si la zona horaria no indica otro.
+const mainRegionByCallingCode: Readonly<Record<string, string>> = {
+  '+1': 'US', '+7': 'RU', '+39': 'IT', '+44': 'GB', '+47': 'NO', '+61': 'AU',
+  '+212': 'MA', '+262': 'RE', '+290': 'SH', '+358': 'FI', '+590': 'GP', '+599': 'CW',
+};
+
+const callingCodes = new Set<string>(countryCallingCodes.map(([, code]) => code));
+
+/** Prefijo de un número E.164 ("+240222…" → "+240"). Los prefijos E.164 no se solapan. */
+export function callingCodeOf(phone: string): string | null {
+  if (!phone.trim().startsWith('+')) return null;
+  const digits = phone.replace(/\D/g, '');
+  for (const length of [1, 2, 3]) {
+    const code = `+${digits.slice(0, length)}`;
+    if (callingCodes.has(code)) return code;
+  }
+  return null;
+}
+
+/** Separa un número guardado en país y número nacional para editarlo con el desplegable. */
+export function splitPhoneNumber(phone: string, fallback: CountryCallingCode): { country: CountryCallingCode; nationalNumber: string } {
+  const value = phone.trim();
+  const code = callingCodeOf(value);
+  // Los números antiguos sin prefijo se quedan tal cual con el país detectado.
+  if (!code) return { country: fallback, nationalNumber: value };
+  const country = fallback[1] === code
+    ? fallback
+    : countryCallingCodes.find(([region, regionCode]) => regionCode === code && (mainRegionByCallingCode[code] ?? region) === region) ?? fallback;
+  return { country, nationalNumber: value.replace(/\D/g, '').slice(code.length - 1) };
 }
 
 export function phoneWithCallingCode(country: CountryCallingCode, nationalNumber: string): string {

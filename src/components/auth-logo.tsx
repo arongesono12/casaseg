@@ -48,7 +48,7 @@ export function AuthLogo({ compact = false }: AuthLogoProps) {
   }));
 
   return (
-    <Animated.View accessible accessibilityLabel="CasaSeg" accessibilityRole="image" style={[styles.logo, animatedSize]}>
+    <Animated.View accessible accessibilityLabel="CasasEG" accessibilityRole="image" style={[styles.logo, animatedSize]}>
       <CasasegLogo width="100%" height="100%" />
     </Animated.View>
   );

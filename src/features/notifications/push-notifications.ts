@@ -19,7 +19,7 @@ export async function registerPushDevice() {
   const current = await Notifications.getPermissionsAsync();
   const permission = current.granted ? current : await Notifications.requestPermissionsAsync();
   if (!permission.granted) throw new Error('Permiso de notificaciones no concedido.');
-  if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync('default', { name: 'CasaSeg', importance: Notifications.AndroidImportance.DEFAULT });
+  if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync('default', { name: 'CasasEG', importance: Notifications.AndroidImportance.DEFAULT });
   const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
   const token = (await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined)).data;
   if (isSupabaseConfigured) {

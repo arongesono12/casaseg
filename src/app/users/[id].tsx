@@ -5,10 +5,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { PropertyCard } from '@/components/property/property-card';
+import { AppErrorScreen } from '@/components/app-error-screen';
 import { CoverSocialLinks } from '@/components/profile/cover-social-links';
 import { RouteScreen } from '@/components/route-screen';
-import { Building2, Lock, UserRound } from '@/components/ui/icons';
-import { PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
+import { Building2, UserRound } from '@/components/ui/icons';
+import { PremiumButton, PremiumEmptyState, StatusPill } from '@/components/ui/premium';
 import { UserAvatar } from '@/components/user-avatar';
 import { actionGradient, fontFamily, radius } from '@/constants/theme';
 import { fetchVisibleUserProfile, fetchVisibleUserProperties } from '@/features/profile/public-profile.api';
@@ -17,9 +18,9 @@ import { useAppTheme } from '@/providers/theme-context';
 import { formatDate } from '@/utils/formatters';
 
 const copy = defineCopy({
-  es: { title: 'Perfil público', subtitle: 'Conoce a la persona detrás de cada conversación.', loading: 'Cargando perfil…', unavailable: 'Perfil no disponible', unavailableBody: 'Este perfil no existe o su propietario decidió mantenerlo privado.', error: 'No pudimos abrir el perfil', errorBody: 'Comprueba tu conexión e inténtalo de nuevo.', retry: 'Reintentar', about: 'Sobre esta persona', listings: 'Viviendas publicadas', noListings: 'Este usuario todavía no tiene viviendas publicadas.', memberSince: 'Miembro desde', owner: 'Propietario', client: 'Cliente', admin: 'Equipo CasaSeg' },
-  fr: { title: 'Profil public', subtitle: 'Découvrez la personne derrière chaque conversation.', loading: 'Chargement du profil…', unavailable: 'Profil indisponible', unavailableBody: 'Ce profil n’existe pas ou son propriétaire a choisi de le garder privé.', error: 'Impossible d’ouvrir le profil', errorBody: 'Vérifiez votre connexion et réessayez.', retry: 'Réessayer', about: 'À propos', listings: 'Logements publiés', noListings: 'Cet utilisateur n’a pas encore publié de logement.', memberSince: 'Membre depuis', owner: 'Propriétaire', client: 'Client', admin: 'Équipe CasaSeg' },
-  en: { title: 'Public profile', subtitle: 'Meet the person behind the conversation.', loading: 'Loading profile…', unavailable: 'Profile unavailable', unavailableBody: 'This profile does not exist or its owner chose to keep it private.', error: 'Could not open profile', errorBody: 'Check your connection and try again.', retry: 'Retry', about: 'About', listings: 'Published homes', noListings: 'This user has not published any homes yet.', memberSince: 'Member since', owner: 'Owner', client: 'Client', admin: 'CasaSeg team' },
+  es: { title: 'Perfil público', subtitle: 'Conoce a la persona detrás de cada conversación.', loading: 'Cargando perfil…', unavailable: 'Perfil no disponible', unavailableBody: 'Este perfil no existe o su propietario decidió mantenerlo privado.', error: 'No pudimos abrir el perfil', errorBody: 'Comprueba tu conexión e inténtalo de nuevo.', retry: 'Reintentar', about: 'Sobre esta persona', listings: 'Viviendas publicadas', noListings: 'Este usuario todavía no tiene viviendas publicadas.', memberSince: 'Miembro desde', owner: 'Propietario', client: 'Cliente', admin: 'Equipo CasasEG' },
+  fr: { title: 'Profil public', subtitle: 'Découvrez la personne derrière chaque conversation.', loading: 'Chargement du profil…', unavailable: 'Profil indisponible', unavailableBody: 'Ce profil n’existe pas ou son propriétaire a choisi de le garder privé.', error: 'Impossible d’ouvrir le profil', errorBody: 'Vérifiez votre connexion et réessayez.', retry: 'Réessayer', about: 'À propos', listings: 'Logements publiés', noListings: 'Cet utilisateur n’a pas encore publié de logement.', memberSince: 'Membre depuis', owner: 'Propriétaire', client: 'Client', admin: 'Équipe CasasEG' },
+  en: { title: 'Public profile', subtitle: 'Meet the person behind the conversation.', loading: 'Loading profile…', unavailable: 'Profile unavailable', unavailableBody: 'This profile does not exist or its owner chose to keep it private.', error: 'Could not open profile', errorBody: 'Check your connection and try again.', retry: 'Retry', about: 'About', listings: 'Published homes', noListings: 'This user has not published any homes yet.', memberSince: 'Member since', owner: 'Owner', client: 'Client', admin: 'CasasEG team' },
 });
 
 export default function VisibleUserProfileScreen() {
@@ -44,13 +45,12 @@ export default function VisibleUserProfileScreen() {
   const cardWidth = width >= 720 ? '48%' : '100%';
   const coverImage = user?.coverPicture || listings.data?.[0]?.imageUrls[0];
 
+  if (!userId || (profile.isSuccess && !user)) return <AppErrorScreen kind="profile" />;
+  if (profile.isError && !user) return <AppErrorScreen kind="network" onRetry={() => void profile.refetch()} />;
+
   return (
     <RouteScreen title={text.title} description={text.subtitle} maxWidth={760}>
-      {!userId || (profile.isSuccess && !user) ? (
-        <PremiumEmptyState icon={Lock} title={text.unavailable} description={text.unavailableBody} />
-      ) : profile.isError && !user ? (
-        <PremiumErrorState title={text.error} description={text.errorBody} onRetry={() => void profile.refetch()} />
-      ) : !user ? (
+      {!user ? (
         <PremiumEmptyState icon={UserRound} title={text.loading} description="" loading />
       ) : (
         <>

@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { FormField } from '@/components/form-field';
+import { AppErrorScreen } from '@/components/app-error-screen';
 import { RouteScreen } from '@/components/route-screen';
 import { Calendar, CheckCircle2, Clock, XCircle } from '@/components/ui/icons';
-import { PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
+import { PremiumButton, PremiumEmptyState, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius, spacing, type AppPalette } from '@/constants/theme';
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { visitRequestKeys, updateVisitRequestStatus } from '@/features/properties/api/visit-requests';
-import { encounterKeys, fetchChatEncounter, fetchEncounterContext, proposeChatEncounter, type ChatEncounter } from '@/features/visits/chat-encounter.api';
+import { EncounterUnavailableError, encounterKeys, fetchChatEncounter, fetchEncounterContext, proposeChatEncounter, type ChatEncounter } from '@/features/visits/chat-encounter.api';
 import { buildVisitDays, buildVisitSlot, dayHasAvailableSlots, isSlotAvailable, VISIT_HOURS } from '@/features/visits/visit-schedule';
 import { haptics } from '@/lib/haptics';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -173,11 +174,13 @@ export default function ChatEncounterScreen() {
   const pending = current && current.status !== 'fully_confirmed' && current.status !== 'rejected';
   const formOpen = !current || current.status === 'rejected' || showForm;
 
+  if (!conversationId || error instanceof EncounterUnavailableError) return <AppErrorScreen kind="meeting" />;
+  if (error) return <AppErrorScreen kind="network" onRetry={() => { if (context.isError) void context.refetch(); else void agreement.refetch(); }} />;
+
   return (
     <RouteScreen title={copy.title} description={copy.subtitle}>
-      {loading && !error ? <PremiumEmptyState icon={Calendar} title={copy.loading} description={copy.loadingBody} loading /> : null}
-      {error ? <PremiumErrorState title={copy.error} description={error.message || copy.errorBody} onRetry={() => { if (context.isError) void context.refetch(); else void agreement.refetch(); }} /> : null}
-      {!loading && !error && context.data ? (
+      {loading ? <PremiumEmptyState icon={Calendar} title={copy.loading} description={copy.loadingBody} loading /> : null}
+      {!loading && context.data ? (
         <>
           <View style={[styles.propertyCard, { backgroundColor: palette.brandSoft }]}>
             <Calendar color={palette.brandIcon} size={23} />
