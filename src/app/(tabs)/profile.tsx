@@ -58,6 +58,8 @@ export default function ProfileScreen() {
   const profile = useCurrentProfile();
   const updatePhone = useUpdateProfilePhone();
   const updateExtras = useUpdateProfileExtras();
+  const savedPhone = profile.data?.phone ?? null;
+  const recovery = useRecoveryPhone(savedPhone);
   const insets = useSafeAreaInsets();
   const ownerPanelBleed = Math.max(0, width - insets.left - insets.right - PROFILE_MAX_WIDTH) / 2 + (width < 380 ? 16 : 24);
   const profileScrollRef = useRef<ScrollView>(null);
@@ -71,7 +73,11 @@ export default function ProfileScreen() {
   const roleTone = isAdminRole(role) ? colors.primary : isOwnerRole(role) ? colors.brand : role === 'client' ? colors.success : palette.muted;
   const RoleIcon = isAdminRole(role) ? ShieldCheck : isOwnerRole(role) ? Building2 : role === 'client' ? HomeCheck : Lock;
   const saveProfile = async ({ name, phone, about, socialLinks }: { name: string; phone: string | null; about: string; socialLinks: Record<string, string> }) => {
-    if (phone !== (profile.data?.phone ?? null)) await updatePhone(phone);
+    if (phone !== savedPhone) {
+      await updatePhone(phone);
+      // El número anterior no debe seguir recibiendo el SMS de recuperación.
+      await recovery?.removeStalePhones(phone);
+    }
     if (name !== user.name.trim()) await updateProfileName(name);
     await updateExtras({ about: about.trim() || null, socialLinks });
   };
@@ -202,6 +208,11 @@ export default function ProfileScreen() {
         wide={wide}
       />
 
+      {/* Solo un número internacional (E.164) puede verificarse por SMS en Clerk. */}
+      {recovery && savedPhone && isValidProfilePhone(savedPhone) && !editing ? (
+        <RecoveryPhoneCard key={savedPhone} phone={savedPhone} recovery={recovery} palette={palette} />
+      ) : null}
+
       <Pressable accessibilityRole="button" accessibilityLabel={t('signOut')} android_ripple={pressRipple} onPress={() => void signOut()} style={({ pressed }) => [styles.signOut, { backgroundColor: `${colors.error}0E`, borderColor: `${colors.error}26` }, pressed && !usesRipple && styles.pressed]}>
         <LogOut color={colors.error} size={21} />
         <Text style={[styles.signOutText, { color: palette.errorText }]}>{t('signOut')}</Text>
@@ -280,8 +291,15 @@ function ProfileDetailsForm({
   const media = useCopy(mediaCopy);
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string }>();
   const [invalidSocial, setInvalidSocial] = useState<SocialNetworkKey[]>([]);
+  const detectedCountry = useDetectedCallingCountry();
+  // El valor del formulario debe coincidir con lo que enseña el desplegable: un
+  // número antiguo sin prefijo se completa con el país detectado.
+  const initialPhoneValue = () => {
+    const { country, nationalNumber } = splitPhoneNumber(initialPhone, detectedCountry);
+    return phoneWithCallingCode(country, nationalNumber);
+  };
   // Los campos muestran solo el usuario; al guardar se completa la URL.
-  const initialValues = () => ({ name: initialName, phone: initialPhone, about: initialAbout, ...socialFormFromLinks(initialSocialLinks) });
+  const initialValues = () => ({ name: initialName, phone: initialPhoneValue(), about: initialAbout, ...socialFormFromLinks(initialSocialLinks) });
   const { control, handleSubmit, reset, formState: { isSubmitting } } = useForm<{ name: string; phone: string; about: string } & SocialLinksForm>({
     defaultValues: initialValues(),
   });
@@ -356,7 +374,7 @@ function ProfileDetailsForm({
           <View style={[styles.infoDivider, { backgroundColor: palette.border }]} />
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: palette.muted }]}>{details.phone}</Text>
-            <Text selectable style={[styles.infoValue, { color: initialPhone ? palette.text : palette.textSecondary }]}>{initialPhone || details.phoneMissing}</Text>
+            <Text selectable style={[styles.infoValue, { color: initialPhone ? palette.text : palette.textSecondary }]}>{initialPhone ? formatPhoneForDisplay(initialPhone) : details.phoneMissing}</Text>
           </View>
           {initialAbout ? <><View style={[styles.infoDivider, { backgroundColor: palette.border }]} /><View style={styles.infoRow}><Text style={[styles.infoLabel, { color: palette.muted }]}>{media.about}</Text><Text selectable style={[styles.infoValue, { color: palette.text }]}>{initialAbout}</Text></View></> : null}
         </View>
@@ -391,18 +409,11 @@ function ProfileDetailsForm({
                 name="phone"
                 rules={{ validate: (value) => isValidProfilePhone(value) || details.phoneInvalid }}
                 render={({ field, fieldState }) => (
-                  <FormField
+                  <PhoneNumberField
                     label={details.phone}
-                    autoComplete="tel"
-                    keyboardType="phone-pad"
-                    maxLength={24}
-                    placeholder="+240 222 000 000"
-                    returnKeyType="done"
-                    textContentType="telephoneNumber"
-                    value={field.value}
+                    initialValue={initialPhone}
+                    onChange={field.onChange}
                     onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    onSubmitEditing={() => void submit()}
                     error={fieldState.error?.message}
                   />
                 )}

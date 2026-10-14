@@ -117,10 +117,10 @@ function MotionBlock({ active, children, delay = 0, distance = 18, style }: Moti
   return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
 }
 
-function Brand({ centered = false, large = false }: { centered?: boolean; large?: boolean }) {
+function Brand({ centered = false, large = false, stacked = false }: { centered?: boolean; large?: boolean; stacked?: boolean }) {
   const { palette, resolvedMode } = useAppTheme();
   return (
-    <View style={[styles.brand, centered && styles.brandCentered]}>
+    <View style={[styles.brand, centered && styles.brandCentered, stacked && styles.brandStacked]}>
       <CasasegLogo width={large ? 56 : 26} height={large ? 46 : 21} />
       <Text style={[large ? styles.brandNameLarge : styles.brandName, { color: resolvedMode === 'dark' ? palette.text : brand.blue[900] }]}>
         CasasEG
@@ -166,7 +166,7 @@ function SplashScreenView() {
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       <MotionBlock active delay={80} distance={10} style={styles.splashCenter}>
         <View style={styles.splashBrand}>
-          <Brand large />
+          <Brand large stacked />
           <Text style={[styles.splashSlogan, { color: palette.textSecondary }]}>Líderes en conectar hogares</Text>
         </View>
         <SplashSpinner />
@@ -594,6 +594,7 @@ const styles = StyleSheet.create({
 
   brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brandCentered: { alignSelf: 'center' },
+  brandStacked: { flexDirection: 'column', gap: 8 },
   brandName: { fontSize: 15, lineHeight: 21, fontFamily: fontFamily.bold, letterSpacing: 0.25 },
   brandNameLarge: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.4 },
 

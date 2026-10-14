@@ -12,7 +12,7 @@ try {
     @{ Name = 'splash-brand-light.png'; Color = '#0D2E49'; SloganColor = '#526579' },
     @{ Name = 'splash-brand-dark.png'; Color = '#F2F6F9'; SloganColor = '#BACBD7' }
   )) {
-    $bitmap = [System.Drawing.Bitmap]::new(800, 250, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $bitmap = [System.Drawing.Bitmap]::new(600, 310, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     $font = [System.Drawing.Font]::new($fonts.Families[0], 96, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $sloganFont = [System.Drawing.Font]::new($fonts.Families[0], 35, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
@@ -25,12 +25,12 @@ try {
       $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
       $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
       $graphics.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
-      $graphics.DrawImage($logo, [System.Drawing.Rectangle]::new(72, 33, 160, 134))
-      $format.Alignment = [System.Drawing.StringAlignment]::Near
+      $graphics.DrawImage($logo, [System.Drawing.Rectangle]::new(220, 16, 160, 134))
+      $format.Alignment = [System.Drawing.StringAlignment]::Center
       $format.LineAlignment = [System.Drawing.StringAlignment]::Center
       $format.FormatFlags = [System.Drawing.StringFormatFlags]::NoWrap
-      $graphics.DrawString('CasasEG', $font, $brush, [System.Drawing.RectangleF]::new(256, 0, 544, 200), $format)
-      $graphics.DrawString('Líderes en conectar hogares', $sloganFont, $sloganBrush, [System.Drawing.RectangleF]::new(256, 130, 544, 70), $format)
+      $graphics.DrawString('CasasEG', $font, $brush, [System.Drawing.RectangleF]::new(0, 132, 600, 140), $format)
+      $graphics.DrawString('Líderes en conectar hogares', $sloganFont, $sloganBrush, [System.Drawing.RectangleF]::new(0, 230, 600, 65), $format)
       $bitmap.Save((Join-Path $images $variant.Name), [System.Drawing.Imaging.ImageFormat]::Png)
       Write-Output "Generated $($variant.Name)"
     } finally {
