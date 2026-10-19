@@ -5,11 +5,16 @@ import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ContractsPanel, usePendingSignatureLabel } from '@/components/contracts/contracts-panel';
 import { FormField } from '@/components/form-field';
+import { PaymentsPanel } from '@/components/payments/payments-panel';
 import { RouteScreen } from '@/components/route-screen';
+import { ActivityPanel } from '@/components/profile/activity-panel';
 import { ProfileHeaderCard } from '@/components/profile/profile-header-card';
-import { ArrowRight, Bell, Building2, Calendar, Check, CheckCircle2, HomeCheck, Lock, LogOut, Mail, Settings, ShieldCheck } from '@/components/ui/icons';
-import { PremiumButton, SurfaceCard } from '@/components/ui/premium';
+import { ProfileTabs, type ProfileTab } from '@/components/profile/profile-tabs';
+import { SettingsPanel } from '@/components/settings/settings-panel';
+import { ArrowRight, Bell, Building2, Calendar, Check, CheckCircle2, HomeCheck, Lock, LogOut, Mail, ShieldCheck } from '@/components/ui/icons';
+import { PremiumButton, SectionTitle, StatusPill, SurfaceCard } from '@/components/ui/premium';
 import { actionGradient, colors, fontFamily, radius, withAlpha, type AppPalette } from '@/constants/theme';
 import { useCurrentProfile, useUpdateProfileExtras, useUpdateProfilePhone } from '@/features/auth/use-current-profile';
 import { pickAndUploadProfileImage, removeUploadedProfileImage } from '@/features/auth/profile-media';
@@ -66,8 +71,23 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [mediaSaving, setMediaSaving] = useState<'avatars' | 'covers' | null>(null);
   const [mediaError, setMediaError] = useState<string>();
+  const [tab, setTab] = useState<ProfileTab>('profile');
+  const pendingSignatureLabel = usePendingSignatureLabel();
 
   if (!user) return <Redirect href="/(auth)/login" />;
+
+  // El formulario solo existe en «Información personal»: salir de ella cancela la edición.
+  const changeTab = (next: ProfileTab) => {
+    setEditing(false);
+    setMediaError(undefined);
+    setTab(next);
+  };
+  const signOutButton = (
+    <Pressable accessibilityRole="button" accessibilityLabel={t('signOut')} android_ripple={pressRipple} onPress={() => void signOut()} style={({ pressed }) => [styles.signOut, { backgroundColor: `${colors.error}0E`, borderColor: `${colors.error}26` }, pressed && !usesRipple && styles.pressed]}>
+      <LogOut color={colors.error} size={21} />
+      <Text style={[styles.signOutText, { color: palette.errorText }]}>{t('signOut')}</Text>
+    </Pressable>
+  );
 
   const roleLabel = isRoleLoading ? t('verifyingRole') : role === 'owner' ? t('owner') : role === 'client' ? t('client') : role === 'superadmin' ? copy.superadmin : role === 'admin' ? copy.admin : t('roleUnavailable');
   const roleTone = isAdminRole(role) ? colors.primary : isOwnerRole(role) ? colors.brand : role === 'client' ? colors.success : palette.muted;
@@ -140,83 +160,108 @@ export default function ProfileScreen() {
         </View>
       ) : null}
 
-      {isAdminRole(role) ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/admin' as Href)} android_ripple={onBrandRipple} style={({ pressed }) => [styles.ownerCta, pressed && !usesRipple && styles.pressed]}>
-          <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
-            <View style={styles.ownerCopy}>
-              <View style={styles.ownerEyebrow}><ShieldCheck color={colors.onBrandMuted} size={15} /><Text style={styles.ownerEyebrowText}>{copy.adminEyebrow}</Text></View>
-              <Text style={styles.ownerTitle}>{copy.adminPanel}</Text>
-              <Text style={styles.ownerDescription}>{copy.adminPanelBody}</Text>
-            </View>
-            <View style={styles.ownerArrow}><ArrowRight color="white" size={22} /></View>
-          </LinearGradient>
-        </Pressable>
-      ) : null}
+      <ProfileTabs active={tab} onChange={changeTab} />
 
-      {isOwnerRole(role) ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/owner')} android_ripple={onBrandRipple} style={({ pressed }) => [styles.ownerCta, styles.ownerCtaFullBleed, { marginHorizontal: -ownerPanelBleed }, pressed && !usesRipple && styles.pressed]}>
-          <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
-            <View style={styles.ownerCopy}>
-              <View style={styles.ownerEyebrow}><Text style={styles.ownerEyebrowText}>{t('professionalSpace')}</Text></View>
-              <Text style={styles.ownerTitle}>{t('ownerPanel')}</Text>
-              <Text style={styles.ownerDescription}>{t('ownerPanelSubtitle')}</Text>
-            </View>
-            <View style={styles.ownerArrow}><ArrowRight color="white" size={22} /></View>
-          </LinearGradient>
-        </Pressable>
-      ) : null}
+      {tab === 'profile' ? (
+        <>
+          <ProfileDetailsForm
+            key={user.id}
+            initialName={user.name}
+            email={user.email}
+            initialPhone={profile.data?.phone ?? ''}
+            initialAbout={profile.data?.about ?? ''}
+            initialSocialLinks={profile.data?.socialLinks ?? {}}
+            canEdit={Boolean(profile.data)}
+            profileLoading={!profile.data && !profile.isError && !profile.isSuccess}
+            profileUnavailable={!profile.data && (profile.isError || profile.isSuccess)}
+            onRetry={() => void profile.refetch()}
+            onSave={saveProfile}
+            editing={editing}
+            onEditingChange={(next) => {
+              setEditing(next);
+              setMediaError(undefined);
+              if (next) requestAnimationFrame(() => profileScrollRef.current?.scrollTo({ y: 0, animated: true }));
+            }}
+            mediaSaving={Boolean(mediaSaving)}
+            palette={palette}
+            wide={wide}
+          />
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('account')}</Text>
-        <View style={[styles.actions, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Action title={copy.myVisits} description={copy.myVisitsBody} icon={<Calendar color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/visits' as Href)} palette={palette} />
-          {role === 'client' ? (
-            <>
-              <View style={[styles.divider, { backgroundColor: palette.border }]} />
-              <Action title={copy.becomeOwner} description={copy.becomeOwnerBody} icon={<Building2 color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/become-owner')} palette={palette} />
-            </>
+          {/* Solo un número internacional (E.164) puede verificarse por SMS en Clerk. */}
+          {recovery && savedPhone && isValidProfilePhone(savedPhone) && !editing ? (
+            <RecoveryPhoneCard key={savedPhone} phone={savedPhone} recovery={recovery} palette={palette} />
           ) : null}
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
-          <Action title={t('notifications')} description={t('notificationsActionDetail')} icon={<Bell color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/notifications')} palette={palette} />
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
-          <Action title={t('settings')} description={t('settingsActionDetail')} icon={<Settings color={palette.brandIcon} size={21} />} tone={colors.primary} onPress={() => router.push('/settings')} palette={palette} />
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
-          <Action title={contactAction.title} description={contactAction.body} icon={<Mail color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/contact' as Href)} palette={palette} />
-        </View>
-      </View>
 
-      <ProfileDetailsForm
-        key={user.id}
-        initialName={user.name}
-        email={user.email}
-        initialPhone={profile.data?.phone ?? ''}
-        initialAbout={profile.data?.about ?? ''}
-        initialSocialLinks={profile.data?.socialLinks ?? {}}
-        canEdit={Boolean(profile.data)}
-        profileLoading={!profile.data && !profile.isError && !profile.isSuccess}
-        profileUnavailable={!profile.data && (profile.isError || profile.isSuccess)}
-        onRetry={() => void profile.refetch()}
-        onSave={saveProfile}
-        editing={editing}
-        onEditingChange={(next) => {
-          setEditing(next);
-          setMediaError(undefined);
-          if (next) requestAnimationFrame(() => profileScrollRef.current?.scrollTo({ y: 0, animated: true }));
-        }}
-        mediaSaving={Boolean(mediaSaving)}
-        palette={palette}
-        wide={wide}
-      />
+          {isAdminRole(role) ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push('/admin' as Href)} android_ripple={onBrandRipple} style={({ pressed }) => [styles.ownerCta, pressed && !usesRipple && styles.pressed]}>
+              <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
+                <View style={styles.ownerCopy}>
+                  <View style={styles.ownerEyebrow}><ShieldCheck color={colors.onBrandMuted} size={15} /><Text style={styles.ownerEyebrowText}>{copy.adminEyebrow}</Text></View>
+                  <Text style={styles.ownerTitle}>{copy.adminPanel}</Text>
+                  <Text style={styles.ownerDescription}>{copy.adminPanelBody}</Text>
+                </View>
+                <View style={styles.ownerArrow}><ArrowRight color="white" size={22} /></View>
+              </LinearGradient>
+            </Pressable>
+          ) : null}
 
-      {/* Solo un número internacional (E.164) puede verificarse por SMS en Clerk. */}
-      {recovery && savedPhone && isValidProfilePhone(savedPhone) && !editing ? (
-        <RecoveryPhoneCard key={savedPhone} phone={savedPhone} recovery={recovery} palette={palette} />
+          {isOwnerRole(role) ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push('/owner')} android_ripple={onBrandRipple} style={({ pressed }) => [styles.ownerCta, styles.ownerCtaFullBleed, { marginHorizontal: -ownerPanelBleed }, pressed && !usesRipple && styles.pressed]}>
+              <LinearGradient colors={actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ownerGradient}>
+                <View style={styles.ownerCopy}>
+                  <View style={styles.ownerEyebrow}><Text style={styles.ownerEyebrowText}>{t('professionalSpace')}</Text></View>
+                  <Text style={styles.ownerTitle}>{t('ownerPanel')}</Text>
+                  <Text style={styles.ownerDescription}>{t('ownerPanelSubtitle')}</Text>
+                </View>
+                <View style={styles.ownerArrow}><ArrowRight color="white" size={22} /></View>
+              </LinearGradient>
+            </Pressable>
+          ) : null}
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>{t('account')}</Text>
+            <View style={[styles.actions, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Action title={copy.myVisits} description={copy.myVisitsBody} icon={<Calendar color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/visits' as Href)} palette={palette} />
+              {role === 'client' ? (
+                <>
+                  <View style={[styles.divider, { backgroundColor: palette.border }]} />
+                  <Action title={copy.becomeOwner} description={copy.becomeOwnerBody} icon={<Building2 color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/become-owner')} palette={palette} />
+                </>
+              ) : null}
+              <View style={[styles.divider, { backgroundColor: palette.border }]} />
+              <Action title={t('notifications')} description={t('notificationsActionDetail')} icon={<Bell color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/notifications')} palette={palette} />
+              <View style={[styles.divider, { backgroundColor: palette.border }]} />
+              <Action title={contactAction.title} description={contactAction.body} icon={<Mail color={palette.brandIcon} size={21} />} tone={colors.brand} onPress={() => router.push('/contact' as Href)} palette={palette} />
+            </View>
+          </View>
+
+          {signOutButton}
+        </>
       ) : null}
 
-      <Pressable accessibilityRole="button" accessibilityLabel={t('signOut')} android_ripple={pressRipple} onPress={() => void signOut()} style={({ pressed }) => [styles.signOut, { backgroundColor: `${colors.error}0E`, borderColor: `${colors.error}26` }, pressed && !usesRipple && styles.pressed]}>
-        <LogOut color={colors.error} size={21} />
-        <Text style={[styles.signOutText, { color: palette.errorText }]}>{t('signOut')}</Text>
-      </Pressable>
+      {tab === 'activity' ? <ActivityPanel role={role} /> : null}
+
+      {tab === 'contracts' ? (
+        <>
+          <SectionTitle title={t('contracts')} detail={t('contractsSubtitle')} action={pendingSignatureLabel ? <StatusPill label={pendingSignatureLabel} tone={colors.warning} icon={Lock} /> : undefined} />
+          <ContractsPanel />
+        </>
+      ) : null}
+
+      {tab === 'payments' ? (
+        <>
+          <SectionTitle title={t('payments')} detail={t('paymentsSubtitle')} />
+          <PaymentsPanel />
+        </>
+      ) : null}
+
+      {tab === 'settings' ? (
+        <>
+          <SectionTitle title={t('settings')} detail={t('settingsSubtitle')} />
+          <SettingsPanel />
+          {signOutButton}
+        </>
+      ) : null}
       {Platform.OS !== 'android' && <View style={styles.tabSpacer} />}
     </RouteScreen>
   );

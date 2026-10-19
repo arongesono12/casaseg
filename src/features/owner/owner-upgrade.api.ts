@@ -4,25 +4,26 @@ import { Platform } from 'react-native';
 import type { OwnerPlanType } from '@/features/owner/owner-plan.api';
 import { readLocalFile } from '@/lib/read-local-file';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { FunctionsHttpError } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
 
 // Solicitud de un cliente para ser propietario, igual que OwnerUpgradeForm
 // de la web: plan, método de pago, datos personales, título de propiedad en PDF
 // (bucket privado `documents`) y aceptación de términos. La solicitud queda
 // pendiente y administración la aprueba con approve_owner_upgrade_request.
 //
-// En móvil solo se ofrecen los métodos que se validan fuera de la app (Muni
-// Dinero y transferencia): el checkout con tarjeta o PayPal queda fuera hasta
-// decidir cómo encaja con las normas de compra de App Store y Google Play.
+// FondosEG ofrece checkout alojado; las credenciales nunca salen de Supabase.
 
 export const OWNER_DOCUMENT_BUCKET = 'documents';
 export const MAX_OWNER_DOCUMENT_BYTES = 10 * 1024 * 1024;
 export const TERMS_VERSION = 'v1.0';
 
-export const ownerUpgradePaymentMethods = ['muni_dinero', 'bank_transfer'] as const;
+export const ownerUpgradePaymentMethods = ['fondoseg', 'muni_dinero', 'bank_transfer'] as const;
 export type OwnerUpgradePaymentMethod = (typeof ownerUpgradePaymentMethods)[number];
 export type OwnerDocumentType = 'dni' | 'passport';
 
 export type OwnerUpgradeInput = {
+  ownerType?: 'individual' | 'agency';
   planType: OwnerPlanType;
   isYearly: boolean;
   paymentMethod: OwnerUpgradePaymentMethod;
@@ -38,6 +39,32 @@ export type PickedPdf = { uri: string; name: string; mimeType?: string; size?: n
 
 export type OwnerUpgradeRequest = { id: string; planType: string; paymentMethod: string; status: string; createdAt: string };
 
+async function invokeFondosEgOwnerCheckout(action: 'create' | 'confirm' | 'cancel', requestId: string): Promise<Record<string, unknown>> {
+  let { data, error } = await supabase.functions.invoke('owner-upgrade-fondoseg-checkout', { body: { action, requestId } });
+  if (error instanceof FunctionsHttpError && error.context.status === 401) {
+    const { refreshClerkToken } = await import('@/lib/supabase');
+    await refreshClerkToken();
+    ({ data, error } = await supabase.functions.invoke('owner-upgrade-fondoseg-checkout', { body: { action, requestId } }));
+  }
+  if (error) {
+    if (error instanceof FunctionsHttpError) {
+      const payload = await error.context.clone().json().catch(() => null) as { error?: string } | null;
+      if (payload?.error) throw new Error(payload.error);
+    }
+    throw error;
+  }
+  if (!data || typeof data !== 'object') throw new Error('FondosEG no devolvió una respuesta válida.');
+  return data as Record<string, unknown>;
+}
+
+export async function startFondosEgOwnerUpgradeCheckout(requestId: string): Promise<boolean> {
+  const checkout = await invokeFondosEgOwnerCheckout('create', requestId);
+  if (typeof checkout.checkoutUrl !== 'string') throw new Error('FondosEG no devolvió un enlace de pago válido.');
+  await WebBrowser.openBrowserAsync(checkout.checkoutUrl);
+  const confirmation = await invokeFondosEgOwnerCheckout('confirm', requestId);
+  return confirmation.confirmed === true;
+}
+
 const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d];
 const MIN_TEXT_LENGTH = 3;
 const MUNI_PHONE_DIGITS = 9;
@@ -52,6 +79,7 @@ const DOCUMENT_NUMBER_PATTERN = /^[A-Za-z0-9._/-]{3,80}$/;
 /** Mismas reglas que el formulario web y el trigger de la tabla. */
 export function validateOwnerUpgradeInput(input: OwnerUpgradeInput): string | null {
   const phoneDigits = digitsOnly(input.phoneNumber);
+  if (input.paymentMethod === 'fondoseg' && phoneDigits.length < 8) return 'Introduce un número de teléfono válido.';
   if (input.paymentMethod === 'muni_dinero' && phoneDigits.length !== MUNI_PHONE_DIGITS) return 'Introduce un número de Muni Dinero de 9 dígitos.';
   if (phoneDigits.length < 8 || phoneDigits.length > 15) return 'Introduce un número de teléfono válido.';
   if (input.fullName.trim().length < MIN_TEXT_LENGTH) return 'Introduce tu nombre completo.';
@@ -87,6 +115,14 @@ export async function fetchPendingUpgradeRequest(userId: string): Promise<OwnerU
 
 export async function cancelOwnerUpgradeRequest(requestId: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error('La cancelación requiere conexión con el servidor.');
+  const { data: request, error: requestError } = await supabase.from('owner_upgrade_requests')
+    .select('payment_method').eq('id', requestId).maybeSingle();
+  if (requestError) throw requestError;
+  if (request?.payment_method === 'fondoseg') {
+    const result = await invokeFondosEgOwnerCheckout('cancel', requestId);
+    if (result.cancelled !== true) throw new Error(typeof result.error === 'string' ? result.error : 'No se pudo cancelar el pago de FondosEG.');
+    return;
+  }
   const { data, error } = await supabase.rpc('cancel_owner_upgrade_request', { p_request_id: requestId });
   if (error) throw error;
   if (data !== true) throw new Error('No se pudo cancelar la solicitud.');
@@ -125,9 +161,17 @@ export async function submitOwnerUpgradeRequest(params: {
   const { user, input } = params;
   const validationError = validateOwnerUpgradeInput(input);
   if (validationError) throw new Error(validationError);
-  if (await fetchPendingUpgradeRequest(user.id)) throw new Error('Ya tienes una solicitud pendiente. Por favor espera a que sea revisada.');
+  const pendingRequest = await fetchPendingUpgradeRequest(user.id);
+  if (pendingRequest) {
+    if (pendingRequest.paymentMethod === 'fondoseg') {
+      await startFondosEgOwnerUpgradeCheckout(pendingRequest.id);
+      return pendingRequest;
+    }
+    throw new Error('Ya tienes una solicitud pendiente. Por favor espera a que sea revisada.');
+  }
 
   const documentPath = await uploadTitlePdf(user.id, params.titlePdf);
+  let requestWasCreated = false;
   try {
     const { error: termsError } = await supabase.rpc('record_terms_acceptance', {
       p_user_id: user.id,
@@ -147,6 +191,7 @@ export async function submitOwnerUpgradeRequest(params: {
         user_name: user.name,
         user_email: user.email,
         plan_type: input.planType,
+        owner_type: input.ownerType ?? 'individual',
         is_yearly: input.isYearly,
         payment_method: input.paymentMethod,
         payment_status: 'pending',
@@ -163,9 +208,12 @@ export async function submitOwnerUpgradeRequest(params: {
       .select('id,plan_type,payment_method,status,created_at')
       .single();
     if (error) throw error;
-    return { id: String(data.id), planType: String(data.plan_type), paymentMethod: String(data.payment_method), status: String(data.status), createdAt: String(data.created_at) };
+    requestWasCreated = true;
+    const result = { id: String(data.id), planType: String(data.plan_type), paymentMethod: String(data.payment_method), status: String(data.status), createdAt: String(data.created_at) };
+    if (input.paymentMethod === 'fondoseg') await startFondosEgOwnerUpgradeCheckout(result.id);
+    return result;
   } catch (error) {
-    await supabase.storage.from(OWNER_DOCUMENT_BUCKET).remove([documentPath]);
+    if (!requestWasCreated) await supabase.storage.from(OWNER_DOCUMENT_BUCKET).remove([documentPath]);
     throw error;
   }
 }

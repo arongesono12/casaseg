@@ -1,4 +1,6 @@
 // Teléfonos de Clerk → public.users. Sin dependencias para poder probarlo fuera de Deno.
+// Copia de CasasEG-V1.5/supabase/functions/_shared/phone.ts, que es la que usa
+// clerk-user-webhook (se despliega desde el repo web). Cambiar las dos a la vez.
 
 const E164_PHONE = /^\+[1-9]\d{7,14}$/;
 

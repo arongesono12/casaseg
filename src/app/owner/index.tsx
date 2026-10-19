@@ -13,7 +13,7 @@ import { fontFamily, radius, spacing, type AppPalette } from '@/constants/theme'
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { fetchOwnerVisitRequests, visitRequestKeys, type VisitRequest } from '@/features/properties/api/visit-requests';
 import { useOwnerProperties } from '@/features/owner/use-owner-properties';
-import { fetchOwnerDashboardStats } from '@/features/owner/owner-dashboard.api';
+import { fetchOwnerDashboardStats, fetchOwnerRecentActivity } from '@/features/owner/owner-dashboard.api';
 import { pressRipple } from '@/lib/press-feedback';
 import { useAuth } from '@/providers/auth-context';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
@@ -32,6 +32,12 @@ const statsCopy = defineCopy({
   en: { title: 'Your property activity', views: 'Views', contacts: 'Contacts', agreements: 'Agreements', trend: 'Last six months', properties: 'Listings', unavailable: 'Could not load statistics.', retry: 'Retry' },
 });
 
+const activityCopy = defineCopy({
+  es: { title: 'Actividades recientes', loading: 'Cargando actividades…', unavailable: 'No se pudieron cargar las actividades.', empty: 'Todavía no hay actividad reciente.' },
+  fr: { title: 'Activités récentes', loading: 'Chargement des activités…', unavailable: 'Impossible de charger les activités.', empty: 'Aucune activité récente pour le moment.' },
+  en: { title: 'Recent activity', loading: 'Loading activity…', unavailable: 'Could not load activity.', empty: 'There is no recent activity yet.' },
+});
+
 type ManageLink = { label: string; href: Href; icon: typeof Building2; badge?: string };
 
 const isPending = (request: VisitRequest) => request.status === 'pending';
@@ -44,11 +50,13 @@ export default function OwnerHome() {
   const { t, locale } = useI18n();
   const copy = useCopy(ownerHomeCopy);
   const statsText = useCopy(statsCopy);
+  const activityText = useCopy(activityCopy);
   const insets = useSafeAreaInsets();
   const properties = useOwnerProperties();
   // visit_requests.owner_id guarda el uuid de public.users, no el id de Clerk.
   const profileId = useProfileId();
   const stats = useQuery({ queryKey: ['owner-dashboard', profileId], queryFn: () => fetchOwnerDashboardStats(profileId!), enabled: Boolean(profileId) });
+  const recentActivity = useQuery({ queryKey: ['owner-dashboard-activity', profileId], queryFn: () => fetchOwnerRecentActivity(profileId!), enabled: Boolean(profileId) });
   const requests = useQuery({ queryKey: visitRequestKeys.owner(profileId ?? 'pending'), queryFn: () => fetchOwnerVisitRequests(profileId!), enabled: Boolean(profileId) });
   const [view, setView] = useState<'pending' | 'confirmed'>('pending');
   const pending = (requests.data ?? []).filter(isPending);
@@ -115,6 +123,28 @@ export default function OwnerHome() {
               <Text style={[styles.caption, { color: palette.textSecondary }]}>{statsText.contacts} · {statsText.properties}: {stats.data.trend.reduce((sum, item) => sum + item.properties, 0)}</Text>
             </View>
           </> : stats.isLoading ? <Text style={[styles.caption, { color: palette.textSecondary }]}>{t('loading')}</Text> : <View style={styles.group}><Text style={[styles.caption, { color: palette.errorText }]}>{statsText.unavailable}</Text><PremiumButton variant="secondary" label={statsText.retry} onPress={() => void stats.refetch()} /></View>}
+        </View>
+
+        <View style={styles.page}>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>{activityText.title}</Text>
+          <View style={[styles.activityList, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            {recentActivity.data?.length ? recentActivity.data.map((activity, index) => (
+              <View key={activity.id} style={[styles.activityRow, index > 0 && { borderTopColor: palette.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
+                <View style={[styles.activityDot, { backgroundColor: activity.type === 'contact' ? palette.brand : palette.textSecondary }]} />
+                <View style={styles.flex}>
+                  <Text style={[styles.homeTitle, { color: palette.text }]}>{activity.title}</Text>
+                  <Text style={[styles.caption, { color: palette.textSecondary }]}>{activity.description}</Text>
+                  <Text style={[styles.activityDate, { color: palette.textSecondary }]}>{formatDate(activity.timestamp, locale)}</Text>
+                </View>
+              </View>
+            )) : recentActivity.isLoading ? (
+              <Text style={[styles.caption, { color: palette.textSecondary }]}>{activityText.loading}</Text>
+            ) : recentActivity.isError ? (
+              <View style={styles.group}><Text style={[styles.caption, { color: palette.errorText }]}>{activityText.unavailable}</Text><PremiumButton variant="secondary" label={statsText.retry} onPress={() => void recentActivity.refetch()} /></View>
+            ) : (
+              <Text style={[styles.caption, { color: palette.textSecondary }]}>{activityText.empty}</Text>
+            )}
+          </View>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cards}>
@@ -185,6 +215,10 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, minWidth: 0, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 12, gap: 3 },
   statValue: { fontSize: 23, fontFamily: fontFamily.bold },
   trendCard: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: 14, gap: 10 },
+  activityList: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, paddingHorizontal: 14, paddingVertical: 4 },
+  activityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 13 },
+  activityDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
+  activityDate: { fontSize: 11, fontFamily: fontFamily.medium, marginTop: 5 },
   trendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   trendTrack: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden' },
   mode: { flexDirection: 'row', alignItems: 'center', gap: 10 },

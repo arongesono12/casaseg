@@ -7,6 +7,7 @@ const rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
 
 mock.module('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
+  refreshClerkToken: async () => undefined,
   supabase: {
     from: (table: TableName) => {
       const call = { table, values: {} as Record<string, unknown> };

@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
 import { CheckCircle2, Clock, CreditCard, RefreshCw, ShieldCheck } from '@/components/ui/icons';
 import { IconTile, PremiumButton, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius } from '@/constants/theme';
-import { fetchPaymentOrder, isOpenPaymentStatus, paymentKeys } from '@/features/payments/payments.api';
+import { confirmPaymentAfterReturn, fetchPaymentOrder, isOpenPaymentStatus, paymentKeys } from '@/features/payments/payments.api';
 import { defineCopy, interpolate, useCopy } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
@@ -22,7 +23,24 @@ export default function PaymentSuccess() {
   const orderId = params.orderId ?? params.order;
   const { palette } = useAppTheme();
   const copy = useCopy(successCopy);
-  const verification = useQuery({ queryKey: paymentKeys.order(orderId ?? 'none'), queryFn: () => fetchPaymentOrder(orderId!), enabled: Boolean(orderId), refetchInterval: (query) => query.state.data && isOpenPaymentStatus(query.state.data.status) ? 3000 : false });
+  // La primera lectura (y "Comprobar de nuevo") pide al servidor que consulte al
+  // proveedor; el sondeo posterior solo relee la base de datos para no llamar
+  // al proveedor cada pocos segundos.
+  const askProvider = useRef(true);
+  const verification = useQuery({
+    queryKey: paymentKeys.order(orderId ?? 'none'),
+    queryFn: async () => {
+      if (!askProvider.current) return fetchPaymentOrder(orderId!);
+      askProvider.current = false;
+      return (await confirmPaymentAfterReturn(orderId!)).order;
+    },
+    enabled: Boolean(orderId),
+    refetchInterval: (query) => query.state.data && isOpenPaymentStatus(query.state.data.status) ? 3000 : false,
+  });
+  const checkAgain = () => {
+    askProvider.current = true;
+    void verification.refetch();
+  };
   const completed = verification.data?.status === 'completed';
   const failed = verification.data?.status === 'failed' || verification.data?.status === 'cancelled' || verification.data?.status === 'expired';
   const title = completed ? copy.confirmedTitle : failed ? copy.failedTitle : copy.checkingTitle;
@@ -44,7 +62,7 @@ export default function PaymentSuccess() {
         <Text style={[styles.securityText, { color: palette.textSecondary }]}>{copy.security}</Text>
       </View>
       {verification.isError ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{copy.error}</Text> : null}
-      {orderId && !completed && !failed ? <PremiumButton variant="secondary" label={copy.checkAgain} icon={RefreshCw} loading={verification.isFetching} onPress={() => void verification.refetch()} /> : null}
+      {orderId && !completed && !failed ? <PremiumButton variant="secondary" label={copy.checkAgain} icon={RefreshCw} loading={verification.isFetching} onPress={checkAgain} /> : null}
       <PremiumButton label={copy.history} icon={CreditCard} onPress={() => router.replace('/owner/payments')} />
     </RouteScreen>
   );

@@ -15,6 +15,7 @@ export default function OwnerLayout() {
       <Stack.Screen name="property/[id]" />
       <Stack.Screen name="subscription" />
       <Stack.Screen name="contract-template/[propertyId]" />
+      <Stack.Screen name="traveler-report/[contractId]" />
     </Stack.Protected>
     <Stack.Protected guard={isAuthenticated}>
       <Stack.Screen name="payments" />

@@ -28,7 +28,7 @@ const NotificationRow = memo(function NotificationRow({ notification, palette }:
     if (notification.conversationId) router.push({ pathname: '/chat/[conversationId]', params: { conversationId: notification.conversationId } });
     else if (notification.propertyId) router.push({ pathname: '/property/[id]', params: { id: notification.propertyId } });
   };
-  return <Pressable onPress={openTarget} style={[styles.item, { backgroundColor: palette.surface }]}><View style={[styles.dot, notification.read && styles.dotRead]} /><View style={styles.copy}><Text style={[styles.itemTitle, { color: palette.text }]}>{notification.title}</Text><Text style={[styles.body, { color: palette.textSecondary }]}>{notification.body}</Text><Text style={[styles.date, { color: palette.textSecondary }]}>{formatDate(notification.createdAt)}</Text></View></Pressable>;
+  return <Pressable onPress={openTarget} style={[styles.item, { backgroundColor: palette.surface }]}><View style={[styles.dot, notification.read && styles.dotRead]} /><View style={styles.copy}><Text style={[styles.itemTitle, { color: palette.text }]}>{notification.title}</Text><Text style={[styles.body, { color: palette.textSecondary }]}>{notification.body}</Text>{notification.actorName ? <Text style={[styles.date, { color: palette.textSecondary }]}>Realizado por {notification.actorName} · {notification.actorRole ?? 'sistema'}</Text> : null}<Text style={[styles.date, { color: palette.textSecondary }]}>{formatDate(notification.createdAt)}</Text></View></Pressable>;
 });
 
 function NotificationSeparator() {
@@ -36,7 +36,7 @@ function NotificationSeparator() {
 }
 
 export default function NotificationsScreen() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { palette } = useAppTheme();
   const { t } = useI18n();
   const client = useQueryClient();
@@ -45,8 +45,8 @@ export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const { pastHero, onHeroLayout, onScroll } = useHeroScroll();
   const key = useMemo(() => ['notifications', user?.id ?? 'guest'] as const, [user?.id]);
-  const notifications = useQuery({ queryKey: key, queryFn: fetchNotifications, enabled: Boolean(user) });
-  const read = useMutation({ mutationFn: markNotificationsRead, onSuccess: () => { markAllRead(); void client.invalidateQueries({ queryKey: key }); } });
+  const notifications = useQuery({ queryKey: [...key, role], queryFn: () => fetchNotifications(user?.id, role), enabled: Boolean(user) });
+  const read = useMutation({ mutationFn: () => markNotificationsRead(user?.id, role), onSuccess: () => { markAllRead(); void client.invalidateQueries({ queryKey: key }); } });
   const renderNotification = useCallback<ListRenderItem<AppNotification>>(
     ({ item }) => <NotificationRow notification={item} palette={palette} />,
     [palette],

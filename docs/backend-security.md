@@ -17,7 +17,7 @@ Los roles administrativos deben resolverse mediante claims no editables o una fu
 
 Expo usa el mismo backend que la web (ver `docs/BackendUnit-paridad-expo.md`):
 
-- Propias de este repositorio: `create-property` (valida MIME, tamaño, propiedad de las imágenes y cupo del plan con `get_owner_entitlements`), `update-property` y `clerk-user-webhook`.
+- Propias de este repositorio: `create-property` (valida MIME, tamaño, propiedad de las imágenes y cupo del plan con `get_owner_entitlements`) y `update-property`. `clerk-user-webhook` se movió al repositorio web (`CasasEG-V1.5/supabase/functions/clerk-user-webhook`) el 19 oct 2026 y se despliega desde allí.
 - De la web: `rental-payment-initiate` (orden idempotente y aceptación de cargos), `account-deletion`, `notify-message-owner`. Identifican al llamante con `_shared/caller.ts`, que acepta tokens de Supabase Auth y de Clerk.
 - RPC compartidos: `sign_lease_contract` (firma por parte y auditoría), `submit_bank_transfer_proof`, `record_compliance_acceptance`, `create_verified_property_review`, `set_current_user_presence`.
 - Pendiente: función de push que envíe notificaciones desde servidor con deep links a chat/propiedad.

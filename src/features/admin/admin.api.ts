@@ -3,12 +3,15 @@ import { derivePropertyReviewStatus, type AdminPropertyReviewStatus } from '@/fe
 import { parseUserRole } from '@/lib/access-control';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { UserRole } from '@/types';
+import type { OwnerPlanType } from '@/features/owner/owner-plan.api';
 
 export type AdminUser = {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  ownerType?: 'individual' | 'agency';
+  ownerAssignedPlanType?: OwnerPlanType;
   status: string;
   ownerRequestStatus?: string;
   avatar?: string;
@@ -38,6 +41,8 @@ function mapAdminUser(row: Record<string, unknown>): AdminUser {
   return {
     id: String(row.id), name: String(row.name ?? 'Usuario'), email: String(row.email ?? ''),
     role: parseUserRole(row.role) ?? 'client', status: String(row.status ?? 'active'),
+    ownerType: row.owner_type === 'agency' || row.owner_type === 'individual' ? row.owner_type : undefined,
+    ownerAssignedPlanType: row.owner_assigned_plan_type === 'normal' || row.owner_assigned_plan_type === 'advanced' || row.owner_assigned_plan_type === 'premium' ? row.owner_assigned_plan_type : undefined,
     ownerRequestStatus: row.owner_request_status ? String(row.owner_request_status) : undefined,
     avatar: row.avatar ? String(row.avatar) : undefined,
     createdAt: row.created_at ? String(row.created_at) : undefined,
@@ -54,7 +59,7 @@ export async function fetchAdminUsersPage({ page, pageSize = 30, search = '', ro
     items: functionData.items.map((row: Record<string, unknown>) => mapAdminUser(row)),
     total: Number(functionData.total ?? 0),
   };
-  let query = supabase.from('users').select('id,name,email,role,status,owner_request_status,avatar,created_at', { count: 'exact' }).order('created_at', { ascending: false });
+  let query = supabase.from('users').select('id,name,email,role,owner_type,owner_assigned_plan_type,status,owner_request_status,avatar,created_at', { count: 'exact' }).order('created_at', { ascending: false });
   if (role !== 'all') query = query.eq('role', role);
   if (safeSearch) query = query.or(`name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
   const { data, error, count } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
@@ -62,11 +67,20 @@ export async function fetchAdminUsersPage({ page, pageSize = 30, search = '', ro
   return { items: (data ?? []).map((row) => mapAdminUser(row)), total: count ?? 0 };
 }
 
+export async function updateAdminUserRole(userId: string, role: UserRole, ownerType?: 'individual' | 'agency', ownerPlanType?: OwnerPlanType) {
+  if (!isSupabaseConfigured) throw new Error('La gestión de roles requiere conexión con el servidor.');
+  const { data, error } = await supabase.functions.invoke('admin-users', {
+    body: { action: 'update', userId, role, ...(role === 'owner' && ownerType ? { ownerType } : {}), ...(role === 'owner' && ownerPlanType ? { ownerPlanType } : {}) },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(String(data.error));
+}
+
 export async function fetchAdminUsers() {
   if (!isSupabaseConfigured) return demoUsers;
   const { data, error } = await supabase
     .from('users')
-    .select('id,name,email,role,status,owner_request_status,avatar,created_at')
+    .select('id,name,email,role,owner_type,owner_assigned_plan_type,status,owner_request_status,avatar,created_at')
     .order('created_at', { ascending: false })
     .limit(100);
   if (error) throw error;
@@ -75,6 +89,8 @@ export async function fetchAdminUsers() {
     name: String(row.name ?? 'Usuario'),
     email: String(row.email ?? ''),
     role: parseUserRole(row.role) ?? 'client',
+    ownerType: row.owner_type === 'agency' || row.owner_type === 'individual' ? row.owner_type : undefined,
+    ownerAssignedPlanType: row.owner_assigned_plan_type === 'normal' || row.owner_assigned_plan_type === 'advanced' || row.owner_assigned_plan_type === 'premium' ? row.owner_assigned_plan_type : undefined,
     status: String(row.status ?? 'active'),
     ownerRequestStatus: row.owner_request_status ? String(row.owner_request_status) : undefined,
     avatar: row.avatar ? String(row.avatar) : undefined,

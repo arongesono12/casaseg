@@ -6,14 +6,17 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
 type Call = { kind: 'rpc' | 'invoke' | 'insert' | 'upload' | 'remove'; name: string; args?: unknown };
 const calls: Call[] = [];
-const rpcResults: Record<string, { data: unknown; error: unknown }> = {};
-const invokeResults: Record<string, { data: unknown; error: unknown }> = {};
+type Result = { data: unknown; error: unknown };
+const rpcResults: Record<string, Result> = {};
+// Una lista se consume en orden: sirve para simular un 401 seguido de un reintento correcto.
+const invokeResults: Record<string, Result | Result[]> = {};
 const storage = new Map<string, string>();
+let tokenRefreshes = 0;
 
 mock.module('react-native', () => ({ Platform: { OS: 'android', Version: 34 } }));
 mock.module('expo-crypto', () => ({ randomUUID: () => '11111111-1111-4111-8111-111111111111' }));
 mock.module('expo-linking', () => ({ createURL: (path: string) => `casaseg://${path.replace(/^\//, '')}` }));
-mock.module('expo-web-browser', () => ({ openBrowserAsync: async () => ({ type: 'dismiss' }) }));
+mock.module('expo-web-browser', () => ({ openBrowserAsync: async () => ({ type: 'dismiss' }), openAuthSessionAsync: async () => ({ type: 'dismiss' }) }));
 mock.module('expo', () => ({ requireOptionalNativeModule: () => ({}) }));
 mock.module('expo-print', () => ({ printAsync: async () => undefined }));
 mock.module('@/lib/read-local-file', () => ({ readLocalFile: async () => new ArrayBuffer(2048) }));
@@ -22,6 +25,7 @@ mock.module('@/lib/local-storage', () => ({
 }));
 mock.module('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
+  refreshClerkToken: async () => { tokenRefreshes += 1; },
   supabase: {
     rpc: async (name: string, args?: Record<string, unknown>) => {
       calls.push({ kind: 'rpc', name, args });
@@ -30,7 +34,9 @@ mock.module('@/lib/supabase', () => ({
     functions: {
       invoke: async (name: string, options: { body: unknown }) => {
         calls.push({ kind: 'invoke', name, args: options.body });
-        return invokeResults[name] ?? { data: null, error: null };
+        const result = invokeResults[name];
+        if (Array.isArray(result)) return result.shift() ?? { data: null, error: null };
+        return result ?? { data: null, error: null };
       },
     },
     from: (table: string) => ({
@@ -96,6 +102,7 @@ const contractRow = {
 
 beforeEach(() => {
   calls.length = 0;
+  tokenRefreshes = 0;
   storage.clear();
   for (const key of Object.keys(rpcResults)) delete rpcResults[key];
   for (const key of Object.keys(invokeResults)) delete invokeResults[key];
@@ -187,8 +194,69 @@ describe('payments api', () => {
     const body = calls[0].args as Record<string, unknown>;
     expect(body.paymentMethod).toBe('fondoseg');
     expect(body.idempotencyKey).toBe('11111111-1111-4111-8111-111111111111');
-    expect(body.returnUrl).toBe('casaseg://payment/success');
+    // El servidor solo reenvía URLs https; casaseg:// se descartaba sin aviso.
+    expect(body.returnUrl).toBeUndefined();
     expect(body.chargesAccepted).toBe(true);
+    expect(body.cancellationPolicyAccepted).toBe(true);
+  });
+
+  test('cancels through rental-payment-cancel with the order id', async () => {
+    invokeResults['rental-payment-cancel'] = { data: { order: { id: 'o1', contract_id: 'c1', amount: 1000, payment_method: 'fondoseg', status: 'cancelled', failure_reason: 'cancelled_by_tenant', cancelled_at: '2026-10-19T09:00:00Z' }, message: 'Pago anulado.' }, error: null };
+    const result = await payments.cancelRentalPayment('o1');
+    expect(calls[0]).toEqual({ kind: 'invoke', name: 'rental-payment-cancel', args: { orderId: 'o1' } });
+    expect(result.order.status).toBe('cancelled');
+    expect(result.order.failureReason).toBe('cancelled_by_tenant');
+    expect(result.message).toBe('Pago anulado.');
+  });
+
+  test('confirms through rental-payment-confirm and keeps the server verdict', async () => {
+    invokeResults['rental-payment-confirm'] = { data: { order: { id: 'o1', contract_id: 'c1', amount: 1000, payment_method: 'fondoseg', status: 'completed' }, confirmed: true }, error: null };
+    const result = await payments.confirmRentalPayment('o1');
+    expect(calls[0]).toEqual({ kind: 'invoke', name: 'rental-payment-confirm', args: { orderId: 'o1' } });
+    expect(result.confirmed).toBe(true);
+    expect(result.pendingConfirmation).toBe(false);
+    expect(result.order.status).toBe('completed');
+  });
+
+  test('refreshes the Clerk token once and retries after a 401', async () => {
+    const { FunctionsHttpError } = await import('@supabase/supabase-js');
+    invokeResults['rental-payment-confirm'] = [
+      { data: null, error: new FunctionsHttpError(new Response(null, { status: 401 })) },
+      { data: { order: { id: 'o1', contract_id: 'c1', amount: 1000, payment_method: 'fondoseg', status: 'processing' }, confirmed: false }, error: null },
+    ];
+    const result = await payments.confirmRentalPayment('o1');
+    expect(tokenRefreshes).toBe(1);
+    expect(calls.filter((call) => call.name === 'rental-payment-confirm').length).toBe(2);
+    expect(result.order.status).toBe('processing');
+  });
+
+  test('reports an expired session when the retry is also rejected', async () => {
+    const { FunctionsHttpError } = await import('@supabase/supabase-js');
+    invokeResults['rental-payment-cancel'] = [
+      { data: null, error: new FunctionsHttpError(new Response(null, { status: 401 })) },
+      { data: null, error: new FunctionsHttpError(new Response(null, { status: 401 })) },
+    ];
+    let message = '';
+    try {
+      await payments.cancelRentalPayment('o1');
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toBe(payments.SESSION_EXPIRED_MESSAGE);
+  });
+
+  test('passes the server message through when a cancellation is refused', async () => {
+    const { FunctionsHttpError } = await import('@supabase/supabase-js');
+    const refused = new Response(JSON.stringify({ error: 'El comprobante ya está en revisión. Contacta con soporte para anularlo.' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+    invokeResults['rental-payment-cancel'] = { data: null, error: new FunctionsHttpError(refused) };
+    let message = '';
+    try {
+      await payments.cancelRentalPayment('o1');
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toBe('El comprobante ya está en revisión. Contacta con soporte para anularlo.');
+    expect(tokenRefreshes).toBe(0);
   });
 
   test('refuses to pay without accepting charges', async () => {

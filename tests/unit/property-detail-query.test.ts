@@ -4,6 +4,7 @@ let result: { data: null; error: null | { code: string; message: string } } = { 
 
 mock.module('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
+  refreshClerkToken: async () => undefined,
   supabase: {
     from: () => ({
       select() { return this; },

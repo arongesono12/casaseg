@@ -16,6 +16,7 @@ import {
   cancelOwnerUpgradeRequest,
   completeOwnerUpgradeAfterVerification,
   fetchPendingUpgradeRequest,
+  startFondosEgOwnerUpgradeCheckout,
   ownerUpgradePaymentMethods,
   submitOwnerUpgradeRequest,
   validateOwnerUpgradeInput,
@@ -31,15 +32,15 @@ import { useAppTheme } from '@/providers/theme-context';
 import { formatXaf } from '@/utils/formatters';
 
 const onboardingCopy = defineCopy({
-  es: { title: 'Hazte propietario', step: 'Paso {current} de {total}', plan: 'Elige tu plan', monthly: 'Mensual', yearly: 'Anual', properties: 'Hasta {count} propiedades', payment: 'Método de pago', paymentNote: 'Administración confirma el pago antes de activar tu cuenta de propietario.', muni_dinero: 'Muni Dinero', bank_transfer: 'Transferencia bancaria', phone: 'Teléfono de contacto', personal: 'Datos personales', fullName: 'Nombre completo', residence: 'Lugar de residencia', nationality: 'Nacionalidad', dni: 'DNI', passport: 'Pasaporte', documentNumber: 'Número de documento', titlePdf: 'Título de propiedad (PDF, máx. 10 MB)', pickPdf: 'Elegir PDF', terms: 'Términos', acceptTerms: 'Acepto los términos, la política de privacidad y las condiciones de suscripción.', readTerms: 'Leer los términos', back: 'Atrás', next: 'Continuar', submit: 'Enviar solicitud', sentTitle: 'Solicitud enviada', sentBody: 'Revisaremos tus datos y el pago. Te avisaremos cuando tu cuenta de propietario esté activa.', pendingTitle: 'Solicitud en revisión', pendingBody: 'Ya tienes una solicitud pendiente. Te avisaremos cuando administración la revise.', loading: 'Cargando planes', ownerOnly: 'Ya tienes una cuenta de propietario.', backToProfile: 'Volver al perfil' },
-  fr: { title: 'Devenez propriétaire', step: 'Étape {current} sur {total}', plan: 'Choisissez votre formule', monthly: 'Mensuel', yearly: 'Annuel', properties: 'Jusqu’à {count} logements', payment: 'Moyen de paiement', paymentNote: 'L’administration confirme le paiement avant d’activer votre compte propriétaire.', muni_dinero: 'Muni Dinero', bank_transfer: 'Virement bancaire', phone: 'Téléphone de contact', personal: 'Données personnelles', fullName: 'Nom complet', residence: 'Lieu de résidence', nationality: 'Nationalité', dni: 'Carte d’identité', passport: 'Passeport', documentNumber: 'Numéro du document', titlePdf: 'Titre de propriété (PDF, 10 Mo max.)', pickPdf: 'Choisir un PDF', terms: 'Conditions', acceptTerms: 'J’accepte les conditions, la politique de confidentialité et les conditions d’abonnement.', readTerms: 'Lire les conditions', back: 'Retour', next: 'Continuer', submit: 'Envoyer la demande', sentTitle: 'Demande envoyée', sentBody: 'Nous vérifierons vos données et le paiement. Nous vous préviendrons quand votre compte propriétaire sera actif.', pendingTitle: 'Demande en cours d’examen', pendingBody: 'Vous avez déjà une demande en attente. Nous vous préviendrons après son examen.', loading: 'Chargement des formules', ownerOnly: 'Vous avez déjà un compte propriétaire.', backToProfile: 'Retour au profil' },
-  en: { title: 'Become an owner', step: 'Step {current} of {total}', plan: 'Choose your plan', monthly: 'Monthly', yearly: 'Yearly', properties: 'Up to {count} properties', payment: 'Payment method', paymentNote: 'Administration confirms the payment before activating your owner account.', muni_dinero: 'Muni Dinero', bank_transfer: 'Bank transfer', phone: 'Contact phone', personal: 'Personal details', fullName: 'Full name', residence: 'Place of residence', nationality: 'Nationality', dni: 'ID card', passport: 'Passport', documentNumber: 'Document number', titlePdf: 'Property title deed (PDF, max 10 MB)', pickPdf: 'Choose PDF', terms: 'Terms', acceptTerms: 'I accept the terms, the privacy policy and the subscription conditions.', readTerms: 'Read the terms', back: 'Back', next: 'Continue', submit: 'Send request', sentTitle: 'Request sent', sentBody: 'We will review your details and the payment, and let you know when your owner account is active.', pendingTitle: 'Request under review', pendingBody: 'You already have a pending request. We will let you know once it has been reviewed.', loading: 'Loading plans', ownerOnly: 'You already have an owner account.', backToProfile: 'Back to profile' },
+  es: { title: 'Hazte propietario', step: 'Paso {current} de {total}', plan: 'Elige tu plan', monthly: 'Mensual', yearly: 'Anual', properties: 'Hasta {count} propiedades', payment: 'Método de pago', paymentNote: 'Administración confirma el pago antes de activar tu cuenta de propietario.', fondoseg: 'FondosEG · pago seguro', muni_dinero: 'Muni Dinero', bank_transfer: 'Transferencia bancaria', phone: 'Teléfono de contacto', personal: 'Datos personales', ownerType: 'Tipo de propietario', individual: 'Particular', agency: 'Agencia inmobiliaria', fullName: 'Nombre completo', residence: 'Lugar de residencia', nationality: 'Nacionalidad', dni: 'DNI', passport: 'Pasaporte', documentNumber: 'Número de documento', titlePdf: 'Título de propiedad (PDF, máx. 10 MB)', pickPdf: 'Elegir PDF', terms: 'Términos', acceptTerms: 'Acepto los términos, la política de privacidad y las condiciones de suscripción.', readTerms: 'Leer los términos', back: 'Atrás', next: 'Continuar', submit: 'Enviar solicitud', sentTitle: 'Solicitud enviada', sentBody: 'Revisaremos tus datos y el pago. Te avisaremos cuando tu cuenta de propietario esté activa.', pendingTitle: 'Solicitud en revisión', pendingBody: 'Ya tienes una solicitud pendiente. Te avisaremos cuando administración la revise.', loading: 'Cargando planes', ownerOnly: 'Ya tienes una cuenta de propietario.', backToProfile: 'Volver al perfil' },
+  fr: { title: 'Devenez propriétaire', step: 'Étape {current} sur {total}', plan: 'Choisissez votre formule', monthly: 'Mensuel', yearly: 'Annuel', properties: 'Jusqu’à {count} logements', payment: 'Moyen de paiement', paymentNote: 'L’administration confirme le paiement avant d’activer votre compte propriétaire.', fondoseg: 'FondosEG · paiement sécurisé', muni_dinero: 'Muni Dinero', bank_transfer: 'Virement bancaire', phone: 'Téléphone de contact', personal: 'Données personnelles', ownerType: 'Type de propriétaire', individual: 'Particulier', agency: 'Agence immobilière', fullName: 'Nom complet', residence: 'Lieu de résidence', nationality: 'Nationalité', dni: 'Carte d’identité', passport: 'Passeport', documentNumber: 'Numéro du document', titlePdf: 'Titre de propriété (PDF, 10 Mo max.)', pickPdf: 'Choisir un PDF', terms: 'Conditions', acceptTerms: 'J’accepte les conditions, la politique de confidentialité et les conditions d’abonnement.', readTerms: 'Lire les conditions', back: 'Retour', next: 'Continuer', submit: 'Envoyer la demande', sentTitle: 'Demande envoyée', sentBody: 'Nous vérifierons vos données et le paiement. Nous vous préviendrons quand votre compte propriétaire sera actif.', pendingTitle: 'Demande en cours d’examen', pendingBody: 'Vous avez déjà une demande en attente. Nous vous préviendrons après son examen.', loading: 'Chargement des formules', ownerOnly: 'Vous avez déjà un compte propriétaire.', backToProfile: 'Retour au profil' },
+  en: { title: 'Become an owner', step: 'Step {current} of {total}', plan: 'Choose your plan', monthly: 'Monthly', yearly: 'Yearly', properties: 'Up to {count} properties', payment: 'Payment method', paymentNote: 'Administration confirms the payment before activating your owner account.', fondoseg: 'FondosEG · secure checkout', muni_dinero: 'Muni Dinero', bank_transfer: 'Bank transfer', phone: 'Contact phone', personal: 'Personal details', ownerType: 'Owner type', individual: 'Individual', agency: 'Real estate agency', fullName: 'Full name', residence: 'Place of residence', nationality: 'Nationality', dni: 'ID card', passport: 'Passport', documentNumber: 'Document number', titlePdf: 'Property title deed (PDF, max 10 MB)', pickPdf: 'Choose PDF', terms: 'Terms', acceptTerms: 'I accept the terms, the privacy policy and the subscription conditions.', readTerms: 'Read the terms', back: 'Back', next: 'Continue', submit: 'Send request', sentTitle: 'Request sent', sentBody: 'We will review your details and the payment, and let you know when your owner account is active.', pendingTitle: 'Request under review', pendingBody: 'You already have a pending request. We will let you know once it has been reviewed.', loading: 'Loading plans', ownerOnly: 'You already have an owner account.', backToProfile: 'Back to profile' },
 });
 
 const pendingCopy = defineCopy({
-  es: { cancel: 'Cancelar solicitud', cancelError: 'No se pudo cancelar la solicitud.', verify: 'Verificar identidad', manual: 'Tu verificación se ha enviado para revisión manual.' },
-  fr: { cancel: 'Annuler la demande', cancelError: 'Impossible d’annuler la demande.', verify: 'Vérifier votre identité', manual: 'Votre vérification a été envoyée pour examen manuel.' },
-  en: { cancel: 'Cancel request', cancelError: 'Could not cancel the request.', verify: 'Verify identity', manual: 'Your verification was submitted for manual review.' },
+  es: { cancel: 'Cancelar solicitud', cancelError: 'No se pudo cancelar la solicitud.', resume: 'Continuar pago con FondosEG', verify: 'Verificar identidad', manual: 'Tu verificación se ha enviado para revisión manual.' },
+  fr: { cancel: 'Annuler la demande', cancelError: 'Impossible d’annuler la demande.', resume: 'Continuer le paiement avec FondosEG', verify: 'Vérifier votre identité', manual: 'Votre vérification a été envoyée pour examen manuel.' },
+  en: { cancel: 'Cancel request', cancelError: 'Could not cancel the request.', resume: 'Continue payment with FondosEG', verify: 'Verify identity', manual: 'Your verification was submitted for manual review.' },
 });
 
 const approvalCopy = defineCopy({
@@ -64,6 +65,7 @@ export default function OwnerOnboarding() {
   const [step, setStep] = useState<Step>('plan');
   const [planType, setPlanType] = useState<OwnerPlanType | null>(null);
   const [isYearly, setIsYearly] = useState(false);
+  const [ownerType, setOwnerType] = useState<'individual' | 'agency'>('individual');
   const [paymentMethod, setPaymentMethod] = useState<OwnerUpgradePaymentMethod>('muni_dinero');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [fullName, setFullName] = useState(user?.name ?? '');
@@ -91,7 +93,12 @@ export default function OwnerOnboarding() {
       ]);
     },
   });
-  const input: OwnerUpgradeInput | null = planType ? { planType, isYearly, paymentMethod, phoneNumber, fullName, residenceLocation, nationality, documentType, documentNumber } : null;
+  const resumePayment = useMutation({
+    retry: false,
+    mutationFn: () => startFondosEgOwnerUpgradeCheckout(pending.data!.id),
+    onSettled: () => void pending.refetch(),
+  });
+  const input: OwnerUpgradeInput | null = planType ? { planType, ownerType, isYearly, paymentMethod, phoneNumber, fullName, residenceLocation, nationality, documentType, documentNumber } : null;
   const submit = useMutation({
     retry: false,
     mutationFn: () => {
@@ -115,6 +122,10 @@ export default function OwnerOnboarding() {
     onCancel={() => cancelRequest.mutate()}
     cancelBusy={cancelRequest.isPending}
     cancelError={cancelRequest.error?.message}
+    resumeLabel={pending.data.paymentMethod === 'fondoseg' ? pendingText.resume : undefined}
+    onResume={pending.data.paymentMethod === 'fondoseg' ? () => resumePayment.mutate() : undefined}
+    resumeBusy={resumePayment.isPending}
+    resumeError={resumePayment.error?.message}
   />;
 
   const index = steps.indexOf(step);
@@ -181,6 +192,11 @@ export default function OwnerOnboarding() {
       {step === 'personal' ? (
         <View style={styles.group}>
           <Text style={[styles.label, { color: palette.text }]}>{copy.personal}</Text>
+          <Text style={[styles.label, { color: palette.textSecondary }]}>{copy.ownerType}</Text>
+          <View style={styles.row}>{[
+            option(ownerType === 'individual', copy.individual, () => setOwnerType('individual')),
+            option(ownerType === 'agency', copy.agency, () => setOwnerType('agency')),
+          ]}</View>
           {field(fullName, setFullName, copy.fullName)}
           {field(residenceLocation, setResidenceLocation, copy.residence)}
           {field(nationality, setNationality, copy.nationality)}
@@ -218,7 +234,7 @@ export default function OwnerOnboarding() {
   );
 }
 
-function Finished({ title, body, action, cancelLabel, onCancel, cancelBusy, cancelError, showKyc, activateLabel, onActivate, activateBusy, activateError }: { title: string; body: string; action: string; cancelLabel?: string; onCancel?: () => void; cancelBusy?: boolean; cancelError?: string; showKyc?: boolean; activateLabel?: string; onActivate?: () => void; activateBusy?: boolean; activateError?: string }) {
+function Finished({ title, body, action, cancelLabel, onCancel, cancelBusy, cancelError, resumeLabel, onResume, resumeBusy, resumeError, showKyc, activateLabel, onActivate, activateBusy, activateError }: { title: string; body: string; action: string; cancelLabel?: string; onCancel?: () => void; cancelBusy?: boolean; cancelError?: string; resumeLabel?: string; onResume?: () => void; resumeBusy?: boolean; resumeError?: string; showKyc?: boolean; activateLabel?: string; onActivate?: () => void; activateBusy?: boolean; activateError?: string }) {
   const { palette } = useAppTheme();
   const pendingText = useCopy(pendingCopy);
   const [kycNote, setKycNote] = useState('');
@@ -236,6 +252,8 @@ function Finished({ title, body, action, cancelLabel, onCancel, cancelBusy, canc
         <StatusPill label={title} tone={colors.brand} icon={Clock} />
         <Text style={[styles.hint, { color: palette.textSecondary }]}>{body}</Text>
       </View>
+      {resumeLabel && onResume ? <PremiumButton label={resumeLabel} icon={FileText} loading={resumeBusy} onPress={onResume} /> : null}
+      {resumeError ? <Text accessibilityRole="alert" style={[styles.hint, { color: palette.errorText }]}>{resumeError}</Text> : null}
       <PremiumButton label={action} onPress={() => router.replace('/profile' as Href)} />
       {activateLabel && onActivate ? <PremiumButton label={activateLabel} loading={activateBusy} disabled={activateBusy} onPress={onActivate} /> : null}
       {activateError ? <Text accessibilityRole="alert" style={[styles.hint, { color: palette.errorText }]}>{activateError}</Text> : null}

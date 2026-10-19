@@ -9,6 +9,7 @@ import { colors, fontFamily, radius } from '@/constants/theme';
 import { deleteNotification, fetchNotifications, markNotificationRead, markNotificationsRead, type AppNotification } from '@/features/notifications/notifications.api';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useNotifications } from '@/providers/notification-context';
+import { useAuth } from '@/providers/auth-context';
 import { useAppTheme } from '@/providers/theme-context';
 import { formatDate } from '@/utils/formatters';
 
@@ -30,15 +31,16 @@ export function NotificationDropdown({ userId, visible, onClose, anchorRight }: 
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { palette } = useAppTheme();
+  const { role } = useAuth();
   const { t } = useI18n();
   const labels = useCopy(copy);
   const { markAllRead } = useNotifications();
   const client = useQueryClient();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const queryKey = ['notifications', userId] as const;
-  const notifications = useQuery({ queryKey, queryFn: fetchNotifications, enabled: visible });
+  const notifications = useQuery({ queryKey: [...queryKey, role], queryFn: () => fetchNotifications(userId, role), enabled: visible });
   const markAll = useMutation({
-    mutationFn: markNotificationsRead,
+    mutationFn: () => markNotificationsRead(userId, role),
     onSuccess: () => {
       markAllRead();
       client.setQueryData<AppNotification[]>(queryKey, (items) => items?.map((item) => ({ ...item, read: true })));
@@ -107,6 +109,7 @@ export function NotificationDropdown({ userId, visible, onClose, anchorRight }: 
                       <View style={styles.itemCopy}>
                         <Text numberOfLines={2} style={[styles.itemTitle, { color: palette.text }]}>{notification.title}</Text>
                         <Text numberOfLines={3} style={[styles.body, { color: palette.textSecondary }]}>{notification.body}</Text>
+                        {notification.actorName ? <Text style={[styles.date, { color: palette.textSecondary }]}>Realizado por {notification.actorName} · {notification.actorRole ?? 'sistema'}</Text> : null}
                         <Text style={[styles.date, { color: palette.textSecondary }]}>{formatDate(notification.createdAt)}</Text>
                       </View>
                     </Pressable>

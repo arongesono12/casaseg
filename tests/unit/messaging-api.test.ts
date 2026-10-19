@@ -6,6 +6,7 @@ const rpcResults: Record<string, { data: unknown; error: unknown }> = {};
 
 mock.module('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
+  refreshClerkToken: async () => undefined,
   supabase: {
     rpc: async (fn: string, args?: Record<string, unknown>) => {
       rpcCalls.push({ fn, args });

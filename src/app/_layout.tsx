@@ -20,7 +20,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from '@/components/error-boundary';
 import { NetworkStatusBanner } from '@/components/network-status-banner';
-import { canAccessAdminPanel, canAccessOwnerPanel } from '@/lib/access-control';
+import { canAccessAdminPanel } from '@/lib/access-control';
 import { appStorage } from '@/lib/local-storage';
 import { AuthContext, useAuth } from '@/providers/auth-context';
 import { guestAuth } from '@/features/auth/guest-auth';
@@ -119,7 +119,9 @@ function RootNavigator() {
           <Stack.Screen name="payment/failed" />
         </Stack.Protected>
 
-        <Stack.Protected guard={isAuthenticated && canAccessOwnerPanel(role)}>
+        {/* owner/_layout.tsx protege cada pantalla: el panel solo para propietarios,
+            pero contratos y pagos también para el inquilino (firma, pago, reseña). */}
+        <Stack.Protected guard={isAuthenticated}>
           <Stack.Screen name="owner" />
         </Stack.Protected>
 
