@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { ChartLine, CreditCard, FileText, Settings, UserRound } from '@/components/ui/icons';
 import type { IconComponent } from '@/components/ui/premium';
@@ -26,15 +26,16 @@ const tabs: readonly { key: ProfileTab; icon: IconComponent }[] = [
 export function ProfileTabs({ active, onChange }: { active: ProfileTab; onChange: (tab: ProfileTab) => void }) {
   const { palette } = useAppTheme();
   const labels = useCopy(tabCopy);
+  const { width } = useWindowDimensions();
+  // En móviles, una fila horizontal escondía Contratos, Pagos y Configuración.
+  // Dos columnas dejan las cinco secciones disponibles sin requerir desplazamiento.
+  const compact = width < 680;
 
   return (
-    <ScrollView
-      horizontal
+    <View
       accessibilityRole="tablist"
       accessibilityLabel={labels.label}
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-      style={styles.scroller}
+      style={[styles.row, compact ? styles.rowCompact : styles.rowWide]}
     >
       {tabs.map(({ key, icon: Icon }) => {
         const selected = key === active;
@@ -46,23 +47,28 @@ export function ProfileTabs({ active, onChange }: { active: ProfileTab; onChange
             onPress={() => onChange(key)}
             style={({ pressed }) => [
               styles.tab,
+              compact ? styles.tabCompact : styles.tabWide,
               selected ? styles.tabSelected : { borderColor: palette.border, backgroundColor: palette.surface },
               pressed && !selected && { backgroundColor: palette.subtle },
             ]}
           >
             <Icon color={selected ? 'white' : palette.textSecondary} size={17} />
-            <Text style={[styles.tabText, { color: selected ? 'white' : palette.textSecondary }]}>{labels[key]}</Text>
+            <Text numberOfLines={2} style={[styles.tabText, compact && styles.tabTextCompact, { color: selected ? 'white' : palette.textSecondary }]}>{labels[key]}</Text>
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroller: { flexGrow: 0 },
   row: { gap: 8 },
-  tab: { minHeight: touchTarget, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rowCompact: { flexDirection: 'row', flexWrap: 'wrap' },
+  rowWide: { flexDirection: 'row' },
+  tab: { minHeight: touchTarget, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.md, borderCurve: 'continuous', borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  tabCompact: { flexBasis: '48%', flexGrow: 1, minHeight: 58 },
+  tabWide: { flex: 1, minWidth: 0 },
   tabSelected: { backgroundColor: colors.brand, borderColor: colors.brand, boxShadow: `0 8px 18px ${colors.brand}38` },
-  tabText: { fontSize: 14, fontFamily: fontFamily.bold },
+  tabText: { flexShrink: 1, fontSize: 13, lineHeight: 17, fontFamily: fontFamily.bold, textAlign: 'center' },
+  tabTextCompact: { textAlign: 'left' },
 });
