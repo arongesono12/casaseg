@@ -21,7 +21,8 @@ describe('property Edge Function validation', () => {
     const result = parseCreatePropertyInput({ ...validCreate, service_fee_amount: 5000, cleaning_fee_amount: 2500, tax_amount: 1000, security_deposit_amount: 30000 });
     expect(result.priceType).toBe('per_month');
     expect(result.amenities.length).toBe(2);
-    expect(result.coordinates.latitude).toBe(3.7504);
+    // Se guarda como { lat, lng }, la forma de public.properties que lee la web.
+    expect(result.coordinates).toEqual({ lat: 3.7504, lng: 8.7371 });
     expect(result.fees).toEqual({ serviceFeeAmount: 5000, cleaningFeeAmount: 2500, taxAmount: 1000, securityDepositAmount: 30000 });
   });
 
@@ -47,6 +48,10 @@ describe('property Edge Function validation', () => {
   test('rejects missing or out-of-range property coordinates', () => {
     expect(() => parseCreatePropertyInput({ ...validCreate, coordinates: null })).toThrow('Selecciona la ubicación');
     expect(() => parseCreatePropertyInput({ ...validCreate, coordinates: { latitude: 91, longitude: 8.7371 } })).toThrow('Las coordenadas');
+  });
+
+  test('acepta coordenadas ya en la forma { lat, lng }', () => {
+    expect(parseCreatePropertyInput({ ...validCreate, coordinates: { lat: 1.83, lng: 9.81 } }).coordinates).toEqual({ lat: 1.83, lng: 9.81 });
   });
 
   test('rejects invalid update prices', () => {

@@ -51,6 +51,26 @@ export function mapProperty(row: PropertyRow, now: Date = new Date()): Property 
     ownerName: String(row.owner_name ?? row.ownerName ?? 'Propietario verificado'),
     ownerAvatar: row.owner_avatar ? String(row.owner_avatar) : row.ownerAvatar ? String(row.ownerAvatar) : undefined,
     legalStatus: derivePropertyReviewStatus(row.status, row.tourist_license_status),
-    coordinates: row.coordinates as Property['coordinates'],
+    coordinates: parseCoordinates(row.coordinates),
   };
+}
+
+function finiteNumber(value: unknown): number | null {
+  const parsed = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * public.properties.coordinates llega como { lat, lng } (lo que guarda la web)
+ * o como { latitude, longitude } (lo que publicó la app). Sin normalizar, el
+ * mapa y "Cómo llegar" recibían undefined con las viviendas de la web.
+ */
+export function parseCoordinates(value: unknown): Property['coordinates'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const point = value as Record<string, unknown>;
+  const latitude = finiteNumber(point.lat ?? point.latitude);
+  const longitude = finiteNumber(point.lng ?? point.longitude);
+  if (latitude === null || longitude === null) return undefined;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return undefined;
+  return { latitude, longitude };
 }

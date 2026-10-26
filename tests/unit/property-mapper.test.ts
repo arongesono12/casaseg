@@ -64,4 +64,20 @@ describe('mapProperty', () => {
     expect([property.serviceFeeAmount, property.cleaningFeeAmount, property.taxAmount, property.securityDepositAmount]).toEqual([5000, 2500, 1000, 30000]);
     expect(propertyInitialTotal(property)).toBe(188500);
   });
+
+  // La web guarda { lat, lng }: leerlo como { latitude, longitude } dejaba al
+  // cliente de una cita con "undefined,undefined" al abrir Google Maps.
+  test('lee las coordenadas que guarda la web ({ lat, lng })', () => {
+    expect(mapProperty({ id: 'a', coordinates: { lat: 3.749, lng: 8.752 } }, NOW).coordinates).toEqual({ latitude: 3.749, longitude: 8.752 });
+  });
+
+  test('sigue leyendo las publicadas con { latitude, longitude }', () => {
+    expect(mapProperty({ id: 'a', coordinates: { latitude: 1.83, longitude: 9.81 } }, NOW).coordinates).toEqual({ latitude: 1.83, longitude: 9.81 });
+  });
+
+  test('un punto incompleto o fuera de rango no se muestra', () => {
+    expect(mapProperty({ id: 'a', coordinates: { lat: 3.7 } }, NOW).coordinates).toBeUndefined();
+    expect(mapProperty({ id: 'a', coordinates: { lat: 95, lng: 8.7 } }, NOW).coordinates).toBeUndefined();
+    expect(mapProperty({ id: 'a', coordinates: null }, NOW).coordinates).toBeUndefined();
+  });
 });

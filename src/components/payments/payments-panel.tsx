@@ -7,6 +7,7 @@ import { AlertCircle, CheckCircle2, Clock, CreditCard, ExternalLink, Inbox, Wall
 import { IconTile, MetricCard, PremiumButton, PremiumEmptyState, PremiumErrorState, SectionTitle, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { BankTransferProofForm } from '@/components/payments/bank-transfer-proof-form';
+import { FondosEgWalletCard } from '@/components/payments/fondoseg-wallet-card';
 import { OwnerEcobankAccountCard, OwnerPayoutAccountCard } from '@/components/payments/owner-payout-account-card';
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { generateTaxReportExport } from '@/features/compliance/compliance.api';
@@ -181,6 +182,7 @@ export function PaymentsPanel() {
         </View>
       ) : null}
 
+      {profileId ? <FondosEgWalletCard profileId={profileId} /> : null}
       {role === 'owner' && profileId ? <OwnerPayoutAccountCard ownerId={profileId} /> : null}
       {role === 'owner' && profileId ? <OwnerEcobankAccountCard ownerId={profileId} /> : null}
       {role === 'owner' && profileId ? <View style={styles.payBlock}><PremiumButton variant="secondary" label={tax.export} loading={exportTax.isPending} disabled={exportTax.isPending} onPress={() => exportTax.mutate()} />{exportTax.error ? <Text accessibilityRole="alert" style={[styles.hint, { color: palette.errorText }]}>{tax.error} {exportTax.error.message}</Text> : null}</View> : null}

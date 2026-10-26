@@ -91,7 +91,7 @@ function isUnauthorized(error: unknown): boolean {
  * Invoca una Edge Function de pagos. Ante un 401 renueva el token de Clerk una
  * vez y reintenta, como `invokePaymentFunction` de la web con refreshSession().
  */
-async function invokePaymentFunction(name: string, body: Record<string, unknown>, fallback: string): Promise<Record<string, unknown>> {
+export async function invokePaymentFunction(name: string, body: Record<string, unknown>, fallback: string): Promise<Record<string, unknown>> {
   let { data, error } = await supabase.functions.invoke(name, { body });
   if (error && isUnauthorized(error)) {
     await refreshClerkToken();

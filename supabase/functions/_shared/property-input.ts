@@ -20,7 +20,8 @@ export type CreatePropertyInput = {
   title: string;
   description: string;
   location: string;
-  coordinates: { latitude: number; longitude: number };
+  /** Forma de public.properties.coordinates, la misma que escribe y lee la web. */
+  coordinates: { lat: number; lng: number };
   price: number;
   fees: FeeAmounts;
   priceType: 'per_month' | 'per_night' | 'sale';
@@ -42,9 +43,13 @@ export function parseCreatePropertyInput(body: Record<string, unknown>): CreateP
   if (!coordinates || typeof coordinates !== 'object' || Array.isArray(coordinates)) {
     throw new InputError('Selecciona la ubicación de la vivienda en el mapa.');
   }
+  // El selector de la app envía { latitude, longitude }; se acepta también
+  // { lat, lng } y se guarda siempre así, porque es lo que lee la web.
   const point = coordinates as Record<string, unknown>;
-  if (typeof point.latitude !== 'number' || !Number.isFinite(point.latitude) || point.latitude < -90 || point.latitude > 90
-    || typeof point.longitude !== 'number' || !Number.isFinite(point.longitude) || point.longitude < -180 || point.longitude > 180) {
+  const lat = point.lat ?? point.latitude;
+  const lng = point.lng ?? point.longitude;
+  if (typeof lat !== 'number' || !Number.isFinite(lat) || lat < -90 || lat > 90
+    || typeof lng !== 'number' || !Number.isFinite(lng) || lng < -180 || lng > 180) {
     throw new InputError('Las coordenadas de la vivienda no son válidas.');
   }
 
@@ -52,7 +57,7 @@ export function parseCreatePropertyInput(body: Record<string, unknown>): CreateP
     title: text(body.title, 'Título', 3, 140),
     description: text(body.description, 'Descripción', 10, 5000),
     location: text(body.location, 'Ubicación', 2, 240),
-    coordinates: { latitude: point.latitude, longitude: point.longitude },
+    coordinates: { lat, lng },
     price: number(body.price, 'Precio', 1, 10_000_000_000),
     fees: {
       serviceFeeAmount: feeAmount(body.service_fee_amount ?? 0, 'Servicio'),
