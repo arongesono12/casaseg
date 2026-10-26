@@ -4,6 +4,8 @@
 // `template_version`) ni un estado único `awaiting_signature`, porque firman
 // las dos partes por separado.
 
+import { paymentBreakdown } from '@/features/properties/pricing';
+
 export type LeaseContractStatus = 'awaiting_signatures' | 'partially_signed' | 'signed' | 'cancelled';
 export type ContractParty = 'owner' | 'client';
 
@@ -29,6 +31,8 @@ export type LeaseContractSnapshot = {
   client: { id: string; name: string; email: string };
   agreement: { id: string; agreedPrice: number; currency: string; meetingDate?: string; meetingTime?: string };
   terms: LeaseContractTerms;
+  /** Cargos congelados al generar el contrato (generate_lease_contract); ausentes en contratos anteriores. */
+  charges?: { serviceFeeAmount: number; cleaningFeeAmount: number; taxAmount: number; securityDepositAmount: number };
   generatedAt: string;
 };
 
@@ -213,6 +217,11 @@ export function buildLeaseContractHtml(contract: LeaseContract): string {
   const terms = snapshot.terms;
   const currency = escapeHtml(snapshot.agreement.currency);
   const utilities = terms.utilitiesIncluded.length ? terms.utilitiesIncluded.join(', ') : 'Ninguno';
+  // Los contratos anteriores no congelaron los cargos: solo consta la fianza.
+  const charges = snapshot.charges ?? { serviceFeeAmount: 0, cleaningFeeAmount: 0, taxAmount: 0, securityDepositAmount: terms.depositAmount };
+  const firstPayment = paymentBreakdown(Number(snapshot.agreement.agreedPrice), charges, { firstPayment: true });
+  const nextPayment = paymentBreakdown(Number(snapshot.agreement.agreedPrice), charges, { firstPayment: false });
+  const money = (value: number) => `${escapeHtml(Number(value).toLocaleString('es-ES'))} ${currency}`;
 
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(contract.contractNumber)}</title>
@@ -233,9 +242,13 @@ h1{text-align:center;font-size:22px;margin-bottom:4px}h2{font-size:15px;margin-t
 <h2>2. Vivienda</h2>
 <p>${escapeHtml(snapshot.property.title)}, ubicada en ${escapeHtml(snapshot.property.location)}.</p>
 <h2>3. Condiciones economicas</h2>
-<p>Renta acordada: <strong>${escapeHtml(Number(snapshot.agreement.agreedPrice).toLocaleString('es-ES'))} ${currency}</strong>.
-Fianza: <strong>${escapeHtml(Number(terms.depositAmount).toLocaleString('es-ES'))} ${currency}</strong>.
+<p>Renta acordada: <strong>${money(firstPayment.rentAmount)}</strong>.
 Pago antes del dia ${escapeHtml(terms.paymentDay)} mediante ${escapeHtml(terms.paymentMethod)}.</p>
+<p>Servicio: <strong>${money(charges.serviceFeeAmount)}</strong> con cada pago.
+Impuestos: <strong>${money(charges.taxAmount)}</strong> con cada pago.
+Limpieza: <strong>${money(charges.cleaningFeeAmount)}</strong> solo en el primer pago.
+Fianza: <strong>${money(charges.securityDepositAmount)}</strong> solo en el primer pago.</p>
+<p>Total del primer pago: <strong>${money(firstPayment.totalDue)}</strong>. Pagos siguientes: <strong>${money(nextPayment.totalDue)}</strong>.</p>
 <h2>4. Duracion y terminacion</h2>
 <p>Duracion prevista: ${escapeHtml(terms.durationMonths)} meses. Preaviso: ${escapeHtml(terms.noticeDays)} dias.</p>
 <h2>5. Uso y ocupacion</h2>
