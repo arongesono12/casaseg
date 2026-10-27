@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
+import { identityDocumentExpiryError, IDENTITY_DOCUMENT_TYPES, type IdentityDocumentType } from '@/features/owner/identity-documents';
 import type { OwnerPlanType } from '@/features/owner/owner-plan.api';
 import { readLocalFile } from '@/lib/read-local-file';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -20,7 +21,7 @@ export const TERMS_VERSION = 'v1.0';
 
 export const ownerUpgradePaymentMethods = ['fondoseg', 'muni_dinero', 'bank_transfer'] as const;
 export type OwnerUpgradePaymentMethod = (typeof ownerUpgradePaymentMethods)[number];
-export type OwnerDocumentType = 'dni' | 'passport';
+export type OwnerDocumentType = IdentityDocumentType;
 
 export type OwnerUpgradeInput = {
   ownerType?: 'individual' | 'agency';
@@ -33,6 +34,8 @@ export type OwnerUpgradeInput = {
   nationality: string;
   documentType: OwnerDocumentType;
   documentNumber: string;
+  /** YYYY-MM-DD: el servidor rechaza solicitudes sin caducidad o con el documento caducado. */
+  documentExpiresAt: string;
 };
 
 export type PickedPdf = { uri: string; name: string; mimeType?: string; size?: number };
@@ -86,7 +89,8 @@ export function validateOwnerUpgradeInput(input: OwnerUpgradeInput): string | nu
   if (input.residenceLocation.trim().length < MIN_TEXT_LENGTH) return 'Introduce tu lugar de residencia.';
   if (input.nationality.trim().length < 2) return 'Introduce tu nacionalidad.';
   if (!DOCUMENT_NUMBER_PATTERN.test(input.documentNumber.trim())) return 'Introduce el número de tu documento (solo letras, números, puntos o guiones).';
-  return null;
+  if (!IDENTITY_DOCUMENT_TYPES.includes(input.documentType)) return 'Elige el tipo de documento de identidad.';
+  return identityDocumentExpiryError(input.documentExpiresAt);
 }
 
 /** El título debe ser un PDF real (firma %PDF-) de 10 MB como máximo. */
@@ -203,6 +207,7 @@ export async function submitOwnerUpgradeRequest(params: {
         nationality: input.nationality.trim(),
         document_number: input.documentNumber.trim(),
         document_type: input.documentType,
+        identity_document_expires_at: input.documentExpiresAt,
         property_title_document_url: documentPath,
       })
       .select('id,plan_type,payment_method,status,created_at')

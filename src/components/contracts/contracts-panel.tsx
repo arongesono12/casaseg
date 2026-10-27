@@ -10,7 +10,8 @@ import { colors, fontFamily, radius } from '@/constants/theme';
 import { useCurrentProfile } from '@/features/auth/use-current-profile';
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { fetchReviewedContractIds, getReviewEligibility } from '@/features/compliance/compliance.api';
-import { contractKeys, fetchContracts, openContractDocument, signContract, type LeaseContract } from '@/features/contracts/contracts.api';
+import { ContractCancellation } from '@/components/contracts/contract-cancellation';
+import { contractKeys, fetchContracts, fetchPendingCancellationRequests, openContractDocument, signContract, type LeaseContract } from '@/features/contracts/contracts.api';
 import { needsSignatureFrom } from '@/features/contracts/lease-contract.model';
 import { fetchPaymentOrders, paymentKeys } from '@/features/payments/payments.api';
 import { useAuth } from '@/providers/auth-context';
@@ -64,6 +65,13 @@ export function ContractsPanel() {
     paidContractIds,
     reviewedContractIds: reviewed.data ?? new Set(),
   }).canReview;
+  const contractIds = (contracts.data ?? []).map((contract) => contract.id);
+  const cancellations = useQuery({
+    queryKey: [...contractKeys.cancellations, contractIds],
+    queryFn: () => fetchPendingCancellationRequests(contractIds),
+    enabled: contractIds.length > 0,
+  });
+  const cancellationByContract = new Map((cancellations.data ?? []).map((request) => [request.contractId, request]));
   const sign = useMutation({ mutationFn: (contract: LeaseContract) => signContract(contract.id, profile.data?.name ?? user?.name), onSuccess: () => client.invalidateQueries({ queryKey: contractKeys.all }) });
   const [openingContractId, setOpeningContractId] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<Error | null>(null);
@@ -104,6 +112,7 @@ export function ContractsPanel() {
                 {needsSignatureFrom(contract, profileId) ? <PremiumButton label={t('signMfa')} icon={Lock} loading={sign.isPending && sign.variables?.id === contract.id} onPress={() => confirm(contract)} style={styles.action} /> : null}
                 {role === 'owner' && profileId === contract.ownerId && contract.status === 'signed' ? <PremiumButton variant="secondary" label={travelerLabel} onPress={() => router.push({ pathname: '/owner/traveler-report/[contractId]', params: { contractId: contract.id } } as unknown as Href)} style={styles.action} /> : null}
               </View>
+              <ContractCancellation contract={contract} request={cancellationByContract.get(contract.id)} profileId={profileId} />
               {canReview(contract) ? <StayReviewForm contractId={contract.id} reviewQueryKey={reviewedKey} /> : null}
             </View>
           );

@@ -71,6 +71,7 @@ const visits = await import('../../src/features/properties/api/visit-requests');
 const schedule = await import('../../src/features/visits/visit-schedule');
 const ownerUpgrade = await import('../../src/features/owner/owner-upgrade.api');
 const accountDeletion = await import('../../src/features/account/account-deletion.api');
+const ownership = await import('../../src/features/owner/property-ownership.api');
 
 const contractRow = {
   id: 'c1',
@@ -367,7 +368,7 @@ describe('visits as web meeting agreements', () => {
 });
 
 describe('owner upgrade request', () => {
-  const valid = { planType: 'normal' as const, isYearly: false, paymentMethod: 'muni_dinero' as const, phoneNumber: '222 123 456', fullName: 'Luis Obiang', residenceLocation: 'Malabo', nationality: 'GQ', documentType: 'dni' as const, documentNumber: 'AB-1234' };
+  const valid = { planType: 'normal' as const, isYearly: false, paymentMethod: 'muni_dinero' as const, phoneNumber: '222 123 456', fullName: 'Luis Obiang', residenceLocation: 'Malabo', nationality: 'GQ', documentType: 'dni' as const, documentNumber: 'AB-1234', documentExpiresAt: `${new Date().getFullYear() + 2}-01-01` };
 
   test('applies the same rules as the owner_upgrade_requests trigger', () => {
     expect(ownerUpgrade.validateOwnerUpgradeInput(valid)).toBe(null);
@@ -396,5 +397,69 @@ describe('account deletion', () => {
     const result = await accountDeletion.requestAccountDeletion('ELIMINAR');
     expect(result.scheduledFor).toBe('2026-10-09T10:00:00Z');
     expect(calls[0]).toEqual({ kind: 'invoke', name: 'account-deletion', args: { action: 'request', confirmation: 'ELIMINAR' } });
+  });
+});
+
+describe('features shared with the web (cancellation, hidden attempts, ownership)', () => {
+  test('contract cancellation uses the same RPCs and parameters', async () => {
+    await contracts.requestContractCancellation('c1', '  El inquilino se muda de ciudad  ');
+    await contracts.respondContractCancellation('r1', true, '  De acuerdo  ');
+    await contracts.respondContractCancellation('r1', false);
+    await contracts.withdrawContractCancellation('r1');
+    expect(calls).toEqual([
+      { kind: 'rpc', name: 'request_lease_contract_cancellation', args: { p_contract_id: 'c1', p_reason: 'El inquilino se muda de ciudad' } },
+      { kind: 'rpc', name: 'respond_lease_contract_cancellation', args: { p_request_id: 'r1', p_accept: true, p_note: 'De acuerdo' } },
+      { kind: 'rpc', name: 'respond_lease_contract_cancellation', args: { p_request_id: 'r1', p_accept: false, p_note: null } },
+      { kind: 'rpc', name: 'withdraw_lease_contract_cancellation', args: { p_request_id: 'r1' } },
+    ]);
+  });
+
+  test('a short cancellation reason never reaches the server', async () => {
+    const error = await contracts.requestContractCancellation('c1', 'corto').catch((cause: Error) => cause);
+    expect(String(error)).toContain('10 caracteres');
+    expect(calls).toEqual([]);
+  });
+
+  test('hides a failed attempt through set_rental_payment_order_hidden', async () => {
+    rpcResults.set_rental_payment_order_hidden = { data: { id: 'o1', contract_id: 'c1', tenant_id: 't1', amount: 1000, status: 'failed', payment_method: 'fondoseg', hidden_by_tenant_at: '2026-10-27T10:00:00Z' }, error: null };
+    const order = await payments.setRentalPaymentOrderHidden('o1', true);
+    expect(order.hiddenByTenantAt).toBe('2026-10-27T10:00:00Z');
+    expect(calls).toEqual([{ kind: 'rpc', name: 'set_rental_payment_order_hidden', args: { p_order_id: 'o1', p_hidden: true } }]);
+  });
+
+  test('rejects ownership files without a JPG, PNG, WebP or PDF signature before calling the RPC', async () => {
+    const error = await ownership.submitPropertyOwnershipVerification({
+      userId: 'u1',
+      propertyId: 'p1',
+      route: 'notarial',
+      documents: [{ kind: 'public_deed', file: { uri: 'file:///escritura.pdf', name: 'escritura.pdf' } }],
+    }).catch((cause: Error) => cause);
+    expect(String(error)).toContain('JPG, PNG, WebP o PDF');
+    expect(calls.some((call) => call.name === 'submit_property_ownership_verification')).toBe(false);
+  });
+
+  test('detects ownership files by content', () => {
+    const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0, 0, 0, 0, 0, 0]).buffer;
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]).buffer;
+    expect(ownership.detectOwnershipFileType(pdf)).toEqual({ ext: 'pdf', mime: 'application/pdf' });
+    expect(ownership.detectOwnershipFileType(jpeg)).toEqual({ ext: 'jpg', mime: 'image/jpeg' });
+    expect(ownership.detectOwnershipFileType(new ArrayBuffer(12))).toBe(null);
+  });
+
+  test('sends the superadmin checklist with the web parameter names', async () => {
+    rpcResults.review_property_ownership_verification = { data: { id: 'v1', property_id: 'p1', owner_id: 'o1', route: 'registry', status: 'approved', created_at: '2026-10-20T00:00:00Z', documents: [] }, error: null };
+    const result = await ownership.reviewPropertyOwnershipVerification({
+      verificationId: 'v1',
+      decision: 'approved',
+      checklist: [{ documentId: 'd1', result: 'valid' }],
+      notes: '  ',
+    });
+    expect(result.status).toBe('approved');
+    expect(calls).toEqual([{ kind: 'rpc', name: 'review_property_ownership_verification', args: { p_verification_id: 'v1', p_decision: 'approved', p_documents: [{ documentId: 'd1', result: 'valid' }], p_notes: null } }]);
+  });
+
+  test('maps the camelCase review queue rows', () => {
+    const row = ownership.mapPropertyOwnershipVerification({ id: 'v1', propertyId: 'p1', ownerId: 'o1', route: 'developer', status: 'pending', createdAt: '2026-10-20', propertyTitle: 'Casa', ownerName: 'Ana', documents: [{ id: 'd1', kind: 'handover_record', storagePath: 'o1/property-ownership/p1/a.pdf', reviewResult: 'pending' }] });
+    expect([row.propertyTitle, row.ownerName, row.documents[0].storagePath]).toEqual(['Casa', 'Ana', 'o1/property-ownership/p1/a.pdf']);
   });
 });

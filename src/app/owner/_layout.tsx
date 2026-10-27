@@ -13,6 +13,7 @@ export default function OwnerLayout() {
       <Stack.Screen name="requests" />
       <Stack.Screen name="property/create" />
       <Stack.Screen name="property/[id]" />
+      <Stack.Screen name="property/ownership/[id]" />
       <Stack.Screen name="subscription" />
       <Stack.Screen name="contract-template/[propertyId]" />
       <Stack.Screen name="traveler-report/[contractId]" />

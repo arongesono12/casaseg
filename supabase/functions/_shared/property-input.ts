@@ -8,6 +8,8 @@ type FeeAmounts = {
   cleaningFeeAmount: number;
   taxAmount: number;
   securityDepositAmount: number;
+  electricityFeeAmount: number;
+  waterFeeAmount: number;
 };
 
 function feeAmount(value: unknown, label: string): number {
@@ -64,6 +66,8 @@ export function parseCreatePropertyInput(body: Record<string, unknown>): CreateP
       cleaningFeeAmount: feeAmount(body.cleaning_fee_amount ?? 0, 'Limpieza'),
       taxAmount: feeAmount(body.tax_amount ?? 0, 'Impuestos'),
       securityDepositAmount: feeAmount(body.security_deposit_amount ?? 0, 'Depósito/fianza'),
+      electricityFeeAmount: feeAmount(body.electricity_fee_amount ?? 0, 'Luz'),
+      waterFeeAmount: feeAmount(body.water_fee_amount ?? 0, 'Agua'),
     },
     priceType: priceType as CreatePropertyInput['priceType'],
     bedrooms: number(body.bedrooms, 'Dormitorios', 0, 50),
@@ -84,6 +88,8 @@ export function parseUpdatePropertyInput(body: Record<string, unknown>): UpdateP
       ...(body.cleaning_fee_amount !== undefined && { cleaningFeeAmount: feeAmount(body.cleaning_fee_amount, 'Limpieza') }),
       ...(body.tax_amount !== undefined && { taxAmount: feeAmount(body.tax_amount, 'Impuestos') }),
       ...(body.security_deposit_amount !== undefined && { securityDepositAmount: feeAmount(body.security_deposit_amount, 'Depósito/fianza') }),
+      ...(body.electricity_fee_amount !== undefined && { electricityFeeAmount: feeAmount(body.electricity_fee_amount, 'Luz') }),
+      ...(body.water_fee_amount !== undefined && { waterFeeAmount: feeAmount(body.water_fee_amount, 'Agua') }),
     },
   };
 }

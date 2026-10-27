@@ -26,9 +26,13 @@ export type PaymentOrder = {
   expiresAt?: string;
   failureReason?: PaymentFailureReason;
   cancelledAt?: string;
+  electricityFeeAmount: number;
+  waterFeeAmount: number;
+  /** El inquilino ocultó este intento fallido de su historial. */
+  hiddenByTenantAt?: string;
 };
 
-export const ORDER_COLUMNS = 'id,contract_id,tenant_id,owner_id,amount,total_due,currency,payment_method,status,payment_reference,checkout_url,instructions,expires_at,failure_reason,cancelled_at';
+export const ORDER_COLUMNS = 'id,contract_id,tenant_id,owner_id,amount,total_due,currency,payment_method,status,payment_reference,checkout_url,instructions,expires_at,failure_reason,cancelled_at,electricity_fee_amount,water_fee_amount,hidden_by_tenant_at';
 
 const knownStatuses: readonly PaymentOrderStatus[] = ['pending', 'awaiting_review', 'processing', 'completed', 'failed', 'cancelled', 'expired'];
 const knownFailureReasons: readonly PaymentFailureReason[] = ['cancelled_by_tenant', 'declined_by_payer', 'insufficient_funds', 'provider_declined', 'expired'];
@@ -65,7 +69,23 @@ export function mapPaymentOrder(row: PaymentOrderRow): PaymentOrder {
     expiresAt: optionalText(row.expires_at),
     failureReason,
     cancelledAt: optionalText(row.cancelled_at),
+    electricityFeeAmount: Number(row.electricity_fee_amount) || 0,
+    waterFeeAmount: Number(row.water_fee_amount) || 0,
+    hiddenByTenantAt: optionalText(row.hidden_by_tenant_at),
   };
+}
+
+/** Intentos que el inquilino puede ocultar: los que no llegaron a cobrarse. */
+export const HIDEABLE_PAYMENT_STATUSES: readonly PaymentOrderStatus[] = closedStatuses;
+
+/** Mismo criterio que set_rental_payment_order_hidden: solo el inquilino y solo intentos cerrados sin cobro. */
+export function canTenantHidePayment(order: PaymentOrder, profileId: string | undefined): boolean {
+  return Boolean(profileId) && order.tenantId === profileId && HIDEABLE_PAYMENT_STATUSES.includes(order.status);
+}
+
+/** Oculto solo para el inquilino que lo ocultó; el propietario sigue viéndolo. */
+export function isHiddenByTenant(order: PaymentOrder, profileId: string | undefined): boolean {
+  return Boolean(order.hiddenByTenantAt) && order.tenantId === profileId;
 }
 
 /** Orden todavía sin resolver (incluye el comprobante en revisión). */

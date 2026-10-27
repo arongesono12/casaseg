@@ -16,6 +16,8 @@ Deno.serve(serveJson(async (request) => {
       ...(input.fees.cleaningFeeAmount !== undefined && { cleaning_fee_amount: input.fees.cleaningFeeAmount }),
       ...(input.fees.taxAmount !== undefined && { tax_amount: input.fees.taxAmount }),
       ...(input.fees.securityDepositAmount !== undefined && { security_deposit_amount: input.fees.securityDepositAmount }),
+      ...(input.fees.electricityFeeAmount !== undefined && { electricity_fee_amount: input.fees.electricityFeeAmount }),
+      ...(input.fees.waterFeeAmount !== undefined && { water_fee_amount: input.fees.waterFeeAmount }),
     })
     .eq('id', input.propertyId)
     .select('id')

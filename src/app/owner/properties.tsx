@@ -1,11 +1,16 @@
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
-import { ArrowRight, Building2, CheckCircle2, Clock, FileText, MapPin, Plus } from '@/components/ui/icons';
+import { ArrowRight, Building2, CheckCircle2, Clock, FileText, MapPin, Plus, ShieldCheck } from '@/components/ui/icons';
 import { HeroBadge, PremiumButton, PremiumEmptyState, PremiumErrorState, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius } from '@/constants/theme';
+import { useProfileId } from '@/features/auth/use-profile-id';
+import { latestVerificationByProperty, ownershipStatusSummary } from '@/features/owner/property-ownership';
+import { fetchOwnPropertyOwnershipVerifications, ownershipKeys } from '@/features/owner/property-ownership.api';
+import { ownershipCopy, ownershipToneColor, ownershipToneIcon } from '@/features/owner/property-ownership-copy';
 import { useOwnerProperties } from '@/features/owner/use-owner-properties';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
@@ -22,6 +27,11 @@ export default function OwnerProperties() {
   const { locale, t } = useI18n();
   const copy = useCopy(ownerPropertiesCopy);
   const properties = useOwnerProperties();
+  const ownership = useCopy(ownershipCopy);
+  const profileId = useProfileId();
+  // Sin la migración de verificación la consulta falla: la lista se muestra igual, sin el estado.
+  const verifications = useQuery({ queryKey: ownershipKeys.own(profileId ?? 'none'), queryFn: () => fetchOwnPropertyOwnershipVerifications(profileId!), enabled: Boolean(profileId), retry: false });
+  const latestByProperty = latestVerificationByProperty(verifications.data ?? []);
 
   return (
     <RouteScreen
@@ -38,6 +48,7 @@ export default function OwnerProperties() {
       <View style={styles.list}>
         {properties.data?.map((property) => {
           const verified = property.legalStatus === 'verified';
+          const summary = property.ownershipVerificationStatus ? ownershipStatusSummary(property, latestByProperty.get(property.id)) : null;
           return (
             <View key={property.id} style={styles.item}>
             <Pressable accessibilityRole="button" accessibilityLabel={interpolate(copy.editLabel, { title: property.title })} onPress={() => router.push({ pathname: '/owner/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
@@ -59,6 +70,12 @@ export default function OwnerProperties() {
                 <View style={styles.editRow}><Text style={[styles.edit, { color: palette.brandText }]}>{t('editPublication')}</Text><ArrowRight color={palette.brandIcon} size={18} /></View>
               </View>
             </Pressable>
+            {summary ? (
+              <View style={styles.ownership}>
+                <StatusPill label={ownership[`status_${summary.key}`]} tone={ownershipToneColor[summary.tone]} icon={ownershipToneIcon[summary.tone]} />
+                {summary.canSubmit ? <PremiumButton size="md" variant={summary.tone === 'neutral' ? 'secondary' : 'primary'} icon={ShieldCheck} label={ownership.verify} onPress={() => router.push(`/owner/property/ownership/${property.id}` as Href)} /> : null}
+              </View>
+            ) : null}
             <PremiumButton variant="secondary" icon={FileText} label={copy.template} onPress={() => router.push(`/owner/contract-template/${property.id}` as Href)} />
             </View>
           );
@@ -71,6 +88,7 @@ export default function OwnerProperties() {
 const styles = StyleSheet.create({
   list: { gap: 12 },
   item: { gap: 8 },
+  ownership: { gap: 8, alignItems: 'flex-start' },
   card: { minHeight: 134, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 10, flexDirection: 'row', gap: 13, boxShadow: '0 10px 26px rgba(15,23,42,0.06)' },
   imageWrap: { width: 126, minHeight: 112, borderRadius: radius.md, overflow: 'hidden' },
   image: { width: '100%', height: '100%' },

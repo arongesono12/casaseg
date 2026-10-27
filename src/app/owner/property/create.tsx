@@ -22,7 +22,7 @@ const priceTypeLabelKeys = { per_month: 'priceTypePerMonth', per_night: 'priceTy
 export default function CreateProperty() {
   const draft = usePropertyDraft(); const profileId = useProfileId(); const { palette } = useAppTheme(); const { locale, t } = useI18n(); const stepNames = stepKeys.map((key) => t(key)); const [progress, setProgress] = useState(0); const [error, setError] = useState(''); const uploadedPaths = useRef<string[]>([]);
   const next = () => {
-    if (draft.step === 2 && [draft.serviceFeeAmount, draft.cleaningFeeAmount, draft.taxAmount, draft.securityDepositAmount].some((value) => !isValidFeeAmountInput(value))) {
+    if (draft.step === 2 && [draft.serviceFeeAmount, draft.cleaningFeeAmount, draft.taxAmount, draft.securityDepositAmount, draft.electricityFeeAmount, draft.waterFeeAmount].some((value) => !isValidFeeAmountInput(value))) {
       setError(t('invalidFeeAmount'));
       return;
     }
@@ -49,6 +49,8 @@ function FeeFields() {
     <Input label={`${t('cleaningFee')} (FCFA)`} value={draft.cleaningFeeAmount ?? '0'} onChangeText={(cleaningFeeAmount) => draft.set({ cleaningFeeAmount })} keyboardType="numeric" />
     <Input label={`${t('taxes')} (FCFA)`} value={draft.taxAmount ?? '0'} onChangeText={(taxAmount) => draft.set({ taxAmount })} keyboardType="numeric" />
     <Input label={`${t('securityDeposit')} (FCFA)`} value={draft.securityDepositAmount ?? '0'} onChangeText={(securityDepositAmount) => draft.set({ securityDepositAmount })} keyboardType="numeric" />
+    <Input label={`${t('electricityFee')} (FCFA)`} value={draft.electricityFeeAmount ?? '0'} onChangeText={(electricityFeeAmount) => draft.set({ electricityFeeAmount })} keyboardType="numeric" />
+    <Input label={`${t('waterFee')} (FCFA)`} value={draft.waterFeeAmount ?? '0'} onChangeText={(waterFeeAmount) => draft.set({ waterFeeAmount })} keyboardType="numeric" />
   </View>;
 }
 function Input({ label, ...props }: React.ComponentProps<typeof TextInput> & { label: string }) { const { palette } = useAppTheme(); return <View style={styles.field}><Text style={[styles.label, { color: palette.text }]}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor={palette.muted} {...props} style={[styles.input, { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }, props.multiline && styles.multiline]} /></View>; }

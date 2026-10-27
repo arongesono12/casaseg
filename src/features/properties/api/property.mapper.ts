@@ -1,5 +1,5 @@
 import { derivePropertyReviewStatus } from '@/features/admin/admin-data';
-import type { Property } from '@/types';
+import type { Property, PropertyOwnershipStatus } from '@/types';
 
 // Traducción de una fila de public.properties al modelo de la app. Vive aparte
 // de las consultas para poder probarla sin cliente de Supabase.
@@ -42,6 +42,8 @@ export function mapProperty(row: PropertyRow, now: Date = new Date()): Property 
     cleaningFeeAmount: Number(row.cleaning_fee_amount ?? row.cleaningFeeAmount ?? 0),
     taxAmount: Number(row.tax_amount ?? row.taxAmount ?? 0),
     securityDepositAmount: Number(row.security_deposit_amount ?? row.securityDepositAmount ?? 0),
+    electricityFeeAmount: Number(row.electricity_fee_amount ?? row.electricityFeeAmount ?? 0),
+    waterFeeAmount: Number(row.water_fee_amount ?? row.waterFeeAmount ?? 0),
     rating: Number(row.review_count ?? row.reviewCount ?? 0) > 0 ? Number(row.rating ?? 0) : 0,
     reviewCount: Number(row.review_count ?? row.reviewCount ?? 0),
     category: (row.category ?? 'Apartamentos') as Property['category'],
@@ -51,8 +53,16 @@ export function mapProperty(row: PropertyRow, now: Date = new Date()): Property 
     ownerName: String(row.owner_name ?? row.ownerName ?? 'Propietario verificado'),
     ownerAvatar: row.owner_avatar ? String(row.owner_avatar) : row.ownerAvatar ? String(row.ownerAvatar) : undefined,
     legalStatus: derivePropertyReviewStatus(row.status, row.tourist_license_status),
+    status: typeof row.status === 'string' ? row.status : undefined,
+    ownershipVerificationStatus: parseOwnershipStatus(row.ownership_verification_status ?? row.ownershipVerificationStatus),
     coordinates: parseCoordinates(row.coordinates),
   };
+}
+
+const ownershipStatuses: readonly PropertyOwnershipStatus[] = ['exempt', 'missing', 'pending', 'approved', 'rejected'];
+
+function parseOwnershipStatus(value: unknown): PropertyOwnershipStatus | undefined {
+  return ownershipStatuses.includes(value as PropertyOwnershipStatus) ? (value as PropertyOwnershipStatus) : undefined;
 }
 
 function finiteNumber(value: unknown): number | null {

@@ -55,6 +55,8 @@ Deno.serve(serveJson(async (request) => {
       cleaning_fee_amount: input.fees.cleaningFeeAmount,
       tax_amount: input.fees.taxAmount,
       security_deposit_amount: input.fees.securityDepositAmount,
+      electricity_fee_amount: input.fees.electricityFeeAmount,
+      water_fee_amount: input.fees.waterFeeAmount,
     })
     .select('id')
     .single();

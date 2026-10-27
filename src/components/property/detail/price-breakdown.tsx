@@ -8,9 +8,9 @@ import { formatXaf } from '@/utils/formatters';
 
 // Mismos textos que la web (propertyDetails.*): fianza y limpieza solo se cobran con el primer pago.
 const chargesCopy = defineCopy({
-  es: { rent: 'Renta', oneTime: 'solo el primer pago', firstPayment: 'Total del primer pago', nextPayments: 'Pagos siguientes', frozen: 'Estos importes quedan fijados en el contrato que firmáis ambas partes.' },
-  fr: { rent: 'Loyer', oneTime: 'premier paiement uniquement', firstPayment: 'Total du premier paiement', nextPayments: 'Paiements suivants', frozen: 'Ces montants sont fixés dans le contrat signé par les deux parties.' },
-  en: { rent: 'Rent', oneTime: 'first payment only', firstPayment: 'First payment total', nextPayments: 'Following payments', frozen: 'These amounts are fixed in the contract both parties sign.' },
+  es: { rent: 'Renta', oneTime: 'solo el primer pago', everyPayment: 'con cada pago', firstPayment: 'Total del primer pago', nextPayments: 'Pagos siguientes', frozen: 'Estos importes quedan fijados en el contrato que firmáis ambas partes.' },
+  fr: { rent: 'Loyer', oneTime: 'premier paiement uniquement', everyPayment: 'à chaque paiement', firstPayment: 'Total du premier paiement', nextPayments: 'Paiements suivants', frozen: 'Ces montants sont fixés dans le contrat signé par les deux parties.' },
+  en: { rent: 'Rent', oneTime: 'first payment only', everyPayment: 'with every payment', firstPayment: 'First payment total', nextPayments: 'Following payments', frozen: 'These amounts are fixed in the contract both parties sign.' },
 });
 
 export function PriceBreakdown({ property, palette }: { property: Property; palette: AppPalette }) {
@@ -18,11 +18,14 @@ export function PriceBreakdown({ property, palette }: { property: Property; pale
   const copy = useCopy(chargesCopy);
   const isRental = property.priceType !== 'sale';
   const rows = [
-    { key: 'rent', label: copy.rent, amount: property.price, oneTime: false },
-    { key: 'service', label: t('serviceFee'), amount: property.serviceFeeAmount ?? 0, oneTime: false },
-    { key: 'cleaning', label: t('cleaningFee'), amount: property.cleaningFeeAmount ?? 0, oneTime: isRental },
-    { key: 'taxes', label: t('taxes'), amount: property.taxAmount ?? 0, oneTime: false },
-    { key: 'deposit', label: t('securityDeposit'), amount: property.securityDepositAmount ?? 0, oneTime: isRental },
+    { key: 'rent', label: copy.rent, amount: property.price, oneTime: false, recurring: false },
+    { key: 'service', label: t('serviceFee'), amount: property.serviceFeeAmount ?? 0, oneTime: false, recurring: false },
+    { key: 'cleaning', label: t('cleaningFee'), amount: property.cleaningFeeAmount ?? 0, oneTime: isRental, recurring: false },
+    { key: 'taxes', label: t('taxes'), amount: property.taxAmount ?? 0, oneTime: false, recurring: false },
+    { key: 'deposit', label: t('securityDeposit'), amount: property.securityDepositAmount ?? 0, oneTime: isRental, recurring: false },
+    // Luz y agua solo aparecen si el propietario las cobra con el alquiler.
+    ...((property.electricityFeeAmount ?? 0) > 0 ? [{ key: 'electricity', label: t('electricityFee'), amount: property.electricityFeeAmount ?? 0, oneTime: false, recurring: isRental }] : []),
+    ...((property.waterFeeAmount ?? 0) > 0 ? [{ key: 'water', label: t('waterFee'), amount: property.waterFeeAmount ?? 0, oneTime: false, recurring: isRental }] : []),
   ];
   const firstTotal = propertyInitialTotal(property);
   const nextTotal = propertyNextPaymentTotal(property);
@@ -33,7 +36,7 @@ export function PriceBreakdown({ property, palette }: { property: Property; pale
         {rows.map((row) => (
           <View key={row.key} style={styles.row}>
             <Text style={[styles.label, { color: palette.textSecondary }]}>
-              {row.label}{row.oneTime && row.amount > 0 ? ` (${copy.oneTime})` : ''}
+              {row.label}{row.oneTime && row.amount > 0 ? ` (${copy.oneTime})` : ''}{row.recurring ? ` (${copy.everyPayment})` : ''}
             </Text>
             <Text selectable style={[styles.amount, { color: palette.text }]}>{formatXaf(row.amount, undefined, locale)}</Text>
           </View>

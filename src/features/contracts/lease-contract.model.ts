@@ -32,11 +32,66 @@ export type LeaseContractSnapshot = {
   agreement: { id: string; agreedPrice: number; currency: string; meetingDate?: string; meetingTime?: string };
   terms: LeaseContractTerms;
   /** Cargos congelados al generar el contrato (generate_lease_contract); ausentes en contratos anteriores. */
-  charges?: { serviceFeeAmount: number; cleaningFeeAmount: number; taxAmount: number; securityDepositAmount: number };
+  charges?: { serviceFeeAmount: number; cleaningFeeAmount: number; taxAmount: number; securityDepositAmount: number; electricityFeeAmount?: number; waterFeeAmount?: number };
   generatedAt: string;
 };
 
-export type ContractSignature = { signerName?: string; signerRole?: ContractParty; acceptedAt?: string };
+/**
+ * Anulación de un contrato: la pide una parte y la acepta la otra
+ * (public.lease_contract_cancellation_requests, mismas reglas que la web).
+ */
+export type CancellationRequestStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+
+export type LeaseContractCancellationRequest = {
+  id: string;
+  contractId: string;
+  requestedBy: string;
+  requesterRole: ContractParty;
+  reason: string;
+  status: CancellationRequestStatus;
+  respondedBy?: string;
+  responseNote?: string;
+  respondedAt?: string;
+  createdAt: string;
+};
+
+export const CANCELLATION_REASON_MIN_LENGTH = 10;
+export const CANCELLATION_REASON_MAX_LENGTH = 1000;
+
+export const CANCELLATION_REQUEST_COLUMNS =
+  'id,contract_id,requested_by,requester_role,reason,status,responded_by,response_note,responded_at,created_at';
+
+const cancellationStatuses: readonly CancellationRequestStatus[] = ['pending', 'accepted', 'rejected', 'withdrawn'];
+
+export function mapCancellationRequest(row: Record<string, unknown>): LeaseContractCancellationRequest {
+  return {
+    id: String(row.id),
+    contractId: String(row.contract_id ?? ''),
+    requestedBy: String(row.requested_by ?? ''),
+    requesterRole: row.requester_role === 'owner' ? 'owner' : 'client',
+    reason: String(row.reason ?? ''),
+    status: cancellationStatuses.includes(row.status as CancellationRequestStatus) ? (row.status as CancellationRequestStatus) : 'pending',
+    respondedBy: optionalText(row.responded_by),
+    responseNote: optionalText(row.response_note),
+    respondedAt: optionalText(row.responded_at),
+    createdAt: String(row.created_at ?? ''),
+  };
+}
+
+/** Mismo límite que request_lease_contract_cancellation. */
+export function cancellationReasonError(reason: string): string | null {
+  const length = reason.trim().length;
+  if (length < CANCELLATION_REASON_MIN_LENGTH) return `Explica el motivo con al menos ${CANCELLATION_REASON_MIN_LENGTH} caracteres.`;
+  if (length > CANCELLATION_REASON_MAX_LENGTH) return `El motivo no puede superar ${CANCELLATION_REASON_MAX_LENGTH} caracteres.`;
+  return null;
+}
+
+/** Una parte puede pedir la anulación si el contrato sigue vivo y no hay otra pendiente. */
+export function canRequestCancellation(contract: LeaseContract, profileId: string | undefined, pending?: LeaseContractCancellationRequest): boolean {
+  return contract.status !== 'cancelled' && !pending && contractPartyOf(contract, profileId) !== null;
+}
+
+export type ContractSignature ={ signerName?: string; signerRole?: ContractParty; acceptedAt?: string };
 
 export type LeaseContract = {
   id: string;
@@ -222,6 +277,8 @@ export function buildLeaseContractHtml(contract: LeaseContract): string {
   const firstPayment = paymentBreakdown(Number(snapshot.agreement.agreedPrice), charges, { firstPayment: true });
   const nextPayment = paymentBreakdown(Number(snapshot.agreement.agreedPrice), charges, { firstPayment: false });
   const money = (value: number) => `${escapeHtml(Number(value).toLocaleString('es-ES'))} ${currency}`;
+  // Luz y agua se cobran con cada pago; sin importe, no van con el alquiler.
+  const utility = (value: number) => (value > 0 ? `<strong>${money(value)}</strong> con cada pago` : 'No se cobra con el alquiler');
 
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(contract.contractNumber)}</title>
@@ -248,6 +305,8 @@ Pago antes del dia ${escapeHtml(terms.paymentDay)} mediante ${escapeHtml(terms.p
 Impuestos: <strong>${money(charges.taxAmount)}</strong> con cada pago.
 Limpieza: <strong>${money(charges.cleaningFeeAmount)}</strong> solo en el primer pago.
 Fianza: <strong>${money(charges.securityDepositAmount)}</strong> solo en el primer pago.</p>
+<p>Luz: ${utility(firstPayment.electricityFeeAmount)}.
+Agua: ${utility(firstPayment.waterFeeAmount)}.</p>
 <p>Total del primer pago: <strong>${money(firstPayment.totalDue)}</strong>. Pagos siguientes: <strong>${money(nextPayment.totalDue)}</strong>.</p>
 <h2>4. Duracion y terminacion</h2>
 <p>Duracion prevista: ${escapeHtml(terms.durationMonths)} meses. Preaviso: ${escapeHtml(terms.noticeDays)} dias.</p>

@@ -8,6 +8,8 @@ type PropertyPatch = {
   cleaningFeeAmount: number;
   taxAmount: number;
   securityDepositAmount: number;
+  electricityFeeAmount: number;
+  waterFeeAmount: number;
 };
 
 export async function updateProperty(propertyId: string, patch: PropertyPatch) {
@@ -22,6 +24,8 @@ export async function updateProperty(propertyId: string, patch: PropertyPatch) {
       cleaning_fee_amount: patch.cleaningFeeAmount,
       tax_amount: patch.taxAmount,
       security_deposit_amount: patch.securityDepositAmount,
+      electricity_fee_amount: patch.electricityFeeAmount,
+      water_fee_amount: patch.waterFeeAmount,
     },
   });
   if (error) throw error;

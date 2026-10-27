@@ -1,7 +1,8 @@
 import type { Property } from '@/types';
 
-type PricedProperty = Pick<Property, 'price' | 'serviceFeeAmount' | 'cleaningFeeAmount' | 'taxAmount' | 'securityDepositAmount'>;
-type ChargeSource = Partial<Pick<Property, 'serviceFeeAmount' | 'cleaningFeeAmount' | 'taxAmount' | 'securityDepositAmount'>>;
+type ChargeKey = 'serviceFeeAmount' | 'cleaningFeeAmount' | 'taxAmount' | 'securityDepositAmount' | 'electricityFeeAmount' | 'waterFeeAmount';
+type PricedProperty = Pick<Property, 'price' | ChargeKey>;
+type ChargeSource = Partial<Pick<Property, ChargeKey>>;
 
 export type PaymentBreakdown = {
   rentAmount: number;
@@ -9,6 +10,8 @@ export type PaymentBreakdown = {
   cleaningFeeAmount: number;
   taxAmount: number;
   securityDepositAmount: number;
+  electricityFeeAmount: number;
+  waterFeeAmount: number;
   totalDue: number;
 };
 
@@ -16,13 +19,15 @@ const amount = (value: number | undefined): number => (Number.isFinite(value) &&
 
 /**
  * Misma regla que la web (src/utils/rentalCharges.ts) y el cobro del servidor
- * (create_rental_payment_order): servicio e impuestos con cada pago; fianza y
- * limpieza solo con el primero. Los importes del contrato firmado mandan.
+ * (create_rental_payment_order): servicio, impuestos, luz y agua con cada pago;
+ * fianza y limpieza solo con el primero. Los importes del contrato firmado mandan.
  */
 export function paymentBreakdown(rentAmount: number, charges: ChargeSource, { firstPayment }: { firstPayment: boolean }): PaymentBreakdown {
   const rent = amount(rentAmount);
   const serviceFeeAmount = amount(charges.serviceFeeAmount);
   const taxAmount = amount(charges.taxAmount);
+  const electricityFeeAmount = amount(charges.electricityFeeAmount);
+  const waterFeeAmount = amount(charges.waterFeeAmount);
   const cleaningFeeAmount = firstPayment ? amount(charges.cleaningFeeAmount) : 0;
   const securityDepositAmount = firstPayment ? amount(charges.securityDepositAmount) : 0;
   return {
@@ -31,7 +36,9 @@ export function paymentBreakdown(rentAmount: number, charges: ChargeSource, { fi
     cleaningFeeAmount,
     taxAmount,
     securityDepositAmount,
-    totalDue: rent + serviceFeeAmount + cleaningFeeAmount + taxAmount + securityDepositAmount,
+    electricityFeeAmount,
+    waterFeeAmount,
+    totalDue: rent + serviceFeeAmount + cleaningFeeAmount + taxAmount + securityDepositAmount + electricityFeeAmount + waterFeeAmount,
   };
 }
 

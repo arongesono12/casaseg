@@ -9,7 +9,9 @@ import { mapPaymentOrder, ORDER_COLUMNS, type PaymentOrder } from '@/features/pa
 
 export {
   canTenantCancelPayment,
+  canTenantHidePayment,
   isCancellablePaymentStatus,
+  isHiddenByTenant,
   isOpenPaymentStatus,
   mapPaymentOrder,
   paymentReturnOutcome,
@@ -57,6 +59,18 @@ export async function fetchPaymentOrders(): Promise<PaymentOrder[]> {
   const { data, error } = await supabase.from('rental_payment_orders').select(ORDER_COLUMNS).order('created_at', { ascending: false }).limit(200);
   if (error) throw error;
   return (data as PaymentOrderRow[]).map(mapPaymentOrder);
+}
+
+/**
+ * Oculta (o vuelve a mostrar) un intento fallido, cancelado o caducado del
+ * historial del inquilino. set_rental_payment_order_hidden lo comprueba en el
+ * servidor; el propietario y la auditoría siguen viendo la orden.
+ */
+export async function setRentalPaymentOrderHidden(orderId: string, hidden: boolean): Promise<PaymentOrder> {
+  if (!isSupabaseConfigured) throw new Error('Esta acción requiere conexión con el servidor de CasasEG.');
+  const { data, error } = await supabase.rpc('set_rental_payment_order_hidden', { p_order_id: orderId, p_hidden: hidden });
+  if (error) throw error;
+  return mapPaymentOrder(data as PaymentOrderRow);
 }
 
 /**

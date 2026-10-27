@@ -13,6 +13,7 @@ export default function AdminLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="users" />
         <Stack.Screen name="properties" />
+        <Stack.Screen name="ownership" />
       </Stack.Protected>
     </Stack>
   );

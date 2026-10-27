@@ -23,11 +23,11 @@ describe('property Edge Function validation', () => {
     expect(result.amenities.length).toBe(2);
     // Se guarda como { lat, lng }, la forma de public.properties que lee la web.
     expect(result.coordinates).toEqual({ lat: 3.7504, lng: 8.7371 });
-    expect(result.fees).toEqual({ serviceFeeAmount: 5000, cleaningFeeAmount: 2500, taxAmount: 1000, securityDepositAmount: 30000 });
+    expect(result.fees).toEqual({ serviceFeeAmount: 5000, cleaningFeeAmount: 2500, taxAmount: 1000, securityDepositAmount: 30000, electricityFeeAmount: 0, waterFeeAmount: 0 });
   });
 
   test('los clientes anteriores siguen creando con cargos cero', () => {
-    expect(parseCreatePropertyInput(validCreate).fees).toEqual({ serviceFeeAmount: 0, cleaningFeeAmount: 0, taxAmount: 0, securityDepositAmount: 0 });
+    expect(parseCreatePropertyInput(validCreate).fees).toEqual({ serviceFeeAmount: 0, cleaningFeeAmount: 0, taxAmount: 0, securityDepositAmount: 0, electricityFeeAmount: 0, waterFeeAmount: 0 });
   });
 
   test('rechaza cargos negativos y fraccionarios', () => {

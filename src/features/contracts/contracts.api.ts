@@ -2,20 +2,24 @@ import { Platform } from 'react-native';
 
 import {
   buildLeaseContractHtml,
+  CANCELLATION_REQUEST_COLUMNS,
+  cancellationReasonError,
   DEFAULT_LEASE_TERMS,
   LEASE_CONTRACT_COLUMNS,
+  mapCancellationRequest,
   mapLeaseContract,
   normalizeSignerName,
   type LeaseContract,
+  type LeaseContractCancellationRequest,
   type LeaseContractRow,
   type LeaseContractTerms,
 } from '@/features/contracts/lease-contract.model';
 import { loadPrint } from '@/lib/optional-native-modules';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
-export type { LeaseContract, LeaseContractStatus } from '@/features/contracts/lease-contract.model';
+export type { LeaseContract, LeaseContractCancellationRequest, LeaseContractStatus } from '@/features/contracts/lease-contract.model';
 
-export const contractKeys = { all: ['lease-contracts'] as const };
+export const contractKeys = { all: ['lease-contracts'] as const, cancellations: ['lease-contracts', 'cancellations'] as const };
 
 /** Identifica el cliente en la firma, igual que la web guarda navigator.userAgent. */
 const MOBILE_USER_AGENT = `CasasEG Expo (${Platform.OS} ${String(Platform.Version)})`;
@@ -66,6 +70,48 @@ export async function openContractDocument(contract: LeaseContract, actorId: str
     event_type: 'downloaded',
     metadata: { client: MOBILE_USER_AGENT },
   });
+  if (error) throw error;
+}
+
+/** Solicitudes de anulación pendientes de los contratos visibles. */
+export async function fetchPendingCancellationRequests(contractIds: string[]): Promise<LeaseContractCancellationRequest[]> {
+  if (!isSupabaseConfigured || contractIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('lease_contract_cancellation_requests')
+    .select(CANCELLATION_REQUEST_COLUMNS)
+    .in('contract_id', contractIds)
+    .eq('status', 'pending');
+  if (error) throw error;
+  return (data as unknown as Record<string, unknown>[]).map(mapCancellationRequest);
+}
+
+/**
+ * Pide anular el contrato. request_lease_contract_cancellation comprueba que el
+ * llamante es parte, que el contrato no está anulado y que no hay otra pendiente.
+ */
+export async function requestContractCancellation(contractId: string, reason: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('La anulación requiere conexión con el servidor de CasasEG.');
+  const reasonError = cancellationReasonError(reason);
+  if (reasonError) throw new Error(reasonError);
+  const { error } = await supabase.rpc('request_lease_contract_cancellation', { p_contract_id: contractId, p_reason: reason.trim() });
+  if (error) throw error;
+}
+
+/** Solo responde la otra parte; aceptar falla si hay un pago en curso. */
+export async function respondContractCancellation(requestId: string, accept: boolean, note?: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('La anulación requiere conexión con el servidor de CasasEG.');
+  const { error } = await supabase.rpc('respond_lease_contract_cancellation', {
+    p_request_id: requestId,
+    p_accept: accept,
+    p_note: note?.trim() || null,
+  });
+  if (error) throw error;
+}
+
+/** Solo quien la pidió puede retirarla. */
+export async function withdrawContractCancellation(requestId: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error('La anulación requiere conexión con el servidor de CasasEG.');
+  const { error } = await supabase.rpc('withdraw_lease_contract_cancellation', { p_request_id: requestId });
   if (error) throw error;
 }
 

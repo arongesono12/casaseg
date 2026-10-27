@@ -24,6 +24,8 @@ type EditValues = {
   cleaningFeeAmount: string;
   taxAmount: string;
   securityDepositAmount: string;
+  electricityFeeAmount: string;
+  waterFeeAmount: string;
 };
 
 export default function EditPropertyScreen() {
@@ -49,6 +51,8 @@ function EditForm({ property }: { property: Property }) {
       cleaningFeeAmount: String(property.cleaningFeeAmount ?? 0),
       taxAmount: String(property.taxAmount ?? 0),
       securityDepositAmount: String(property.securityDepositAmount ?? 0),
+      electricityFeeAmount: String(property.electricityFeeAmount ?? 0),
+      waterFeeAmount: String(property.waterFeeAmount ?? 0),
     },
   });
   const save = useMutation({
@@ -60,6 +64,8 @@ function EditForm({ property }: { property: Property }) {
       cleaningFeeAmount: Number(values.cleaningFeeAmount),
       taxAmount: Number(values.taxAmount),
       securityDepositAmount: Number(values.securityDepositAmount),
+      electricityFeeAmount: Number(values.electricityFeeAmount),
+      waterFeeAmount: Number(values.waterFeeAmount),
     }),
     onSuccess: () => client.invalidateQueries({ queryKey: propertyKeys.all }),
   });
@@ -73,6 +79,8 @@ function EditForm({ property }: { property: Property }) {
       <Controller control={control} name="cleaningFeeAmount" rules={{ validate: (value) => isValidFeeAmountInput(value) || t('invalidFeeAmount') }} render={({ field, fieldState }) => <FormField label={`${t('cleaningFee')} (FCFA)`} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} keyboardType="numeric" error={fieldState.error?.message} />} />
       <Controller control={control} name="taxAmount" rules={{ validate: (value) => isValidFeeAmountInput(value) || t('invalidFeeAmount') }} render={({ field, fieldState }) => <FormField label={`${t('taxes')} (FCFA)`} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} keyboardType="numeric" error={fieldState.error?.message} />} />
       <Controller control={control} name="securityDepositAmount" rules={{ validate: (value) => isValidFeeAmountInput(value) || t('invalidFeeAmount') }} render={({ field, fieldState }) => <FormField label={`${t('securityDeposit')} (FCFA)`} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} keyboardType="numeric" error={fieldState.error?.message} />} />
+      <Controller control={control} name="electricityFeeAmount" rules={{ validate: (value) => isValidFeeAmountInput(value) || t('invalidFeeAmount') }} render={({ field, fieldState }) => <FormField label={`${t('electricityFee')} (FCFA)`} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} keyboardType="numeric" error={fieldState.error?.message} />} />
+      <Controller control={control} name="waterFeeAmount" rules={{ validate: (value) => isValidFeeAmountInput(value) || t('invalidFeeAmount') }} render={({ field, fieldState }) => <FormField label={`${t('waterFee')} (FCFA)`} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} keyboardType="numeric" error={fieldState.error?.message} />} />
       <PremiumButton label={save.isPending ? t('saving') : t('saveChanges')} loading={save.isPending} onPress={() => void handleSubmit((values) => save.mutate(values))()} />
       {save.error ? <Text accessibilityRole="alert" style={{ color: palette.errorText }}>{save.error.message}</Text> : null}
     </RouteScreen>
