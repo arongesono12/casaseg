@@ -17,9 +17,9 @@ import { useAppTheme } from '@/providers/theme-context';
 import { formatXaf } from '@/utils/formatters';
 
 const ownerPropertiesCopy = defineCopy({
-  es: { count: '{count} propiedades', loadingTitle: 'Cargando propiedades', loadingBody: 'Estamos preparando tu cartera de publicaciones.', errorTitle: 'No pudimos cargar tus propiedades', errorBody: 'Comprueba la conexión y vuelve a intentarlo.', emptyTitle: 'Tu primera propiedad empieza aquí', emptyBody: 'Crea una publicación completa con fotos, precio y características para llegar a nuevos clientes.', editLabel: 'Editar {title}', verified: 'Verificada', inReview: 'En revisión', template: 'Plantilla de contrato' },
+  es: { count: '{count} viviendas', loadingTitle: 'Cargando viviendas', loadingBody: 'Estamos preparando tu cartera de publicaciones.', errorTitle: 'No pudimos cargar tus viviendas', errorBody: 'Comprueba la conexión y vuelve a intentarlo.', emptyTitle: 'Tu primera vivienda empieza aquí', emptyBody: 'Crea una publicación completa con fotos, precio y características para llegar a nuevos clientes.', editLabel: 'Editar {title}', verified: 'Verificada', inReview: 'En revisión', template: 'Plantilla de contrato' },
   fr: { count: '{count} logements', loadingTitle: 'Chargement des logements', loadingBody: 'Nous préparons votre portefeuille d’annonces.', errorTitle: 'Impossible de charger vos logements', errorBody: 'Vérifiez la connexion et réessayez.', emptyTitle: 'Votre premier logement commence ici', emptyBody: 'Créez une annonce complète avec photos, prix et caractéristiques pour toucher de nouveaux clients.', editLabel: 'Modifier {title}', verified: 'Vérifié', inReview: 'En cours de vérification', template: 'Modèle de contrat' },
-  en: { count: '{count} properties', loadingTitle: 'Loading properties', loadingBody: 'We are preparing your listing portfolio.', errorTitle: 'We could not load your properties', errorBody: 'Check your connection and try again.', emptyTitle: 'Your first property starts here', emptyBody: 'Create a complete listing with photos, price and features to reach new clients.', editLabel: 'Edit {title}', verified: 'Verified', inReview: 'Under review', template: 'Contract template' },
+  en: { count: '{count} homes', loadingTitle: 'Loading homes', loadingBody: 'We are preparing your listing portfolio.', errorTitle: 'We could not load your homes', errorBody: 'Check your connection and try again.', emptyTitle: 'Your first home starts here', emptyBody: 'Create a complete listing with photos, price and features to reach new clients.', editLabel: 'Edit {title}', verified: 'Verified', inReview: 'Under review', template: 'Contract template' },
 });
 
 export default function OwnerProperties() {
@@ -61,10 +61,10 @@ export default function OwnerProperties() {
                     <Text style={[styles.noPhotoText, { color: palette.textSecondary }]}>{t('noPhotos')}</Text>
                   </View>
                 )}
-                <View style={styles.statusOverlay}><StatusPill label={verified ? copy.verified : copy.inReview} tone={verified ? colors.success : colors.warning} icon={verified ? CheckCircle2 : Clock} /></View>
               </View>
               <View style={styles.copy}>
                 <Text numberOfLines={1} style={[styles.title, { color: palette.text }]}>{property.title}</Text>
+                <View style={styles.status}><StatusPill label={verified ? copy.verified : copy.inReview} tone={verified ? colors.success : colors.warning} icon={verified ? CheckCircle2 : Clock} /></View>
                 <View style={styles.meta}><MapPin color={palette.textSecondary} size={15} /><Text numberOfLines={1} style={[styles.location, { color: palette.textSecondary }]}>{property.location}</Text></View>
                 <Text style={[styles.price, { color: palette.text }]}>{formatXaf(property.price, property.priceType, locale)}</Text>
                 <View style={styles.editRow}><Text style={[styles.edit, { color: palette.brandText }]}>{t('editPublication')}</Text><ArrowRight color={palette.brandIcon} size={18} /></View>
@@ -89,12 +89,12 @@ const styles = StyleSheet.create({
   list: { gap: 12 },
   item: { gap: 8 },
   ownership: { gap: 8, alignItems: 'flex-start' },
-  card: { minHeight: 134, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 10, flexDirection: 'row', gap: 13, boxShadow: '0 10px 26px rgba(15,23,42,0.06)' },
-  imageWrap: { width: 126, minHeight: 112, borderRadius: radius.md, overflow: 'hidden' },
-  image: { width: '100%', height: '100%' },
+  card: { width: '100%', minHeight: 134, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 13, boxShadow: '0 10px 26px rgba(15,23,42,0.06)' },
+  imageWrap: { width: 112, height: 112, borderRadius: radius.md, overflow: 'hidden' },
+  image: { width: 112, height: 112 },
   noPhoto: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5 },
   noPhotoText: { fontSize: 11, fontFamily: fontFamily.medium, textAlign: 'center' },
-  statusOverlay: { position: 'absolute', left: 7, top: 7 },
+  status: { alignItems: 'flex-start' },
   copy: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 7 },
   title: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5 },

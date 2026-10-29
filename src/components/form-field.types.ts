@@ -1,9 +1,9 @@
 import type { ReactNode, Ref } from 'react';
-import type { TextInput, TextInputProps } from 'react-native';
+import type { TextInputInstance, TextInputProps } from 'react-native';
 
 export type FormFieldProps = TextInputProps & {
   error?: string;
-  inputRef?: Ref<TextInput>;
+  inputRef?: Ref<TextInputInstance>;
   label: string;
   rightAccessory?: ReactNode;
 };

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
-import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, type ScrollViewInstance, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { RouteScreen } from '@/components/route-screen';
 import {
@@ -124,7 +124,7 @@ export function LegalPage({
   const router = useRouter();
   const { width } = useWindowDimensions();
   const wide = width >= 860;
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const sectionOffsets = useRef<number[]>([]);
   const layoutOffsets = useRef({ screen: 0, document: 0, content: 0, sections: 0 });
 

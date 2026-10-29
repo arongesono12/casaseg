@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Redirect, router, type Href } from 'expo-router';
-import { useRef, useState, type ReactNode } from 'react';
+import { Redirect, router, useLocalSearchParams, type Href } from 'expo-router';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContractsPanel, usePendingSignatureLabel } from '@/components/contracts/contracts-panel';
@@ -31,6 +31,9 @@ import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 
 const PROFILE_MAX_WIDTH = 960;
+
+const PROFILE_TABS: readonly ProfileTab[] = ['profile', 'activity', 'contracts', 'payments', 'settings'];
+const isProfileTab = (value: unknown): value is ProfileTab => PROFILE_TABS.includes(value as ProfileTab);
 
 const profileCopy = defineCopy({
   es: { myVisits: 'Mis visitas', myVisitsBody: 'Consulta y cancela las visitas que has solicitado.', superadmin: 'Superadministrador', admin: 'Administrador', adminEyebrow: 'RESPONSABILIDAD ADMINISTRATIVA', adminPanel: 'Panel de administración', adminPanelBody: 'Supervisa usuarios, roles, publicaciones y revisiones pendientes.', saved: 'Tu perfil se ha actualizado correctamente.', saveFailed: 'No pudimos guardar todos los cambios. Comprueba el perfil e inténtalo de nuevo.', personalInfo: 'Información personal', nameRequired: 'Introduce tu nombre.', nameTooShort: 'Introduce al menos 2 caracteres.', fullName: 'Nombre completo', becomeOwner: 'Hazte propietario', becomeOwnerBody: 'Solicita publicar tus viviendas en CasasEG.' },
@@ -67,11 +70,16 @@ export default function ProfileScreen() {
   const recovery = useRecoveryPhone(savedPhone);
   const insets = useSafeAreaInsets();
   const ownerPanelBleed = Math.max(0, width - insets.left - insets.right - PROFILE_MAX_WIDTH) / 2 + (width < 380 ? 16 : 24);
-  const profileScrollRef = useRef<ScrollView>(null);
+  const profileScrollRef = useRef<ScrollViewInstance>(null);
   const [editing, setEditing] = useState(false);
   const [mediaSaving, setMediaSaving] = useState<'avatars' | 'covers' | null>(null);
   const [mediaError, setMediaError] = useState<string>();
-  const [tab, setTab] = useState<ProfileTab>('profile');
+  // `?tab=payments` llega desde las notificaciones de pago (notificationRoute).
+  const { tab: requestedTab } = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<ProfileTab>(() => (isProfileTab(requestedTab) ? requestedTab : 'profile'));
+  useEffect(() => {
+    if (isProfileTab(requestedTab)) setTab(requestedTab);
+  }, [requestedTab]);
   const pendingSignatureLabel = usePendingSignatureLabel();
 
   if (!user) return <Redirect href="/(auth)/login" />;

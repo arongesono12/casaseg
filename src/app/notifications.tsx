@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { memo, useCallback, useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import { StatusBarScrim } from '@/components/status-bar-scrim';
 import { Bell, CheckCircle2 } from '@/components/ui/icons';
 import { HeroBadge, PremiumHero } from '@/components/ui/premium';
 import { colors, fontFamily, radius, type AppPalette } from '@/constants/theme';
+import { notificationRoute } from '@/features/notifications/notification-route';
 import { fetchNotifications, markNotificationRead, markNotificationsRead, type AppNotification } from '@/features/notifications/notifications.api';
 import { useAuth } from '@/providers/auth-context';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
@@ -25,8 +26,8 @@ const NotificationRow = memo(function NotificationRow({ notification, palette }:
   const openTarget = () => {
     // Si falla, la notificación sigue sin leer en la lista y se puede reintentar: no debe bloquear la navegación.
     if (!notification.read) void markNotificationRead(notification.id).catch(() => undefined);
-    if (notification.conversationId) router.push({ pathname: '/chat/[conversationId]', params: { conversationId: notification.conversationId } });
-    else if (notification.propertyId) router.push({ pathname: '/property/[id]', params: { id: notification.propertyId } });
+    const route = notificationRoute(notification);
+    if (route) router.push(route as Href);
   };
   return <Pressable onPress={openTarget} style={[styles.item, { backgroundColor: palette.surface }]}><View style={[styles.dot, notification.read && styles.dotRead]} /><View style={styles.copy}><Text style={[styles.itemTitle, { color: palette.text }]}>{notification.title}</Text><Text style={[styles.body, { color: palette.textSecondary }]}>{notification.body}</Text>{notification.actorName ? <Text style={[styles.date, { color: palette.textSecondary }]}>Realizado por {notification.actorName} · {notification.actorRole ?? 'sistema'}</Text> : null}<Text style={[styles.date, { color: palette.textSecondary }]}>{formatDate(notification.createdAt)}</Text></View></Pressable>;
 });

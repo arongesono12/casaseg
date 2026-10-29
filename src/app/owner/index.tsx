@@ -1,24 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
-import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StatusBarScrim } from '@/components/status-bar-scrim';
-import { ArrowLeft, Building2, Calendar, ChevronRight, CreditCard, Crown, FileText, Plus, ShieldCheck } from '@/components/ui/icons';
+import { ArrowLeft, Building2, Calendar, ChevronRight, CreditCard, Crown, FileText } from '@/components/ui/icons';
 import { CircleButton, LargeTitle, PremiumButton, StatusPill } from '@/components/ui/premium';
 import { UserAvatar } from '@/components/user-avatar';
 import { fontFamily, radius, spacing, type AppPalette } from '@/constants/theme';
 import { useProfileId } from '@/features/auth/use-profile-id';
 import { fetchOwnerVisitRequests, visitRequestKeys, type VisitRequest } from '@/features/properties/api/visit-requests';
-import { useOwnerProperties } from '@/features/owner/use-owner-properties';
 import { fetchOwnerDashboardStats, fetchOwnerRecentActivity } from '@/features/owner/owner-dashboard.api';
 import { pressRipple } from '@/lib/press-feedback';
 import { useAuth } from '@/providers/auth-context';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
-import { formatDate, formatXaf } from '@/utils/formatters';
+import { formatDate } from '@/utils/formatters';
 
 const ownerHomeCopy = defineCopy({
   es: { propertiesDetail: 'Edita, publica y controla el estado de tus anuncios.', requestsDetail: 'Revisa y responde solicitudes de visita.', paymentsDetail: 'Consulta operaciones y cobros confirmados.', contractsDetail: 'Gestiona documentos, versiones y firmas.', subscriptionDetail: 'Mejora la visibilidad y tus herramientas.', professional: 'Profesional', properties: 'Propiedades', pendingVisits: 'Visitas pendientes', completedPayments: 'Pagos completados', newListing: 'NUEVA PUBLICACIÓN', createDetail: 'Crea un anuncio atractivo con fotos, características y precio.', hubTitle: 'Centro de gestión' },
@@ -52,7 +50,6 @@ export default function OwnerHome() {
   const statsText = useCopy(statsCopy);
   const activityText = useCopy(activityCopy);
   const insets = useSafeAreaInsets();
-  const properties = useOwnerProperties();
   // visit_requests.owner_id guarda el uuid de public.users, no el id de Clerk.
   const profileId = useProfileId();
   const stats = useQuery({ queryKey: ['owner-dashboard', profileId], queryFn: () => fetchOwnerDashboardStats(profileId!), enabled: Boolean(profileId) });
@@ -97,6 +94,19 @@ export default function OwnerHome() {
               );
             })}
           </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cards}>
+            {shown.length ? shown.map((request) => (
+              <Pressable key={request.id} accessibilityRole="button" android_ripple={pressRipple} onPress={() => router.push('/owner/requests' as Href)} style={({ pressed }) => [styles.requestCard, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
+                <Text style={[styles.requestKind, { color: palette.brandText }]}>{isPending(request) ? t('visitRequestLabel') : t('visitConfirmedLabel')}</Text>
+                <Text numberOfLines={2} style={[styles.requestTitle, { color: palette.text }]}>{request.propertyTitle}</Text>
+                <Text style={[styles.caption, { color: palette.textSecondary }]}>{formatDate(request.proposedAt, locale)}</Text>
+              </Pressable>
+            )) : (
+              <View style={[styles.requestCard, styles.emptyCard, { borderColor: palette.border }]}>
+                <Text style={[styles.caption, { color: palette.textSecondary }]}>{requests.isLoading ? t('loading') : t('noVisitRequests')}</Text>
+              </View>
+            )}
+          </ScrollView>
         </View>
 
         <View style={styles.page}>
@@ -147,42 +157,7 @@ export default function OwnerHome() {
           </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cards}>
-          {shown.length ? shown.map((request) => (
-            <Pressable key={request.id} accessibilityRole="button" android_ripple={pressRipple} onPress={() => router.push('/owner/requests' as Href)} style={({ pressed }) => [styles.requestCard, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && styles.pressed]}>
-              <Text style={[styles.requestKind, { color: palette.brandText }]}>{isPending(request) ? t('visitRequestLabel') : t('visitConfirmedLabel')}</Text>
-              <Text numberOfLines={2} style={[styles.requestTitle, { color: palette.text }]}>{request.propertyTitle}</Text>
-              <Text style={[styles.caption, { color: palette.textSecondary }]}>{formatDate(request.proposedAt, locale)}</Text>
-            </Pressable>
-          )) : (
-            <View style={[styles.requestCard, styles.emptyCard, { borderColor: palette.border }]}>
-              <Text style={[styles.caption, { color: palette.textSecondary }]}>{requests.isLoading ? t('loading') : t('noVisitRequests')}</Text>
-            </View>
-          )}
-        </ScrollView>
-
         <View style={styles.page}>
-          <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>{t('yourHomes')}</Text>
-          <View style={styles.homes}>
-            {(properties.data ?? []).map((property) => {
-              const verified = property.legalStatus === 'verified';
-              return (
-                <Pressable key={property.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/owner/property/[id]', params: { id: property.id } })} style={({ pressed }) => [styles.home, pressed && styles.pressed]}>
-                  <Image source={{ uri: property.imageUrls[0] }} contentFit="cover" style={[styles.homeImage, { backgroundColor: palette.subtle }]} />
-                  <View style={styles.flex}>
-                    <Text numberOfLines={1} style={[styles.homeTitle, { color: palette.text }]}>{property.title}</Text>
-                    <View style={styles.homeStatus}>
-                      <ShieldCheck color={verified ? palette.brandIcon : palette.textSecondary} size={15} />
-                      <Text style={[styles.caption, { color: verified ? palette.brandText : palette.textSecondary }]}>{t(verified ? 'legalVerified' : property.legalStatus === 'pending' ? 'legalPending' : 'legalRestricted')}</Text>
-                    </View>
-                    <Text numberOfLines={1} style={[styles.caption, { color: palette.textSecondary }]}>{formatXaf(property.price, property.priceType, locale)}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-          <PremiumButton label={t('publishHome')} icon={Plus} variant="secondary" onPress={() => router.push('/owner/property/create')} />
-
           <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>{copy.hubTitle}</Text>
           <View style={[styles.links, { borderColor: palette.border, backgroundColor: palette.surface }]}>
             {links.map((link, index) => <ManageRow key={String(link.href)} link={link} palette={palette} first={index === 0} />)}
@@ -226,18 +201,14 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 8 },
   segment: { minHeight: 40, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 16, justifyContent: 'center', overflow: 'hidden' },
   segmentText: { fontSize: 14, fontFamily: fontFamily.semibold },
-  cards: { gap: 12, paddingHorizontal: spacing.xxl },
+  cards: { gap: 12 },
   requestCard: { width: 250, minHeight: 128, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', padding: 16, gap: 6, overflow: 'hidden', boxShadow: '0 4px 14px rgba(15,23,42,0.06)' },
   emptyCard: { justifyContent: 'center', boxShadow: 'none', borderStyle: 'dashed', borderWidth: 1 },
   requestKind: { fontSize: 13, fontFamily: fontFamily.bold },
   requestTitle: { fontSize: 17, lineHeight: 22, fontFamily: fontFamily.bold },
   caption: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20 },
   sectionTitle: { fontSize: 22, lineHeight: 28, fontFamily: fontFamily.bold, marginTop: spacing.sm },
-  homes: { gap: spacing.lg },
-  home: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  homeImage: { width: 88, height: 88, borderRadius: radius.md },
   homeTitle: { fontSize: 16, lineHeight: 21, fontFamily: fontFamily.bold },
-  homeStatus: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   links: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.xl, borderCurve: 'continuous', overflow: 'hidden' },
   link: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
   linkText: { fontFamily: fontFamily.regular, flex: 1, fontSize: 16 },

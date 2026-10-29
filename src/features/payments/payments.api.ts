@@ -4,10 +4,14 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
+import type { LeaseContract } from '@/features/contracts/lease-contract.model';
+import { loadPrint } from '@/lib/optional-native-modules';
 import { isSupabaseConfigured, refreshClerkToken, supabase } from '@/lib/supabase';
-import { mapPaymentOrder, ORDER_COLUMNS, type PaymentOrder } from '@/features/payments/payment-order-state';
+import { canDownloadPaymentTicket, mapPaymentOrder, ORDER_COLUMNS, type PaymentOrder } from '@/features/payments/payment-order-state';
+import { buildPaymentTicketData, buildPaymentTicketHtml, type PaymentTicketLabels } from '@/features/payments/payment-ticket';
 
 export {
+  canDownloadPaymentTicket,
   canTenantCancelPayment,
   canTenantHidePayment,
   isCancellablePaymentStatus,
@@ -205,6 +209,21 @@ export async function openPaymentCheckout(order: PaymentOrder): Promise<PaymentC
   if (!order.checkoutUrl) throw new Error('El proveedor no devolvió una URL de pago.');
   await WebBrowser.openAuthSessionAsync(order.checkoutUrl, Linking.createURL('/payment/success'));
   return confirmPaymentAfterReturn(order.id);
+}
+
+/**
+ * Ticket de pago en PDF de una orden pagada, como «Descargar ticket» de la web.
+ * Se abre en el diálogo del sistema, desde donde se guarda o comparte el PDF.
+ */
+export async function openPaymentTicket(
+  order: PaymentOrder,
+  contract: LeaseContract | null,
+  labels: PaymentTicketLabels,
+  options: { methodLabel: string; locale: string },
+): Promise<void> {
+  if (!canDownloadPaymentTicket(order)) throw new Error('El ticket solo está disponible para pagos completados.');
+  const Print = await loadPrint();
+  await Print.printAsync({ html: buildPaymentTicketHtml(buildPaymentTicketData(order, contract), labels, options) });
 }
 
 /**

@@ -110,6 +110,11 @@ function PropertyCardComponent({ property, compact = false, shortViewport = fals
 
           <View pointerEvents="none" style={styles.pill}>
             <LegalPill status={property.legalStatus} labels={{ verified: t('legalVerified'), pending: t('legalPending'), restricted: t('legalRestricted') }} />
+            {property.isOccupied && (
+              <View style={styles.occupiedPill}>
+                <Text style={styles.occupiedText}>{t('occupied')}</Text>
+              </View>
+            )}
           </View>
 
           {images.length > 1 && (
@@ -161,7 +166,9 @@ const styles = StyleSheet.create({
   imageFrameShort: { aspectRatio: 1.6 },
   noPhoto: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   noPhotoText: { fontSize: 13, fontFamily: fontFamily.medium },
-  pill: { position: 'absolute', left: 12, top: 12 },
+  pill: { position: 'absolute', left: 12, top: 12, alignItems: 'flex-start', gap: 6 },
+  occupiedPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.92)' },
+  occupiedText: { fontSize: 12, fontFamily: fontFamily.semibold, color: '#92400E' },
   favorite: { position: 'absolute', right: 4, top: 4, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   dots: { position: 'absolute', alignSelf: 'center', bottom: 12, flexDirection: 'row', gap: 5 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.6)' },

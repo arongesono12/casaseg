@@ -26,13 +26,20 @@ export type PaymentOrder = {
   expiresAt?: string;
   failureReason?: PaymentFailureReason;
   cancelledAt?: string;
+  serviceFeeAmount: number;
+  cleaningFeeAmount: number;
+  taxAmount: number;
+  securityDepositAmount: number;
   electricityFeeAmount: number;
   waterFeeAmount: number;
+  providerReference?: string;
+  completedAt?: string;
+  updatedAt?: string;
   /** El inquilino ocultó este intento fallido de su historial. */
   hiddenByTenantAt?: string;
 };
 
-export const ORDER_COLUMNS = 'id,contract_id,tenant_id,owner_id,amount,total_due,currency,payment_method,status,payment_reference,checkout_url,instructions,expires_at,failure_reason,cancelled_at,electricity_fee_amount,water_fee_amount,hidden_by_tenant_at';
+export const ORDER_COLUMNS = 'id,contract_id,tenant_id,owner_id,amount,total_due,currency,payment_method,status,payment_reference,checkout_url,instructions,expires_at,failure_reason,cancelled_at,electricity_fee_amount,water_fee_amount,hidden_by_tenant_at,service_fee_amount,cleaning_fee_amount,tax_amount,security_deposit_amount,provider_reference,completed_at,updated_at';
 
 const knownStatuses: readonly PaymentOrderStatus[] = ['pending', 'awaiting_review', 'processing', 'completed', 'failed', 'cancelled', 'expired'];
 const knownFailureReasons: readonly PaymentFailureReason[] = ['cancelled_by_tenant', 'declined_by_payer', 'insufficient_funds', 'provider_declined', 'expired'];
@@ -69,10 +76,22 @@ export function mapPaymentOrder(row: PaymentOrderRow): PaymentOrder {
     expiresAt: optionalText(row.expires_at),
     failureReason,
     cancelledAt: optionalText(row.cancelled_at),
+    serviceFeeAmount: Number(row.service_fee_amount) || 0,
+    cleaningFeeAmount: Number(row.cleaning_fee_amount) || 0,
+    taxAmount: Number(row.tax_amount) || 0,
+    securityDepositAmount: Number(row.security_deposit_amount) || 0,
     electricityFeeAmount: Number(row.electricity_fee_amount) || 0,
     waterFeeAmount: Number(row.water_fee_amount) || 0,
+    providerReference: optionalText(row.provider_reference),
+    completedAt: optionalText(row.completed_at),
+    updatedAt: optionalText(row.updated_at),
     hiddenByTenantAt: optionalText(row.hidden_by_tenant_at),
   };
+}
+
+/** El ticket de pago solo existe cuando el proveedor ha confirmado el cobro (igual que la web). */
+export function canDownloadPaymentTicket(order: PaymentOrder): boolean {
+  return order.status === 'completed';
 }
 
 /** Intentos que el inquilino puede ocultar: los que no llegaron a cobrarse. */

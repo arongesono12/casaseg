@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, type TextInputInstance, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { z } from 'zod';
 import { AdaptiveKeyboardView } from '@/components/adaptive-keyboard-view';
@@ -43,7 +43,7 @@ export default function LoginScreen() {
   const [correoIntentado, setCorreoIntentado] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
   const { height, width } = useWindowDimensions();
   const compact = height < 760 || width < 380;
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginValues>({

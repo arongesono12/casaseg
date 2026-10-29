@@ -1,6 +1,6 @@
 import { Host, TextInput, useNativeState, type ObservableState } from '@expo/ui';
 import { useEffect, useState } from 'react';
-import type { NativeSyntheticEvent, StyleProp, TextInputFocusEventData, ViewStyle } from 'react-native';
+import type { StyleProp, TextInputBlurEvent, TextInputFocusEvent, ViewStyle } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { FallbackFormField } from './form-field-base';
@@ -18,7 +18,7 @@ function syncNativeText(state: ObservableState<string>, value: string) {
   if (state.value !== value) state.value = value;
 }
 
-/** SDK 57's universal input renders SwiftUI on iOS and Compose on Android. */
+/** SDK 58's universal input renders SwiftUI on iOS and Compose on Android. */
 export function FormField({ error, inputRef, label, rightAccessory, ...inputProps }: FormFieldProps) {
   const { palette, resolvedMode } = useAppTheme();
   const [focused, setFocused] = useState(false);
@@ -37,9 +37,8 @@ export function FormField({ error, inputRef, label, rightAccessory, ...inputProp
 
   const emitFocus = (nextFocused: boolean) => {
     setFocused(nextFocused);
-    const event = {} as NativeSyntheticEvent<TextInputFocusEventData>;
-    if (nextFocused) inputProps.onFocus?.(event);
-    else inputProps.onBlur?.(event);
+    if (nextFocused) inputProps.onFocus?.({} as TextInputFocusEvent);
+    else inputProps.onBlur?.({} as TextInputBlurEvent);
   };
 
   return (

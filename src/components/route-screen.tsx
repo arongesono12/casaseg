@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft } from '@/components/ui/icons';
 import { CircleButton, LargeTitle } from '@/components/ui/premium';
 import type { ReactNode, RefObject } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ScrollView, type ScrollViewInstance, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StatusBarScrim } from '@/components/status-bar-scrim';
@@ -18,7 +18,7 @@ type RouteScreenProps = {
   showHero?: boolean;
   headerContent?: ReactNode;
   maxWidth?: number;
-  scrollRef?: RefObject<ScrollView | null>;
+  scrollRef?: RefObject<ScrollViewInstance | null>;
   /**
    * Cabecera propia a sangre (sustituye al título). Se dibuja de borde a borde
    * desde el borde superior y debe reservar ella misma el inset superior.

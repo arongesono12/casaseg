@@ -192,7 +192,7 @@ export default function ExploreScreen() {
           : propertyQuery.isError
             ? <PremiumErrorState title={t('exploreErrorTitle')} description={t('propertyLoadError')} onRetry={() => void propertyQuery.refetch()} />
             : <PremiumEmptyState icon={Home} title={t('exploreEmptyTitle')} description={t('noPropertyResults')} actionLabel={t('changeFilters')} onAction={() => sheetRef.current?.present()} />}
-        ListFooterComponent={propertyQuery.isFetchingNextPage ? <View style={styles.pageLoader}><ActivityIndicator color={palette.brandIcon} /><Text style={[styles.pageLoaderText, { color: palette.textSecondary }]}>{t('loadingMoreProperties')}</Text></View> : null}
+        ListFooterComponent={propertyQuery.isFetchingNextPage ? <View style={styles.pageLoader}><ActivityIndicator color={palette.brandIcon} /><Text style={[styles.pageLoaderText, { color: palette.textSecondary }]}>{t('loadingMoreProperties')}</Text></View> : undefined}
         contentContainerStyle={[styles.listContent, { backgroundColor: palette.surface, paddingBottom: Platform.OS === 'android' ? 88 : 140 }]}
         columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
         contentInsetAdjustmentBehavior="automatic"

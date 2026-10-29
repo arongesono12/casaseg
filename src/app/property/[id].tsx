@@ -204,10 +204,13 @@ export default function PropertyDetailScreen() {
       : property.priceType === "per_night"
         ? copy.shortTerm
         : copy.sale;
+  // Seguir una vivienda ocupada = tenerla en favoritos: al quedar libre llega el aviso.
   const actionLabel = isOwnProperty
     ? t("editProperty")
     : property.isOccupied
-      ? t("waitingList")
+      ? isFavorite
+        ? copy.notifyingWhenAvailable
+        : copy.notifyWhenAvailable
       : copy.reserveVisit;
   const contactLabel = conversationId
     ? t("openConversation")
@@ -224,10 +227,7 @@ export default function PropertyDetailScreen() {
         params: { id: property.id },
       });
     } else if (property.isOccupied) {
-      router.push({
-        pathname: "/chat/[conversationId]",
-        params: { conversationId: conversationId ?? `property-${property.id}` },
-      });
+      if (!isFavorite) toggleFavorite();
     } else {
       router.push({
         pathname: "/visit/[propertyId]",

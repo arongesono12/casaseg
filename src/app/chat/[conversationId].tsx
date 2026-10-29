@@ -310,7 +310,7 @@ export default function ChatScreen() {
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.messages}
-            ListEmptyComponent={messages.isLoading ? null : (
+            ListEmptyComponent={messages.isLoading ? undefined : (
               // Lista invertida: el vacío también se dibuja invertido.
               <View style={[styles.emptyWrap, styles.flipped]}>
                 <View style={[styles.dayPill, { backgroundColor: chat.dayPill }]}>

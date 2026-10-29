@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { Alert, AppState, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { AlertCircle, CheckCircle2, Clock, CreditCard, ExternalLink, Inbox, Wallet, XCircle } from '@/components/ui/icons';
+import { AlertCircle, CheckCircle2, Clock, CreditCard, Download, ExternalLink, Inbox, Wallet, XCircle } from '@/components/ui/icons';
 import { IconTile, MetricCard, PremiumButton, PremiumEmptyState, PremiumErrorState, SectionTitle, StatusPill } from '@/components/ui/premium';
 import { colors, fontFamily, radius, touchTarget, withAlpha } from '@/constants/theme';
 import { BankTransferProofForm } from '@/components/payments/bank-transfer-proof-form';
@@ -15,6 +15,7 @@ import { useAuth } from '@/providers/auth-context';
 import { contractKeys, fetchContracts } from '@/features/contracts/contracts.api';
 import {
   cancelRentalPayment,
+  canDownloadPaymentTicket,
   canTenantCancelPayment,
   canTenantHidePayment,
   confirmPaymentAfterReturn,
@@ -23,6 +24,7 @@ import {
   isHiddenByTenant,
   isOpenPaymentStatus,
   openPaymentCheckout,
+  openPaymentTicket,
   paymentKeys,
   paymentProviderLabels,
   paymentProviders,
@@ -34,6 +36,7 @@ import {
   type PaymentOrder,
   type PaymentProvider,
 } from '@/features/payments/payments.api';
+import { PAYMENT_TICKET_LOCALES, paymentTicketLabels } from '@/features/payments/payment-ticket';
 import { defineCopy, interpolate, useCopy, useI18n } from '@/providers/i18n-context';
 import { useAppTheme } from '@/providers/theme-context';
 import { formatXaf } from '@/utils/formatters';
@@ -45,6 +48,12 @@ const paymentsCopy = defineCopy({
   en: { completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled', expired: 'Expired', awaitingReview: 'Under review', processing: 'Processing', pending: 'Pending', acceptCharges: 'I accept the charges breakdown and the cancellation policy for this home.', noPayableContract: 'There is no signed contract awaiting payment.', operations: 'Transactions', completedMetric: 'Completed', confirmedTotal: 'Confirmed total', paymentMethod: 'Payment method', phoneLabel: 'Phone number for the payment', checkingContracts: 'Checking contracts…', chargeContract: 'The contract for {title} will be charged.', historyTitle: 'Transaction history', historyDetail: 'Statuses confirmed directly by the provider.', inProgress: '{count} in progress', loadingTitle: 'Loading transactions', loadingBody: 'We are checking the latest statuses.', errorTitle: 'We could not load the payments', errorBody: 'Check your connection and try again.', emptyTitle: 'No transactions yet', emptyBody: 'When you make or receive a payment, its verified status will appear here.', continuePayment: 'Continue payment', cancelPayment: 'Cancel payment', cancelling: 'Cancelling…', confirmCancelTitle: 'Cancel this payment?', confirmCancelMessage: 'The provider will stop accepting this charge and you will not be charged. You can start a new payment at any time.', keepPayment: 'Keep payment', cancelSuccess: 'Payment cancelled.', returnConfirming: 'Confirming your payment with the provider…', returnConfirmed: 'Payment confirmed. Your rent is now marked as paid.', returnPending: 'Your payment is being processed. It will update as soon as the provider confirms it.', returnCancelled: 'The payment was not completed. Nothing was charged; you can try again.', insufficientFundsTenant: 'The payment provider could not charge you: your account has insufficient funds. Top up and press "Continue payment", or cancel the payment.', insufficientFundsOwner: 'The payment provider reports that the tenant had insufficient funds. The payment is still pending.', cancelledByTenant: 'Cancelled by the tenant', declinedByPayer: 'Declined at the provider', hideAttempt: 'Hide attempt', showAttempt: 'Show again', showHidden: 'Show {count} hidden attempts', hideHidden: 'Hide hidden attempts', hiddenTag: 'Hidden from your history' },
 });
 type PaymentsCopy = (typeof paymentsCopy)['es'];
+// Mismos textos que rentalPayments.downloadTicket/downloadingTicket/ticketError de la web.
+const ticketCopy = defineCopy({
+  es: { download: 'Descargar ticket', downloading: 'Generando ticket…', error: 'No se pudo generar el ticket de pago.' },
+  fr: { download: 'Télécharger le reçu', downloading: 'Génération du reçu…', error: 'Impossible de générer le reçu de paiement.' },
+  en: { download: 'Download receipt', downloading: 'Generating receipt…', error: 'The payment receipt could not be generated.' },
+});
 const taxCopy = defineCopy({ es: { export: 'Exportar informe fiscal CSV', error: 'No se pudo generar el informe fiscal.' }, fr: { export: 'Exporter le rapport fiscal CSV', error: 'Impossible de générer le rapport fiscal.' }, en: { export: 'Export tax report CSV', error: 'Could not generate the tax report.' } });
 
 /** Máximo de órdenes que se confirman al volver a primer plano (cada una consulta al proveedor). */
@@ -83,6 +92,7 @@ export function PaymentsPanel() {
   const { locale, t } = useI18n();
   const copy = useCopy(paymentsCopy);
   const tax = useCopy(taxCopy);
+  const ticket = useCopy(ticketCopy);
   const client = useQueryClient();
   const profileId = useProfileId();
   const { role } = useAuth();
@@ -163,6 +173,17 @@ export function PaymentsPanel() {
     return () => subscription.remove();
   }, [profileId, client]);
 
+  // El contrato aporta las partes y la vivienda; sin él el ticket sigue saliendo con lo que tiene la orden.
+  const downloadTicket = useMutation({
+    retry: false,
+    mutationFn: (order: PaymentOrder) => openPaymentTicket(
+      order,
+      contracts.data?.find((contract) => contract.id === order.contractId) ?? null,
+      paymentTicketLabels[locale],
+      { methodLabel: paymentProviderLabels[order.provider as PaymentProvider] ?? order.provider, locale: PAYMENT_TICKET_LOCALES[locale] },
+    ),
+  });
+
   const exportTax = useMutation({
     retry: false,
     mutationFn: async () => {
@@ -172,7 +193,8 @@ export function PaymentsPanel() {
   });
 
   const completed = (orders.data ?? []).filter((order) => order.status === 'completed');
-  const total = completed.reduce((sum, order) => sum + order.amount, 0);
+  // Lo cobrado es lo que pagó el inquilino (renta + cargos), igual que la lista.
+  const total = completed.reduce((sum, order) => sum + order.totalDue, 0);
   const pending = (orders.data ?? []).filter((order) => isOpenPaymentStatus(order.status)).length;
   const missingPhone = providerRequiresPhone(provider) && !phone.trim();
   const busy = pay.isPending || resume.isPending;
@@ -297,6 +319,11 @@ export function PaymentsPanel() {
                   <PremiumButton variant="danger" label={cancelling ? copy.cancelling : copy.cancelPayment} icon={XCircle} loading={cancelling} disabled={busy || cancelling} onPress={() => confirmCancel(order)} style={styles.orderAction} />
                 </View>
               ) : null}
+              {canDownloadPaymentTicket(order) ? (
+                <View style={styles.orderActions}>
+                  <PremiumButton variant="secondary" label={downloadTicket.isPending && downloadTicket.variables?.id === order.id ? ticket.downloading : ticket.download} icon={Download} loading={downloadTicket.isPending && downloadTicket.variables?.id === order.id} disabled={downloadTicket.isPending} onPress={() => downloadTicket.mutate(order)} style={styles.orderAction} />
+                </View>
+              ) : null}
               {canTenantHidePayment(order, profileId) ? (
                 <View style={styles.orderActions}>
                   {order.hiddenByTenantAt ? <Text style={[styles.hiddenTag, { color: palette.textSecondary }]}>{copy.hiddenTag}</Text> : null}
@@ -310,6 +337,7 @@ export function PaymentsPanel() {
       </View>
       {pay.error ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{pay.error.message}</Text> : null}
       {resume.error ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{resume.error.message}</Text> : null}
+      {downloadTicket.error ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{ticket.error} {downloadTicket.error.message}</Text> : null}
       {hide.error ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.errorText }]}>{hide.error.message}</Text> : null}
     </View>
   );

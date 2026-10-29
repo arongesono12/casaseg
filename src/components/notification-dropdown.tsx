@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Bell, CheckCircle2, Trash2, X } from '@/components/ui/icons';
 import { colors, fontFamily, radius } from '@/constants/theme';
+import { notificationRoute } from '@/features/notifications/notification-route';
 import { deleteNotification, fetchNotifications, markNotificationRead, markNotificationsRead, type AppNotification } from '@/features/notifications/notifications.api';
 import { defineCopy, useCopy, useI18n } from '@/providers/i18n-context';
 import { useNotifications } from '@/providers/notification-context';
@@ -65,13 +66,10 @@ export function NotificationDropdown({ userId, visible, onClose, anchorRight }: 
 
   const openNotification = (notification: AppNotification) => {
     if (!notification.read) markOne.mutate(notification.id);
-    if (notification.conversationId) {
-      onClose();
-      router.push({ pathname: '/chat/[conversationId]', params: { conversationId: notification.conversationId } });
-    } else if (notification.propertyId) {
-      onClose();
-      router.push({ pathname: '/property/[id]', params: { id: notification.propertyId } });
-    }
+    const route = notificationRoute(notification);
+    if (!route) return;
+    onClose();
+    router.push(route as Href);
   };
 
   return (
